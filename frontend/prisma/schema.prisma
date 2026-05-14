@@ -1,0 +1,211 @@
+// AI漫剧工厂 - Prisma数据库模式
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  role      String   @default("user") // admin, editor, user
+  status    String   @default("active") // active, disabled
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  projects             Project[]
+  novelFiles           NovelFile[]
+  disclaimerAgreements DisclaimerAgreement[]
+}
+
+model Project {
+  id             String   @id @default(uuid())
+  userId         String
+  name           String
+  description    String?
+  genre          String // scifi, fantasy, urban, ancient, mystery, romance, xianxia, horror
+  targetAudience String // all_age, teen, adult
+  style          String // scifi-real, anime, ink, comic, pixel, 3d, sketch, custom
+  styleTags      String[] @default([]) // ["赛博朋克", "太空歌剧", ...]
+  aspectRatio    String   @default("16:9")
+  width          Int      @default(1024)
+  height         Int      @default(576)
+  llmModel       String   @default("gpt4o")
+  t2iModel       String   @default("sdxl")
+  i2vModel       String   @default("runway")
+  samplingSteps  Int      @default(30)
+  cfgScale       Float    @default(7.0)
+  shareAssets    Boolean  @default(true)
+  status         String   @default("draft") // draft, active, completed, trashed
+  isStarred      Boolean  @default(false)
+  coverUrl       String?
+  coverWidth     Int?
+  coverHeight    Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episodes   Episode[]
+  novelFiles NovelFile[]
+  assets     Asset[]
+
+  @@unique([userId, name])
+  @@index([userId, isStarred])
+}
+
+model Episode {
+  id         String   @id @default(uuid())
+  projectId  String
+  title      String
+  summary    String?
+  orderIndex Int      @default(0)
+  status     String   @default("pending") // pending, in_progress, completed
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assets    AssetEpisode[] @relation("AssetEpisodes")
+
+  @@index([projectId, orderIndex])
+}
+
+model AIModel {
+  id          String  @id @default(uuid())
+  type        String // llm, t2i, i2v
+  code        String  @unique // gpt4o, sdxl, runway
+  name        String
+  provider    String // openai, anthropic, deepseek, custom
+  description String?
+  endpoint    String // API 端点 URL
+  apiKey      String? // 加密存储
+  modelName   String? // API中使用的模型名
+  modelId     String? // API调用时实际使用的模型ID/名称
+  status      String  @default("offline") // online, offline, testing
+  env         String  @default("prod") // prod, test, dev
+
+  // LLM专属
+  maxTokens    Int?
+  temperature  Float?
+  systemPrompt String?
+
+  // T2I专属
+  resolution String?
+  quality    String?
+
+  // I2V专属
+  duration Int?
+  fps      Int?
+
+  // 高级配置
+  timeout       Int     @default(30)
+  retry         Int     @default(3)
+  proxy         String?
+  customHeaders String? // JSON
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model NovelFile {
+  id             String   @id @default(uuid())
+  userId         String
+  projectId      String?
+  name           String // stored filename
+  originalName   String // original uploaded filename
+  title          String? // novel title (metadata)
+  author         String? // author name (metadata)
+  genre          String? // genre (metadata)
+  style          String? // style preference (metadata)
+  path           String // file path on disk
+  size           Int // file size in bytes
+  format         String // txt, md
+  estimatedWords Int // estimated word count
+  status         String   @default("uploaded") // uploaded, processing, completed, error
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project             Project?             @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  disclaimerAgreement DisclaimerAgreement?
+  splitStrategyConfig SplitStrategyConfig?
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([status])
+}
+
+model SplitStrategyConfig {
+  id                   String   @id @default(uuid())
+  fileId               String   @unique
+  strategy             String // balanced, quality, speed, custom
+  targetEpisodes       Int
+  shotRangeMin         Int      @default(50)
+  shotRangeMax         Int      @default(100)
+  keepChapterIntegrity Boolean  @default(true)
+  specialFirstLast     Boolean  @default(true)
+  preserveNarrative    Boolean  @default(false)
+  customPrompt         String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relations
+  file NovelFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+}
+
+model DisclaimerAgreement {
+  id        String   @id @default(uuid())
+  fileId    String   @unique
+  userId    String
+  agreed    Boolean  @default(true)
+  agreedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  file NovelFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Asset {
+  id          String   @id @default(uuid())
+  projectId   String
+  name        String
+  type        String   // character, scene, prop
+  prompt      String
+  description String?
+  imageUrl    String?
+  status      String   @default("pending") // pending, generated, approved, rejected
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  project  Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  episodes AssetEpisode[]
+
+  @@index([projectId, type])
+  @@index([projectId])
+}
+
+model AssetEpisode {
+  id        String   @id @default(uuid())
+  assetId   String
+  episodeId String
+  createdAt DateTime @default(now())
+
+  // Relations
+  asset   Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  episode Episode  @relation("AssetEpisodes", fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, episodeId])
+  @@index([assetId])
+  @@index([episodeId])
+}

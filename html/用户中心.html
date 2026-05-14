@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI漫剧平台 - 用户与管理中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'Noto Sans SC', 'sans-serif'] },
+                    colors: {
+                        primary: '#6366f1', secondary: '#8b5cf6', accent: '#ec4899',
+                        cyan: '#06b6d4', emerald: '#10b981', amber: '#f59e0b', rose: '#f43f5e',
+                        dark: '#0f172a', darker: '#020617', surface: '#1e293b', 'surface-light': '#334155',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', 'Noto Sans SC', sans-serif; background: #020617; color: #e2e8f0; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+        .glass-panel-strong { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
+        .nav-item { transition: all 0.2s; position: relative; }
+        .nav-item:hover { background: rgba(99,102,241,0.08); color: #e2e8f0; }
+        .nav-item.active { background: linear-gradient(90deg, rgba(99,102,241,0.15), transparent); color: #818cf8; border-right: 2px solid #6366f1; }
+        .nav-item.active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 20px; background: #6366f1; border-radius: 0 4px 4px 0; }
+        .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .stat-card { background: linear-gradient(135deg, rgba(30,41,59,0.8), rgba(15,23,42,0.6)); border: 1px solid rgba(255,255,255,0.06); }
+        .table-row { transition: all 0.15s; }
+        .table-row:hover { background: rgba(99,102,241,0.04); }
+        .tag-role { background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.25); color: #818cf8; }
+        .tag-admin { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.25); color: #fbbf24; }
+        .tag-user { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.25); color: #34d399; }
+        .tag-disabled { background: rgba(244,63,94,0.12); border: 1px solid rgba(244,63,94,0.25); color: #fb7185; }
+        .btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); transition: all 0.2s; }
+        .btn-primary:hover { box-shadow: 0 0 20px rgba(99,102,241,0.4); transform: translateY(-1px); }
+        .btn-success { background: linear-gradient(135deg, #10b981, #059669); transition: all 0.2s; }
+        .btn-success:hover { box-shadow: 0 0 20px rgba(16,185,129,0.4); transform: translateY(-1px); }
+        .modal-overlay { background: rgba(2,6,23,0.85); backdrop-filter: blur(12px); }
+        .modal-content { animation: modalIn 0.3s cubic-bezier(0.4,0,0.2,1); }
+        @keyframes modalIn { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .switch { position: relative; width: 40px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; inset: 0; background: #334155; transition: .3s; border-radius: 22px; }
+        .slider::before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background: #6366f1; }
+        input:checked + .slider::before { transform: translateX(18px); }
+        .plan-card { transition: all 0.3s; cursor: pointer; border: 1px solid rgba(255,255,255,0.06); }
+        .plan-card:hover { transform: translateY(-4px); border-color: rgba(99,102,241,0.4); box-shadow: 0 12px 40px rgba(99,102,241,0.15); }
+        .plan-card.selected { border-color: #6366f1; background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.05)); box-shadow: 0 0 0 2px rgba(99,102,241,0.3); }
+        .credit-display { background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.1), rgba(236,72,153,0.08)); border: 1px solid rgba(99,102,241,0.2); }
+        .progress-bar { background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899); }
+        .toast { animation: toastIn 0.4s cubic-bezier(0.4,0,0.2,1); }
+        @keyframes toastIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .permission-tag { background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2); }
+        .permission-tag.disabled { background: rgba(51,65,85,0.3); border: 1px solid rgba(255,255,255,0.05); color: #64748b; }
+        .tier-badge { background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(251,191,36,0.1)); border: 1px solid rgba(245,158,11,0.3); color: #fbbf24; }
+        .permission-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+        @media (max-width: 640px) { .permission-grid { grid-template-columns: 1fr; } }
+        .qr-placeholder { background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px dashed rgba(99,102,241,0.3); }
+        .payment-success { animation: successPop 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+        @keyframes successPop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .shimmer { position: relative; overflow: hidden; }
+        .shimmer::after { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent); animation: shimmer 2s infinite; }
+        @keyframes shimmer { 100% { left: 100%; } }
+        .tab-btn { transition: all 0.2s; }
+        .tab-btn.active { background: rgba(99,102,241,0.15); color: #818cf8; border-color: rgba(99,102,241,0.3); }
+        .chart-bar { transition: height 1s ease; }
+    </style>
+</head>
+<body class="h-screen overflow-hidden bg-darker">
+
+    <div class="flex h-full">
+        <!-- 左侧导航 -->
+        <aside class="w-64 glass-panel border-r border-white/5 flex flex-col z-30">
+            <div class="h-16 flex items-center gap-3 px-6 border-b border-white/5">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/30">
+                    <i class="fas fa-user-gear text-white text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="text-sm font-bold text-white">用户中心</h1>
+                    <p class="text-[10px] text-slate-500" id="navSubtitle">个人版</p>
+                </div>
+            </div>
+
+            <!-- 视角切换 -->
+            <div class="px-4 pt-4 pb-2">
+                <div class="flex items-center gap-2 p-1 bg-surface rounded-xl border border-white/5">
+                    <button onclick="setViewMode('personal')" id="view-personal" class="flex-1 py-2 rounded-lg text-xs font-medium transition-all bg-primary/20 text-primary border border-primary/30">
+                        <i class="fas fa-user mr-1"></i>个人
+                    </button>
+                    <button onclick="setViewMode('admin')" id="view-admin" class="flex-1 py-2 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white">
+                        <i class="fas fa-shield-halved mr-1"></i>管理
+                    </button>
+                </div>
+            </div>
+
+            <nav class="flex-1 py-2 space-y-1 custom-scroll overflow-y-auto" id="sidebarNav">
+                <!-- 个人视角 -->
+                <div id="nav-group-personal">
+                    <div class="px-6 py-2 text-[10px] text-slate-600 uppercase tracking-wider font-medium">个人</div>
+                    <button onclick="switchPage('profile')" id="nav-profile" class="nav-item active w-full flex items-center gap-3 px-6 py-3 text-sm text-slate-400">
+                        <i class="fas fa-id-card w-5 text-center"></i><span>个人中心</span>
+                    </button>
+                    <button onclick="switchPage('my-credits')" id="nav-my-credits" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-sm text-slate-400">
+                        <i class="fas fa-wallet w-5 text-center"></i><span>我的积分</span>
+                    </button>
+                    <button onclick="switchPage('my-permissions')" id="nav-my-permissions" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-sm text-slate-400">
+                        <i class="fas fa-user-shield w-5 text-center"></i><span>我的权限</span>
+                    </button>
+                </div>
+
+                <!-- 管理员视角 -->
+                <div id="nav-group-admin" class="hidden">
+                    <div class="px-6 py-2 text-[10px] text-slate-600 uppercase tracking-wider font-medium">团队管理</div>
+                    <button onclick="switchPage('users')" id="nav-users" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-sm text-slate-400">
+                        <i class="fas fa-users w-5 text-center"></i><span>用户管理</span>
+                        <span class="ml-auto text-xs px-2 py-0.5 rounded-full bg-white/5 text-slate-500" id="adminUserCount">4</span>
+                    </button>
+                    <button onclick="switchPage('credits-admin')" id="nav-credits-admin" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-sm text-slate-400">
+                        <i class="fas fa-coins w-5 text-center"></i><span>积分总览</span>
+                    </button>
+                    <button onclick="switchPage('permissions-admin')" id="nav-permissions-admin" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-sm text-slate-400">
+                        <i class="fas fa-sliders w-5 text-center"></i><span>权限配置</span>
+                    </button>
+                    <button onclick="switchPage('logs')" id="nav-logs" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-sm text-slate-400">
+                        <i class="fas fa-file-lines w-5 text-center"></i><span>操作日志</span>
+                    </button>
+                </div>
+            </nav>
+
+            <!-- 返回工作台导航 -->
+            <div class="px-4 py-3 border-t border-white/5">
+                <div class="text-[10px] text-slate-600 uppercase tracking-wider font-medium px-2 mb-2">工作台导航</div>
+                <div class="space-y-0.5">
+                    <a href="项目列表.html" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-xs font-medium transition-all">
+                        <i class="fas fa-folder w-4 text-center text-slate-500"></i><span>项目列表</span>
+                    </a>
+                    <a href="创建项目.html" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-xs font-medium transition-all">
+                        <i class="fas fa-plus w-4 text-center text-slate-500"></i><span>创建项目</span>
+                    </a>
+                    <a href="小说上传-分集与资产提取.html" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-xs font-medium transition-all">
+                        <i class="fas fa-upload w-4 text-center text-slate-500"></i><span>小说上传</span>
+                    </a>
+                    <a href="分集.html" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-xs font-medium transition-all">
+                        <i class="fas fa-list w-4 text-center text-slate-500"></i><span>分集工作台</span>
+                    </a>
+                    <a href="分镜生视频.html" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-xs font-medium transition-all">
+                        <i class="fas fa-video w-4 text-center text-slate-500"></i><span>视频工作台</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-white/5">
+                <div class="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/5 border border-white/5">
+                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60" class="w-8 h-8 rounded-full object-cover border border-white/10">
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs font-medium text-white truncate" id="sidebarUserName">当前用户</div>
+                        <div class="text-[10px] text-slate-500" id="sidebarUserRole">普通用户</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 flex flex-col min-w-0 bg-darker/50 relative overflow-hidden">
+            
+            <!-- 顶部栏 -->
+            <header class="h-16 glass-panel border-b border-white/5 flex items-center justify-between px-8 z-20">
+                <div class="flex items-center gap-4">
+                    <h2 id="pageTitle" class="text-lg font-bold text-white">个人中心</h2>
+                    <span id="pageDesc" class="text-xs text-slate-500 hidden sm:inline">查看个人账户、积分与使用统计</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                        <i class="fas fa-crown text-amber-400 text-xs"></i>
+                        <span class="text-xs text-amber-400 font-medium">Pro 会员</span>
+                    </div>
+                    <div class="relative hidden md:block">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                        <input type="text" placeholder="搜索..." class="pl-8 pr-4 py-2 bg-surface border border-white/10 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary/50 transition-all w-64">
+                    </div>
+                    <button class="w-9 h-9 rounded-lg bg-surface border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all relative">
+                        <i class="fas fa-bell"></i>
+                        <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 border border-darker"></span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto custom-scroll p-8 relative">
+
+                <!-- ==================== 个人中心 ==================== -->
+                <div id="page-profile" class="space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-xl font-bold text-white">欢迎回来，<span id="welcomeName">当前用户</span></h3>
+                            <p class="text-sm text-slate-400 mt-1">这是你的个人控制台，管理积分与查看使用统计</p>
+                        </div>
+                        <button onclick="switchPage('my-credits')" class="btn-primary px-5 py-2.5 rounded-xl text-white text-sm font-medium flex items-center gap-2 shadow-lg shadow-primary/20">
+                            <i class="fas fa-bolt"></i>去充值
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="stat-card rounded-2xl p-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs text-slate-400 uppercase tracking-wider">积分余额</span>
+                                <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><i class="fas fa-wallet text-primary text-xs"></i></div>
+                            </div>
+                            <div class="text-2xl font-bold text-white font-mono" id="profileCredit">12,580</div>
+                            <div class="text-xs text-slate-500 mt-1">约可生成 12,580 张图</div>
+                        </div>
+                        <div class="stat-card rounded-2xl p-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs text-slate-400 uppercase tracking-wider">今日消耗</span>
+                                <div class="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center"><i class="fas fa-fire text-rose-400 text-xs"></i></div>
+                            </div>
+                            <div class="text-2xl font-bold text-white">128</div>
+                            <div class="text-xs text-slate-500 mt-1">积分</div>
+                        </div>
+                        <div class="stat-card rounded-2xl p-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs text-slate-400 uppercase tracking-wider">本月调用</span>
+                                <div class="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center"><i class="fas fa-bolt text-cyan-400 text-xs"></i></div>
+                            </div>
+                            <div class="text-2xl font-bold text-white">3,420</div>
+                            <div class="text-xs text-emerald-400 mt-1"><i class="fas fa-arrow-up mr-1"></i>+12% 较上月</div>
+                        </div>
+                        <div class="stat-card rounded-2xl p-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs text-slate-400 uppercase tracking-wider">会员等级</span>
+                                <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center"><i class="fas fa-crown text-amber-400 text-xs"></i></div>
+                            </div>
+                            <div class="text-2xl font-bold text-amber-400">Pro</div>
+                            <div class="text-xs text-slate-500 mt-1">有效期至 2026-12-31</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div onclick="switchPage('my-credits')" class="glass-panel rounded-2xl p-5 border border-white/5 hover:border-primary/30 cursor-pointer transition-all group">
+                            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-all"><i class="fas fa-coins text-primary"></i></div>
+                            <h4 class="text-sm font-bold text-white mb-1">充值积分</h4>
+                            <p class="text-xs text-slate-500">购买积分包，支持支付宝与微信</p>
+                        </div>
+                        <div onclick="switchPage('my-permissions')" class="glass-panel rounded-2xl p-5 border border-white/5 hover:border-cyan/30 cursor-pointer transition-all group">
+                            <div class="w-10 h-10 rounded-xl bg-cyan/10 flex items-center justify-center mb-3 group-hover:bg-cyan/20 transition-all"><i class="fas fa-user-shield text-cyan"></i></div>
+                            <h4 class="text-sm font-bold text-white mb-1">查看权限</h4>
+                            <p class="text-xs text-slate-500">查看当前账号可用的功能权限</p>
+                        </div>
+                        <div onclick="showToast('发票申请功能已提交，请等待审核', 'success')" class="glass-panel rounded-2xl p-5 border border-white/5 hover:border-emerald/30 cursor-pointer transition-all group">
+                            <div class="w-10 h-10 rounded-xl bg-emerald/10 flex items-center justify-center mb-3 group-hover:bg-emerald/20 transition-all"><i class="fas fa-file-invoice text-emerald"></i></div>
+                            <h4 class="text-sm font-bold text-white mb-1">发票申请</h4>
+                            <p class="text-xs text-slate-500">申请充值订单的电子发票</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl border border-white/5 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+                            <h3 class="text-sm font-bold text-white">最近积分流水</h3>
+                            <button onclick="switchPage('my-credits')" class="text-xs text-primary hover:text-white transition-colors">查看全部</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="border-b border-white/5 bg-surface/30">
+                                        <th class="px-6 py-3 text-xs font-medium text-slate-400 uppercase">类型</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-slate-400 uppercase">数额</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-slate-400 uppercase">详情</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-slate-400 uppercase">时间</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="profileTransactionBody" class="divide-y divide-white/5"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== 我的积分（完整支付闭环） ==================== -->
+                <div id="page-my-credits" class="space-y-6 hidden">
+                    <div class="credit-display rounded-3xl p-8 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                        <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                            <div>
+                                <div class="flex items-center gap-3 mb-2">
+                                    <div class="w-10 h-10 rounded-2xl bg-primary/20 flex items-center justify-center border border-primary/30"><i class="fas fa-wallet text-primary text-lg"></i></div>
+                                    <span class="text-sm text-slate-300">我的积分余额</span>
+                                </div>
+                                <div class="text-5xl font-bold text-white tracking-tight mb-1">
+                                    <span id="myCreditBalance">12,580</span><span class="text-lg text-primary/80 font-medium ml-2">credits</span>
+                                </div>
+                                <p class="text-xs text-slate-400 mt-2">1 积分 ≈ 1 次 SDXL 标准调用 · 充值后实时到账</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button onclick="scrollToPlans()" class="btn-primary px-8 py-3.5 rounded-2xl text-white font-semibold flex items-center gap-2 shadow-xl shadow-primary/25 text-base"><i class="fas fa-bolt"></i>立即充值</button>
+                            </div>
+                        </div>
+                        <div class="relative z-10 grid grid-cols-3 gap-4 mt-8 pt-6 border-t border-white/10">
+                            <div><div class="text-xs text-slate-500 mb-1">本月消耗</div><div class="text-lg font-bold text-white">3,420</div></div>
+                            <div><div class="text-xs text-slate-500 mb-1">本月充值</div><div class="text-lg font-bold text-emerald-400">+10,000</div></div>
+                            <div><div class="text-xs text-slate-500 mb-1">累计充值</div><div class="text-lg font-bold text-white">¥299.7</div></div>
+                        </div>
+                    </div>
+
+                    <div id="plansSection">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-base font-bold text-white">选择充值套餐</h3>
+                            <span class="text-xs text-slate-500">支持支付宝、微信支付</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="planContainer"></div>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl border border-white/5 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+                            <h3 class="text-sm font-bold text-white">我的积分流水</h3>
+                            <div class="flex items-center gap-2">
+                                <select id="myTxFilter" onchange="renderMyTransactions()" class="px-3 py-1.5 bg-surface border border-white/10 rounded-lg text-xs text-white focus:outline-none">
+                                    <option value="all">全部类型</option>
+                                    <option value="recharge">充值</option>
+                                    <option value="consume">消耗</option>
+                                    <option value="bonus">赠送</option>
+                                </select>
+                                <button onclick="exportMyTx()" class="px-3 py-1.5 rounded-lg bg-surface border border-white/10 text-xs text-slate-400 hover:text-white transition-all"><i class="fas fa-download mr-1"></i>导出</button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="border-b border-white/5 bg-surface/30">
+                                        <th class="px-6 py-3 text-xs font-medium text-slate-400 uppercase">流水号</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-slate-400 uppercase">类型</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-slate-400 uppercase">数额</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-slate-400 uppercase">详情</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-slate-400 uppercase">时间</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-slate-400 uppercase text-right">状态</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="myTransactionTableBody" class="divide-y divide-white/5"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== 我的权限 ==================== -->
+                <div id="page-my-permissions" class="space-y-6 hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-xl font-bold text-white">我的权限</h3>
+                            <p class="text-sm text-slate-400 mt-1">当前账号可用的功能与资源限制</p>
+                        </div>
+                        <span class="tier-badge px-3 py-1 rounded-full text-xs font-medium"><i class="fas fa-crown mr-1"></i>Pro 会员</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="glass-panel rounded-2xl p-6 border border-white/5">
+                            <h4 class="text-sm font-bold text-white mb-4 flex items-center gap-2"><i class="fas fa-toggle-on text-primary"></i>功能权限</h4>
+                            <div class="space-y-3" id="myPermissionList"></div>
+                        </div>
+                        <div class="glass-panel rounded-2xl p-6 border border-white/5">
+                            <h4 class="text-sm font-bold text-white mb-4 flex items-center gap-2"><i class="fas fa-chart-pie text-cyan"></i>本月资源配额</h4>
+                            <div class="space-y-5">
+                                <div>
+                                    <div class="flex justify-between text-xs mb-2"><span class="text-slate-400">文生图调用</span><span class="text-white">3,420 / 10,000</span></div>
+                                    <div class="h-2 bg-surface-light rounded-full overflow-hidden"><div class="h-full progress-bar rounded-full" style="width: 34%"></div></div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs mb-2"><span class="text-slate-400">漫剧生成时长</span><span class="text-white">45min / 120min</span></div>
+                                    <div class="h-2 bg-surface-light rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-cyan to-blue-500 rounded-full" style="width: 37%"></div></div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs mb-2"><span class="text-slate-400">素材库空间</span><span class="text-white">1.2GB / 5GB</span></div>
+                                    <div class="h-2 bg-surface-light rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-emerald to-teal-500 rounded-full" style="width: 24%"></div></div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs mb-2"><span class="text-slate-400">团队协作者</span><span class="text-white">2 / 5 人</span></div>
+                                    <div class="h-2 bg-surface-light rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-amber to-orange-500 rounded-full" style="width: 40%"></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl p-6 border border-white/5">
+                        <h4 class="text-sm font-bold text-white mb-3">权限说明</h4>
+                        <div class="space-y-2 text-xs text-slate-400 leading-relaxed">
+                            <p><span class="text-primary">•</span> 你的权限由管理员分配，如有需要请联系管理员调整。</p>
+                            <p><span class="text-primary">•</span> Pro 会员享有更高的资源配额与优先生成队列。</p>
+                            <p><span class="text-primary">•</span> 积分消耗根据模型与分辨率不同而异，详见计费标准。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== 管理员：用户管理（完整） ==================== -->
+                <div id="page-users" class="space-y-6 hidden">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="stat-card rounded-2xl p-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs text-slate-400 uppercase tracking-wider">总用户数</span>
+                                <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><i class="fas fa-users text-primary text-xs"></i></div>
+                            </div>
+                            <div class="text-2xl font-bold text-white" id="adminTotalUsers">4</div>
+                            <div class="text-xs text-emerald-400 mt-1"><i class="fas fa-arrow-up mr-1"></i>+1 本周新增</div>
+                        </div>
+                        <div class="stat-card rounded-2xl p-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs text-slate-400 uppercase tracking-wider">在线用户</span>
+                                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center"><i class="fas fa-signal text-emerald-400 text-xs"></i></div>
+                            </div>
+                            <div class="text-2xl font-bold text-white">2</div>
+                            <div class="text-xs text-slate-500 mt-1">当前活跃会话</div>
+                        </div>
+                        <div class="stat-card rounded-2xl p-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs text-slate-400 uppercase tracking-wider">积分总发放</span>
+                                <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center"><i class="fas fa-coins text-amber-400 text-xs"></i></div>
+                            </div>
+                            <div class="text-2xl font-bold text-white" id="adminTotalCredits">0</div>
+                            <div class="text-xs text-slate-500 mt-1">平台累计积分</div>
+                        </div>
+                        <div class="stat-card rounded-2xl p-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs text-slate-400 uppercase tracking-wider">今日充值</span>
+                                <div class="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center"><i class="fas fa-bolt text-cyan-400 text-xs"></i></div>
+                            </div>
+                            <div class="text-2xl font-bold text-white">¥0</div>
+                            <div class="text-xs text-emerald-400 mt-1"><i class="fas fa-arrow-up mr-1"></i>+0% 较昨日</div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                                <input type="text" id="userSearch" oninput="filterUsers()" placeholder="搜索用户名、邮箱..." class="pl-8 pr-4 py-2.5 bg-surface border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary/50 transition-all w-64">
+                            </div>
+                            <select id="roleFilter" onchange="filterUsers()" class="px-4 py-2.5 bg-surface border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-primary/50 cursor-pointer">
+                                <option value="all">全部角色</option>
+                                <option value="admin">管理员</option>
+                                <option value="editor">编辑</option>
+                                <option value="user">普通用户</option>
+                            </select>
+                            <select id="statusFilter" onchange="filterUsers()" class="px-4 py-2.5 bg-surface border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-primary/50 cursor-pointer">
+                                <option value="all">全部状态</option>
+                                <option value="active">正常</option>
+                                <option value="disabled">已禁用</option>
+                            </select>
+                        </div>
+                        <button onclick="openUserModal()" class="btn-primary px-5 py-2.5 rounded-xl text-white text-sm font-medium flex items-center gap-2 shadow-lg shadow-primary/20"><i class="fas fa-plus"></i>新增用户</button>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl border border-white/5 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="border-b border-white/5 bg-surface/30">
+                                        <th class="px-6 py-4 text-xs font-medium text-slate-400 uppercase tracking-wider">用户</th>
+                                        <th class="px-6 py-4 text-xs font-medium text-slate-400 uppercase tracking-wider">角色</th>
+                                        <th class="px-6 py-4 text-xs font-medium text-slate-400 uppercase tracking-wider">积分余额</th>
+                                        <th class="px-6 py-4 text-xs font-medium text-slate-400 uppercase tracking-wider">状态</th>
+                                        <th class="px-6 py-4 text-xs font-medium text-slate-400 uppercase tracking-wider">最后登录</th>
+                                        <th class="px-6 py-4 text-xs font-medium text-slate-400 uppercase tracking-wider text-right">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userTableBody" class="divide-y divide-white/5"></tbody>
+                            </table>
+                        </div>
+                        <div class="px-6 py-4 border-t border-white/5 flex items-center justify-between">
+                            <span class="text-xs text-slate-500" id="userPaginationInfo">显示 1-4 共 4 条</span>
+                            <div class="flex items-center gap-2" id="userPagination"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== 管理员：积分总览（完整） ==================== -->
+                <div id="page-credits-admin" class="space-y-6 hidden">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="stat-card rounded-2xl p-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs text-slate-400 uppercase tracking-wider">平台积分存量</span>
+                                <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><i class="fas fa-vault text-primary text-xs"></i></div>
+                            </div>
+                            <div class="text-2xl font-bold text-white" id="platformStock">0</div>
+                            <div class="text-xs text-slate-500 mt-1">所有用户余额总和</div>
+                        </div>
+                        <div class="stat-card rounded-2xl p-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs text-slate-400 uppercase tracking-wider">今日充值金额</span>
+                                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center"><i class="fas fa-yen-sign text-emerald-400 text-xs"></i></div>
+                            </div>
+                            <div class="text-2xl font-bold text-white">¥179.7</div>
+                            <div class="text-xs text-emerald-400 mt-1"><i class="fas fa-arrow-up mr-1"></i>+3 笔订单</div>
+                        </div>
+                        <div class="stat-card rounded-2xl p-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs text-slate-400 uppercase tracking-wider">今日消耗积分</span>
+                                <div class="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center"><i class="fas fa-fire text-rose-400 text-xs"></i></div>
+                            </div>
+                            <div class="text-2xl font-bold text-white">3,862</div>
+                            <div class="text-xs text-rose-400 mt-1"><i class="fas fa-arrow-up mr-1"></i>+12% 较昨日</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- 充值排行 -->
+                        <div class="lg:col-span-2 glass-panel rounded-2xl border border-white/5 overflow-hidden">
+                            <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+                                <h3 class="text-sm font-bold text-white">充值金额趋势（近7天）</h3>
+                                <div class="flex gap-2">
+                                    <button class="tab-btn active px-3 py-1 rounded-lg text-xs border border-white/5">近7天</button>
+                                    <button class="tab-btn px-3 py-1 rounded-lg text-xs border border-white/5 text-slate-400">近30天</button>
+                                </div>
+                            </div>
+                            <div class="p-6">
+                                <div class="flex items-end justify-between h-48 gap-3" id="chartBars">
+                                    <!-- JS 生成 -->
+                                </div>
+                                <div class="flex justify-between mt-3 text-xs text-slate-500" id="chartLabels">
+                                    <!-- JS 生成 -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 充值排行 -->
+                        <div class="glass-panel rounded-2xl border border-white/5 overflow-hidden">
+                            <div class="px-6 py-4 border-b border-white/5">
+                                <h3 class="text-sm font-bold text-white">充值排行 Top 5</h3>
+                            </div>
+                            <div class="p-4 space-y-3" id="rechargeRankList"></div>
+                        </div>
+                    </div>
+
+                    <!-- 平台流水 -->
+                    <div class="glass-panel rounded-2xl border border-white/5 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+                            <h3 class="text-sm font-bold text-white">平台积分流水</h3>
+                            <div class="flex items-center gap-2">
+                                <select class="px-3 py-1.5 bg-surface border border-white/10 rounded-lg text-xs text-white focus:outline-none">
+                                    <option>全部类型</option>
+                                    <option>充值</option>
+                                    <option>消耗</option>
+                                    <option>系统调整</option>
+                                </select>
+                                <button class="px-3 py-1.5 rounded-lg bg-surface border border-white/10 text-xs text-slate-400 hover:text-white transition-all"><i class="fas fa-download mr-1"></i>导出</button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="border-b border-white/5 bg-surface/30">
+                                        <th class="px-6 py-3 text-xs font-medium text-slate-400 uppercase">用户</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-slate-400 uppercase">类型</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-slate-400 uppercase">数额</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-slate-400 uppercase">详情</th>
+                                        <th class="px-6 py-3 text-xs font-medium text-slate-400 uppercase">时间</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="platformTxBody" class="divide-y divide-white/5"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== 管理员：权限配置（完整） ==================== -->
+                <div id="page-permissions-admin" class="space-y-6 hidden">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold text-white">角色与权限配置</h3>
+                        <button onclick="showToast('角色模板保存成功', 'success')" class="btn-primary px-5 py-2.5 rounded-xl text-white text-sm font-medium flex items-center gap-2"><i class="fas fa-save"></i>保存配置</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- 角色列表 -->
+                        <div class="glass-panel rounded-2xl border border-white/5 overflow-hidden">
+                            <div class="px-6 py-4 border-b border-white/5">
+                                <h4 class="text-sm font-bold text-white">角色模板</h4>
+                            </div>
+                            <div class="p-2" id="roleTemplateList"></div>
+                            <div class="p-4 border-t border-white/5">
+                                <button onclick="showToast('新增角色功能开发中', 'warning')" class="w-full py-2.5 rounded-xl border border-dashed border-slate-600 text-slate-400 hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all text-sm"><i class="fas fa-plus mr-1"></i>新增角色</button>
+                            </div>
+                        </div>
+
+                        <!-- 权限矩阵 -->
+                        <div class="lg:col-span-2 glass-panel rounded-2xl border border-white/5 overflow-hidden">
+                            <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+                                <h4 class="text-sm font-bold text-white">权限矩阵</h4>
+                                <span class="text-xs text-slate-500">勾选表示授予该权限</span>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left">
+                                    <thead>
+                                        <tr class="border-b border-white/5 bg-surface/30">
+                                            <th class="px-6 py-3 text-xs font-medium text-slate-400 uppercase">功能模块</th>
+                                            <th class="px-6 py-3 text-xs font-medium text-slate-400 uppercase text-center">管理员</th>
+                                            <th class="px-6 py-3 text-xs font-medium text-slate-400 uppercase text-center">编辑</th>
+                                            <th class="px-6 py-3 text-xs font-medium text-slate-400 uppercase text-center">普通用户</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="permissionMatrixBody" class="divide-y divide-white/5"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== 管理员：操作日志（完整） ==================== -->
+                <div id="page-logs" class="space-y-6 hidden">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold text-white">操作审计日志</h3>
+                        <div class="flex items-center gap-2">
+                            <select class="px-3 py-2 bg-surface border border-white/10 rounded-lg text-xs text-white focus:outline-none">
+                                <option>全部操作</option>
+                                <option>用户管理</option>
+                                <option>积分调整</option>
+                                <option>权限变更</option>
+                            </select>
+                            <button class="px-3 py-2 rounded-lg bg-surface border border-white/10 text-xs text-slate-400 hover:text-white transition-all"><i class="fas fa-download mr-1"></i>导出日志</button>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl border border-white/5 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="border-b border-white/5 bg-surface/30">
+                                        <th class="px-6 py-4 text-xs font-medium text-slate-400 uppercase tracking-wider">时间</th>
+                                        <th class="px-6 py-4 text-xs font-medium text-slate-400 uppercase tracking-wider">操作者</th>
+                                        <th class="px-6 py-4 text-xs font-medium text-slate-400 uppercase tracking-wider">操作类型</th>
+                                        <th class="px-6 py-4 text-xs font-medium text-slate-400 uppercase tracking-wider">对象</th>
+                                        <th class="px-6 py-4 text-xs font-medium text-slate-400 uppercase tracking-wider">详情</th>
+                                        <th class="px-6 py-4 text-xs font-medium text-slate-400 uppercase tracking-wider text-right">IP地址</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="auditLogBody" class="divide-y divide-white/5"></tbody>
+                            </table>
+                        </div>
+                        <div class="px-6 py-4 border-t border-white/5 flex items-center justify-between">
+                            <span class="text-xs text-slate-500">显示 1-8 共 8 条</span>
+                            <div class="flex items-center gap-2">
+                                <button class="w-8 h-8 rounded-lg bg-surface border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all disabled:opacity-30"><i class="fas fa-chevron-left text-xs"></i></button>
+                                <button class="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center text-xs font-medium">1</button>
+                                <button class="w-8 h-8 rounded-lg bg-surface border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all text-xs">2</button>
+                                <button class="w-8 h-8 rounded-lg bg-surface border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all disabled:opacity-30"><i class="fas fa-chevron-right text-xs"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ==================== 用户编辑模态框 ==================== -->
+    <div id="userModalOverlay" class="fixed inset-0 modal-overlay z-50 hidden opacity-0 transition-opacity" onclick="closeUserModal()"></div>
+    <div id="userModal" class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg glass-panel-strong border border-white/10 rounded-2xl z-50 hidden shadow-2xl modal-content max-h-[90vh] overflow-y-auto custom-scroll">
+        <div class="p-6 border-b border-white/5 flex items-center justify-between sticky top-0 bg-[#0f172a]/95 backdrop-blur-xl z-10">
+            <div>
+                <h3 class="text-base font-bold text-white" id="userModalTitle">编辑用户</h3>
+                <p class="text-xs text-slate-400 mt-0.5" id="userModalSubtitle">修改用户权限与积分</p>
+            </div>
+            <button onclick="closeUserModal()" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="p-6 space-y-5">
+            <div class="flex items-center gap-4">
+                <img id="editUserAvatar" src="" class="w-16 h-16 rounded-2xl object-cover border border-white/10">
+                <div class="flex-1">
+                    <label class="text-xs text-slate-500 uppercase tracking-wider mb-1.5 block">用户名</label>
+                    <input type="text" id="editUserName" class="w-full px-4 py-2 bg-surface border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-primary/50 transition-all">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-xs text-slate-500 uppercase tracking-wider mb-1.5 block">邮箱</label>
+                    <input type="email" id="editUserEmail" class="w-full px-4 py-2 bg-surface border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-primary/50 transition-all">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 uppercase tracking-wider mb-1.5 block">角色</label>
+                    <select id="editUserRole" class="w-full px-4 py-2 bg-surface border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-primary/50 cursor-pointer">
+                        <option value="admin">管理员</option>
+                        <option value="editor">编辑</option>
+                        <option value="user">普通用户</option>
+                    </select>
+                </div>
+            </div>
+            <div class="bg-surface/40 border border-white/5 rounded-xl p-4 space-y-3">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs text-slate-500 uppercase tracking-wider">积分调整</label>
+                    <span class="text-xs text-slate-400">当前: <span id="editUserCurrentCredit" class="text-white font-mono">0</span></span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <select id="editCreditAction" class="px-3 py-2 bg-surface border border-white/10 rounded-lg text-sm text-white focus:outline-none cursor-pointer">
+                        <option value="add">增加</option>
+                        <option value="subtract">扣除</option>
+                        <option value="set">设为</option>
+                    </select>
+                    <input type="number" id="editCreditAmount" class="flex-1 px-4 py-2 bg-surface border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-primary/50 transition-all" placeholder="输入数额">
+                </div>
+                <input type="text" id="editCreditReason" class="w-full px-4 py-2 bg-surface border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-primary/50 transition-all" placeholder="调整原因（可选）">
+            </div>
+            <div>
+                <label class="text-xs text-slate-500 uppercase tracking-wider mb-3 block">功能权限</label>
+                <div class="permission-grid">
+                    <label class="flex items-center justify-between p-3 rounded-xl bg-surface/40 border border-white/5 cursor-pointer hover:border-white/10 transition-all">
+                        <div class="flex items-center gap-2"><i class="fas fa-film text-primary text-xs"></i><span class="text-sm text-slate-300">漫剧生成</span></div>
+                        <label class="switch"><input type="checkbox" id="perm_video" checked><span class="slider"></span></label>
+                    </label>
+                    <label class="flex items-center justify-between p-3 rounded-xl bg-surface/40 border border-white/5 cursor-pointer hover:border-white/10 transition-all">
+                        <div class="flex items-center gap-2"><i class="fas fa-image text-cyan text-xs"></i><span class="text-sm text-slate-300">文生图</span></div>
+                        <label class="switch"><input type="checkbox" id="perm_image" checked><span class="slider"></span></label>
+                    </label>
+                    <label class="flex items-center justify-between p-3 rounded-xl bg-surface/40 border border-white/5 cursor-pointer hover:border-white/10 transition-all">
+                        <div class="flex items-center gap-2"><i class="fas fa-users text-amber text-xs"></i><span class="text-sm text-slate-300">团队管理</span></div>
+                        <label class="switch"><input type="checkbox" id="perm_team"><span class="slider"></span></label>
+                    </label>
+                    <label class="flex items-center justify-between p-3 rounded-xl bg-surface/40 border border-white/5 cursor-pointer hover:border-white/10 transition-all">
+                        <div class="flex items-center gap-2"><i class="fas fa-database text-emerald text-xs"></i><span class="text-sm text-slate-300">素材库</span></div>
+                        <label class="switch"><input type="checkbox" id="perm_asset" checked><span class="slider"></span></label>
+                    </label>
+                    <label class="flex items-center justify-between p-3 rounded-xl bg-surface/40 border border-white/5 cursor-pointer hover:border-white/10 transition-all">
+                        <div class="flex items-center gap-2"><i class="fas fa-gear text-slate-400 text-xs"></i><span class="text-sm text-slate-300">系统设置</span></div>
+                        <label class="switch"><input type="checkbox" id="perm_settings"><span class="slider"></span></label>
+                    </label>
+                    <label class="flex items-center justify-between p-3 rounded-xl bg-surface/40 border border-white/5 cursor-pointer hover:border-white/10 transition-all">
+                        <div class="flex items-center gap-2"><i class="fas fa-chart-line text-rose text-xs"></i><span class="text-sm text-slate-300">数据报表</span></div>
+                        <label class="switch"><input type="checkbox" id="perm_analytics"><span class="slider"></span></label>
+                    </label>
+                </div>
+            </div>
+            <div class="flex items-center justify-between p-4 rounded-xl bg-surface/40 border border-white/5">
+                <div>
+                    <div class="text-sm text-white font-medium">账号状态</div>
+                    <div class="text-xs text-slate-500 mt-0.5">禁用后用户将无法登录</div>
+                </div>
+                <label class="switch"><input type="checkbox" id="editUserStatus" checked><span class="slider"></span></label>
+            </div>
+        </div>
+        <div class="p-6 border-t border-white/5 flex items-center justify-end gap-3 sticky bottom-0 bg-[#0f172a]/95 backdrop-blur-xl z-10">
+            <button onclick="closeUserModal()" class="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-all">取消</button>
+            <button onclick="saveUser()" class="btn-primary px-6 py-2.5 rounded-xl text-white text-sm font-medium shadow-lg shadow-primary/20">保存修改</button>
+        </div>
+    </div>
+
+    <!-- ==================== 支付模态框（完整闭环） ==================== -->
+    <div id="payModalOverlay" class="fixed inset-0 modal-overlay z-50 hidden opacity-0 transition-opacity" onclick="if(!isPaying) closePayModal()"></div>
+    <div id="payModal" class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md glass-panel-strong border border-white/10 rounded-2xl z-50 hidden shadow-2xl modal-content">
+        
+        <!-- 步骤1：确认订单 -->
+        <div id="payStep1">
+            <div class="p-6 border-b border-white/5 flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-bold text-white">确认订单</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">订单将在 15 分钟后过期</p>
+                </div>
+                <button onclick="closePayModal()" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-6 space-y-5">
+                <div class="bg-surface/50 border border-white/5 rounded-xl p-4 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20"><i class="fas fa-coins text-primary text-xl"></i></div>
+                    <div>
+                        <div class="text-sm text-white font-medium" id="payPlanName">基础套餐</div>
+                        <div class="text-xs text-slate-400 mt-0.5" id="payPlanDesc">1,000 积分 + 赠送 100</div>
+                    </div>
+                    <div class="ml-auto text-xl font-bold text-white" id="payPlanPrice">¥9.9</div>
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-500 uppercase tracking-wider mb-2 block">支付方式</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-3 p-3 rounded-xl bg-surface/40 border border-primary/30 cursor-pointer" onclick="selectPayMethod('alipay')">
+                            <input type="radio" name="payMethod" value="alipay" checked class="accent-primary" id="payMethodAlipay">
+                            <i class="fab fa-alipay text-cyan text-lg"></i>
+                            <span class="text-sm text-white">支付宝</span>
+                            <span class="ml-auto text-[10px] text-emerald-400">推荐</span>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 rounded-xl bg-surface/40 border border-white/5 cursor-pointer hover:border-white/10 transition-all" onclick="selectPayMethod('wechat')">
+                            <input type="radio" name="payMethod" value="wechat" class="accent-primary" id="payMethodWechat">
+                            <i class="fab fa-weixin text-emerald text-lg"></i>
+                            <span class="text-sm text-white">微信支付</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-slate-400">应付金额</span>
+                    <span class="text-xl font-bold text-white" id="payTotalPrice">¥9.9</span>
+                </div>
+
+                <div class="bg-amber-500/5 border border-amber-500/10 rounded-xl p-3 flex items-start gap-3">
+                    <i class="fas fa-circle-info text-amber-400 mt-0.5 text-xs"></i>
+                    <p class="text-xs text-slate-400 leading-relaxed">充值后积分将实时到账，不支持提现。如需发票请在个人中心申请。</p>
+                </div>
+            </div>
+            <div class="p-6 border-t border-white/5 flex items-center justify-end gap-3">
+                <button onclick="closePayModal()" class="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-all">取消</button>
+                <button onclick="goToPayStep2()" class="btn-primary px-8 py-2.5 rounded-xl text-white text-sm font-medium shadow-lg shadow-primary/20 flex items-center gap-2"><i class="fas fa-qrcode"></i>立即支付</button>
+            </div>
+        </div>
+
+        <!-- 步骤2：扫码/支付中 -->
+        <div id="payStep2" class="hidden">
+            <div class="p-6 border-b border-white/5 flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-bold text-white">扫码支付</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">请使用<span id="payMethodName">支付宝</span>完成支付</p>
+                </div>
+                <button onclick="if(!isPaying) { showPayStep(1); }" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all"><i class="fas fa-arrow-left"></i></button>
+            </div>
+            <div class="p-8 flex flex-col items-center">
+                <div class="w-48 h-48 rounded-2xl qr-placeholder flex items-center justify-center mb-4 relative shimmer">
+                    <div class="text-center">
+                        <i class="fas fa-qrcode text-4xl text-slate-500 mb-2"></i>
+                        <p class="text-xs text-slate-600">模拟二维码</p>
+                    </div>
+                    <div id="paySuccessOverlay" class="absolute inset-0 bg-darker/90 rounded-2xl hidden flex-col items-center justify-center payment-success">
+                        <div class="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mb-3">
+                            <i class="fas fa-check text-emerald-400 text-2xl"></i>
+                        </div>
+                        <p class="text-sm text-white font-medium">支付成功</p>
+                    </div>
+                </div>
+                <p class="text-sm text-slate-400 mb-1">订单金额：<span class="text-white font-bold" id="payQrPrice">¥9.9</span></p>
+                <p class="text-xs text-slate-600">订单号：<span class="font-mono" id="payOrderId">ORD20260424001</span></p>
+                
+                <div class="mt-6 w-full">
+                    <button id="simulatePayBtn" onclick="simulatePaySuccess()" class="btn-success w-full py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20">
+                        <i class="fas fa-check"></i>模拟支付成功
+                    </button>
+                    <p class="text-center text-xs text-slate-600 mt-3">点击上方按钮模拟支付成功流程</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 步骤3：支付成功 -->
+        <div id="payStep3" class="hidden">
+            <div class="p-8 flex flex-col items-center text-center">
+                <div class="w-20 h-20 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-4 payment-success">
+                    <i class="fas fa-check text-emerald-400 text-3xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">充值成功</h3>
+                <p class="text-sm text-slate-400 mb-6">积分已实时到账，可立即使用</p>
+                
+                <div class="bg-surface/50 border border-white/5 rounded-xl p-4 w-full mb-6">
+                    <div class="flex justify-between text-xs mb-2"><span class="text-slate-500">获得积分</span><span class="text-emerald-400 font-bold" id="successCredit">+1,100</span></div>
+                    <div class="flex justify-between text-xs mb-2"><span class="text-slate-500">支付方式</span><span class="text-white" id="successMethod">支付宝</span></div>
+                    <div class="flex justify-between text-xs"><span class="text-slate-500">当前余额</span><span class="text-white font-mono" id="successBalance">13,680</span></div>
+                </div>
+
+                <button onclick="closePayModal()" class="btn-primary w-full py-3 rounded-xl text-white font-medium shadow-lg shadow-primary/20">完成</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toastContainer" class="fixed top-6 right-6 z-[100] space-y-3 pointer-events-none"></div>
+
+    <script>
+        // ==================== 数据 ====================
+        let isAdmin = false;
+        let isPaying = false;
+        let currentUser = { id: 1, name: '当前用户', email: 'me@example.com', role: 'user', credits: 12580, avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60', permissions: { video: true, image: true, team: false, asset: true, settings: false, analytics: false } };
+
+        let users = [
+            { id: 1, name: '当前用户', email: 'me@example.com', role: 'user', credits: 12580, status: 'active', lastLogin: '刚刚', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60', permissions: { video: true, image: true, team: false, asset: true, settings: false, analytics: false } },
+            { id: 2, name: '张三', email: 'zhangsan@example.com', role: 'editor', credits: 5420, status: 'active', lastLogin: '2分钟前', avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcabd55?w=100&auto=format&fit=crop&q=60', permissions: { video: true, image: true, team: false, asset: true, settings: false, analytics: true } },
+            { id: 3, name: '李四', email: 'lisi@example.com', role: 'admin', credits: 12800, status: 'active', lastLogin: '10分钟前', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=60', permissions: { video: true, image: true, team: true, asset: true, settings: true, analytics: true } },
+            { id: 4, name: '王五', email: 'wangwu@example.com', role: 'user', credits: 350, status: 'active', lastLogin: '1小时前', avatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=100&auto=format&fit=crop&q=60', permissions: { video: true, image: true, team: false, asset: false, settings: false, analytics: false } },
+        ];
+
+        const plans = [
+            { id: 'p1', name: '体验包', credits: 100, bonus: 0, price: 1, popular: false, icon: 'fa-bolt', color: 'from-slate-600 to-slate-500' },
+            { id: 'p2', name: '基础套餐', credits: 1000, bonus: 100, price: 9.9, popular: false, icon: 'fa-coins', color: 'from-primary to-secondary' },
+            { id: 'p3', name: '专业套餐', credits: 5000, bonus: 800, price: 39.9, popular: true, icon: 'fa-rocket', color: 'from-cyan to-blue-500' },
+            { id: 'p4', name: '企业套餐', credits: 20000, bonus: 5000, price: 129.9, popular: false, icon: 'fa-crown', color: 'from-amber to-orange-500' },
+        ];
+
+        let transactions = [
+            { id: 'TX20240423001', type: 'recharge', amount: 10000, desc: '充值 - 专业套餐', time: '2026-04-23 14:32', status: 'success', userId: 1 },
+            { id: 'TX20240423002', type: 'consume', amount: -12, desc: '漫剧生成 - 第一集分镜#001', time: '2026-04-23 13:15', status: 'success', userId: 1 },
+            { id: 'TX20240423003', type: 'consume', amount: -8, desc: '文生图 - 角色素材生成', time: '2026-04-23 12:48', status: 'success', userId: 1 },
+            { id: 'TX20240422004', type: 'bonus', amount: 500, desc: '系统赠送 - 新用户礼包', time: '2026-04-22 09:00', status: 'success', userId: 1 },
+            { id: 'TX20240422005', type: 'consume', amount: -24, desc: '漫剧生成 - 第一集批量生成', time: '2026-04-22 16:20', status: 'success', userId: 2 },
+            { id: 'TX20240421006', type: 'recharge', amount: 1000, desc: '充值 - 基础套餐', time: '2026-04-21 11:05', status: 'success', userId: 3 },
+        ];
+
+        const auditLogs = [
+            { time: '2026-04-23 14:35', operator: '管理员', action: '积分调整', target: '张三', detail: '增加 500 积分（补偿）', ip: '192.168.1.105' },
+            { time: '2026-04-23 12:10', operator: '管理员', action: '权限变更', target: '李四', detail: '授予「团队管理」权限', ip: '192.168.1.105' },
+            { time: '2026-04-23 10:28', operator: '管理员', action: '用户管理', target: '王五', detail: '创建新用户账号', ip: '192.168.1.105' },
+            { time: '2026-04-22 16:45', operator: '管理员', action: '积分调整', target: '当前用户', detail: '扣除 100 积分（测试）', ip: '192.168.1.102' },
+            { time: '2026-04-22 11:20', operator: '管理员', action: '用户管理', target: '赵六', detail: '禁用账号（违规）', ip: '192.168.1.105' },
+            { time: '2026-04-21 09:15', operator: '系统', action: '自动任务', target: '全部用户', detail: '每月积分结算完成', ip: '10.0.0.1' },
+            { time: '2026-04-20 18:30', operator: '管理员', action: '权限变更', target: '编辑角色', detail: '移除「系统设置」权限', ip: '192.168.1.105' },
+            { time: '2026-04-20 14:00', operator: '管理员', action: '用户管理', target: '陈七', detail: '重置密码', ip: '192.168.1.105' },
+        ];
+
+        const roleTemplates = [
+            { id: 'admin', name: '管理员', color: 'amber', desc: '拥有全部权限，可管理用户与系统配置', userCount: 1 },
+            { id: 'editor', name: '编辑', color: 'primary', desc: '可生成内容与管理素材，无系统权限', userCount: 1 },
+            { id: 'user', name: '普通用户', color: 'emerald', desc: '仅可使用基础生成功能', userCount: 2 },
+        ];
+
+        const permissionModules = [
+            { key: 'video', label: '漫剧生成', icon: 'fa-film' },
+            { key: 'image', label: '文生图', icon: 'fa-image' },
+            { key: 'team', label: '团队管理', icon: 'fa-users' },
+            { key: 'asset', label: '素材库', icon: 'fa-database' },
+            { key: 'settings', label: '系统设置', icon: 'fa-gear' },
+            { key: 'analytics', label: '数据报表', icon: 'fa-chart-line' },
+        ];
+
+        const defaultRolePerms = {
+            admin: { video: true, image: true, team: true, asset: true, settings: true, analytics: true },
+            editor: { video: true, image: true, team: false, asset: true, settings: false, analytics: true },
+            user: { video: true, image: true, team: false, asset: false, settings: false, analytics: false },
+        };
+
+        let currentPage = 'profile';
+        let editingUserId = null;
+        let selectedPlan = null;
+        let currentPayMethod = 'alipay';
+
+        // ==================== 视角切换 ====================
+        function setViewMode(mode) {
+            isAdmin = mode === 'admin';
+            document.getElementById('view-personal').className = isAdmin ? 'flex-1 py-2 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white' : 'flex-1 py-2 rounded-lg text-xs font-medium transition-all bg-primary/20 text-primary border border-primary/30';
+            document.getElementById('view-admin').className = isAdmin ? 'flex-1 py-2 rounded-lg text-xs font-medium transition-all bg-primary/20 text-primary border border-primary/30' : 'flex-1 py-2 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white';
+            document.getElementById('nav-group-personal').classList.toggle('hidden', isAdmin);
+            document.getElementById('nav-group-admin').classList.toggle('hidden', !isAdmin);
+            document.getElementById('sidebarUserName').textContent = isAdmin ? '管理员' : '当前用户';
+            document.getElementById('sidebarUserRole').textContent = isAdmin ? '超级管理员' : '普通用户';
+            document.getElementById('navSubtitle').textContent = isAdmin ? '管理后台' : '个人版';
+            switchPage(isAdmin ? 'users' : 'profile');
+        }
+
+        // ==================== 页面切换 ====================
+        function switchPage(page) {
+            currentPage = page;
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            const navId = document.getElementById(`nav-${page}`);
+            if (navId) navId.classList.add('active');
+
+            ['profile', 'my-credits', 'my-permissions', 'users', 'credits-admin', 'permissions-admin', 'logs'].forEach(p => {
+                const el = document.getElementById(`page-${p}`);
+                if (el) el.classList.toggle('hidden', p !== page);
+            });
+
+            const titles = {
+                profile: ['个人中心', '查看个人账户、积分与使用统计'],
+                'my-credits': ['我的积分', '自助充值与积分流水管理'],
+                'my-permissions': ['我的权限', '查看当前账号功能权限与资源配额'],
+                users: ['用户管理', '管理平台用户、角色与权限分配'],
+                'credits-admin': ['积分总览', '平台全局积分统计与充值趋势'],
+                'permissions-admin': ['权限配置', '角色模板与功能权限矩阵管理'],
+                logs: ['操作日志', '管理员操作审计与追踪']
+            };
+            document.getElementById('pageTitle').textContent = titles[page][0];
+            document.getElementById('pageDesc').textContent = titles[page][1];
+
+            // 刷新特定页面数据
+            if (page === 'credits-admin') renderCreditsAdmin();
+            if (page === 'permissions-admin') renderPermissionsAdmin();
+            if (page === 'logs') renderLogs();
+        }
+
+        // ==================== 个人中心 ====================
+        function renderProfile() {
+            document.getElementById('welcomeName').textContent = currentUser.name;
+            document.getElementById('profileCredit').textContent = currentUser.credits.toLocaleString();
+            const tbody = document.getElementById('profileTransactionBody');
+            const myTx = transactions.filter(t => t.userId === currentUser.id).slice(0, 3);
+            tbody.innerHTML = myTx.map(t => formatTxRow(t, false)).join('');
+        }
+
+        // ==================== 我的积分 ====================
+        function renderPlans() {
+            const container = document.getElementById('planContainer');
+            if (!container) return;
+            container.innerHTML = plans.map(p => `
+                <div class="plan-card ${selectedPlan === p.id ? 'selected' : ''} rounded-2xl p-5 bg-surface/40 relative overflow-hidden" onclick="selectPlan('${p.id}')">
+                    ${p.popular ? '<div class="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-amber-600 text-white text-[10px] px-3 py-1 rounded-bl-xl font-medium z-10">最受欢迎</div>' : ''}
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br ${p.color} flex items-center justify-center mb-4 shadow-lg">
+                        <i class="fas ${p.icon} text-white text-lg"></i>
+                    </div>
+                    <h4 class="text-base font-bold text-white mb-1">${p.name}</h4>
+                    <div class="flex items-baseline gap-1 mb-3">
+                        <span class="text-2xl font-bold text-white">¥${p.price}</span>
+                        <span class="text-xs text-slate-500">/ ${p.credits.toLocaleString()} 积分</span>
+                    </div>
+                    <div class="space-y-2 mb-4">
+                        <div class="flex items-center gap-2 text-xs text-slate-400"><i class="fas fa-check text-emerald-400 text-[10px]"></i><span>包含 ${p.credits.toLocaleString()} 基础积分</span></div>
+                        <div class="flex items-center gap-2 text-xs text-slate-400"><i class="fas fa-check text-emerald-400 text-[10px]"></i><span>赠送 ${p.bonus.toLocaleString()} 奖励积分</span></div>
+                        <div class="flex items-center gap-2 text-xs text-slate-400"><i class="fas fa-check text-emerald-400 text-[10px]"></i><span>有效期 365 天</span></div>
+                    </div>
+                    <div class="pt-3 border-t border-white/5 flex items-center justify-between">
+                        <span class="text-xs text-slate-500">合计 <span class="text-white font-mono">${(p.credits + p.bonus).toLocaleString()}</span> 积分</span>
+                        <div class="w-5 h-5 rounded-full border ${selectedPlan === p.id ? 'bg-primary border-primary' : 'border-slate-600'} flex items-center justify-center transition-all">
+                            ${selectedPlan === p.id ? '<i class="fas fa-check text-white text-[10px]"></i>' : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function selectPlan(id) {
+            selectedPlan = id;
+            renderPlans();
+        }
+
+        function scrollToPlans() {
+            const el = document.getElementById('plansSection');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function renderMyTransactions() {
+            const tbody = document.getElementById('myTransactionTableBody');
+            if (!tbody) return;
+            const filter = document.getElementById('myTxFilter')?.value || 'all';
+            let myTx = transactions.filter(t => t.userId === currentUser.id);
+            if (filter !== 'all') myTx = myTx.filter(t => t.type === filter);
+            
+            tbody.innerHTML = myTx.map(t => formatTxRow(t, true)).join('');
+        }
+
+        function formatTxRow(t, showId) {
+            const isRecharge = t.type === 'recharge' || t.type === 'bonus';
+            const amountColor = isRecharge ? 'text-emerald-400' : 'text-rose-400';
+            const amountPrefix = isRecharge ? '+' : '';
+            const typeBadge = {
+                recharge: '<span class="px-2 py-0.5 rounded bg-primary/10 text-primary text-xs border border-primary/20">充值</span>',
+                consume: '<span class="px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 text-xs border border-rose-500/20">消耗</span>',
+                bonus: '<span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-xs border border-amber-500/20">赠送</span>'
+            };
+            const idCell = showId ? `<td class="px-6 py-3 text-xs text-slate-400 font-mono">${t.id}</td>` : '';
+            const statusCell = showId ? `<td class="px-6 py-3 text-right"><span class="text-xs text-emerald-400"><i class="fas fa-check-circle mr-1"></i>成功</span></td>` : '';
+            return `
+            <tr class="table-row border-b border-white/5 last:border-0">
+                ${idCell}
+                <td class="px-6 py-3">${typeBadge[t.type]}</td>
+                <td class="px-6 py-3 text-sm font-mono ${amountColor}">${amountPrefix}${t.amount.toLocaleString()}</td>
+                <td class="px-6 py-3 text-xs text-slate-300">${t.desc}</td>
+                <td class="px-6 py-3 text-xs text-slate-500">${t.time}</td>
+                ${statusCell}
+            </tr>`;
+        }
+
+        function exportMyTx() {
+            showToast('流水记录已导出为 CSV', 'success');
+        }
+
+        // ==================== 支付闭环 ====================
+        function openPayModal() {
+            if (!selectedPlan) { showToast('请先选择一个充值套餐', 'warning'); return; }
+            const plan = plans.find(p => p.id === selectedPlan);
+            document.getElementById('payPlanName').textContent = plan.name;
+            document.getElementById('payPlanDesc').textContent = `${plan.credits.toLocaleString()} 积分 + 赠送 ${plan.bonus.toLocaleString()}`;
+            document.getElementById('payPlanPrice').textContent = `¥${plan.price}`;
+            document.getElementById('payTotalPrice').textContent = `¥${plan.price}`;
+            document.getElementById('payQrPrice').textContent = `¥${plan.price}`;
+            document.getElementById('payOrderId').textContent = 'ORD' + Date.now();
+            document.getElementById('payMethodName').textContent = currentPayMethod === 'alipay' ? '支付宝' : '微信';
+            
+            isPaying = false;
+            showPayStep(1);
+            showModal('payModal');
+        }
+
+        function closePayModal() {
+            if (isPaying) return;
+            hideModal('payModal');
+            setTimeout(() => showPayStep(1), 300);
+        }
+
+        function selectPayMethod(method) {
+            currentPayMethod = method;
+            document.getElementById('payMethodName').textContent = method === 'alipay' ? '支付宝' : '微信';
+        }
+
+        function goToPayStep2() {
+            showPayStep(2);
+        }
+
+        function showPayStep(step) {
+            document.getElementById('payStep1').classList.toggle('hidden', step !== 1);
+            document.getElementById('payStep2').classList.toggle('hidden', step !== 2);
+            document.getElementById('payStep3').classList.toggle('hidden', step !== 3);
+            
+            if (step === 2) {
+                document.getElementById('paySuccessOverlay').classList.add('hidden');
+                document.getElementById('paySuccessOverlay').classList.remove('flex');
+                document.getElementById('simulatePayBtn').disabled = false;
+                document.getElementById('simulatePayBtn').innerHTML = '<i class="fas fa-check"></i>模拟支付成功';
+                document.getElementById('simulatePayBtn').classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function simulatePaySuccess() {
+            isPaying = true;
+            const btn = document.getElementById('simulatePayBtn');
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>支付处理中...';
+
+            setTimeout(() => {
+                // 显示成功覆盖层
+                const overlay = document.getElementById('paySuccessOverlay');
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+
+                // 更新数据
+                const plan = plans.find(p => p.id === selectedPlan);
+                const totalCredit = plan.credits + plan.bonus;
+                currentUser.credits += totalCredit;
+                
+                // 同步到 users 数组
+                const me = users.find(u => u.id === currentUser.id);
+                if (me) me.credits = currentUser.credits;
+
+                // 添加流水
+                transactions.unshift({
+                    id: 'TX' + Date.now(),
+                    type: 'recharge',
+                    amount: totalCredit,
+                    desc: `充值 - ${plan.name}`,
+                    time: new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
+                    status: 'success',
+                    userId: currentUser.id
+                });
+
+                // 更新成功页数据
+                document.getElementById('successCredit').textContent = `+${totalCredit.toLocaleString()}`;
+                document.getElementById('successMethod').textContent = currentPayMethod === 'alipay' ? '支付宝' : '微信支付';
+                document.getElementById('successBalance').textContent = currentUser.credits.toLocaleString();
+
+                // 刷新所有显示
+                refreshCreditDisplay();
+                renderMyTransactions();
+                renderProfile();
+
+                setTimeout(() => {
+                    isPaying = false;
+                    showPayStep(3);
+                }, 800);
+            }, 1500);
+        }
+
+        // ==================== 我的权限 ====================
+        function renderMyPermissions() {
+            const list = document.getElementById('myPermissionList');
+            if (!list) return;
+            const perms = [
+                { key: 'video', label: '漫剧生成', icon: 'fa-film', color: 'text-primary' },
+                { key: 'image', label: '文生图', icon: 'fa-image', color: 'text-cyan' },
+                { key: 'team', label: '团队管理', icon: 'fa-users', color: 'text-amber' },
+                { key: 'asset', label: '素材库', icon: 'fa-database', color: 'text-emerald' },
+                { key: 'settings', label: '系统设置', icon: 'fa-gear', color: 'text-slate-400' },
+                { key: 'analytics', label: '数据报表', icon: 'fa-chart-line', color: 'text-rose' },
+            ];
+            list.innerHTML = perms.map(p => {
+                const has = currentUser.permissions[p.key];
+                return `
+                <div class="flex items-center justify-between p-3 rounded-xl ${has ? 'bg-primary/5 border border-primary/10' : 'bg-surface/30 border border-white/5'}">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg ${has ? 'bg-primary/10' : 'bg-white/5'} flex items-center justify-center">
+                            <i class="fas ${p.icon} ${has ? p.color : 'text-slate-600'} text-xs"></i>
+                        </div>
+                        <span class="text-sm ${has ? 'text-white' : 'text-slate-500'}">${p.label}</span>
+                    </div>
+                    <span class="text-xs ${has ? 'text-emerald-400' : 'text-slate-600'}"><i class="fas ${has ? 'fa-check' : 'fa-lock'} mr-1"></i>${has ? '已开通' : '未开通'}</span>
+                </div>`;
+            }).join('');
+        }
+
+        // ==================== 管理员：用户管理 ====================
+        function renderUsers() {
+            const tbody = document.getElementById('userTableBody');
+            if (!tbody) return;
+            const search = document.getElementById('userSearch')?.value.toLowerCase() || '';
+            const roleFilter = document.getElementById('roleFilter')?.value || 'all';
+            const statusFilter = document.getElementById('statusFilter')?.value || 'all';
+
+            let filtered = users.filter(u => {
+                const matchSearch = u.name.toLowerCase().includes(search) || u.email.toLowerCase().includes(search);
+                const matchRole = roleFilter === 'all' || u.role === roleFilter;
+                const matchStatus = statusFilter === 'all' || u.status === statusFilter;
+                return matchSearch && matchRole && matchStatus;
+            });
+
+            tbody.innerHTML = filtered.map(u => {
+                const roleLabels = { admin: ['管理员', 'tag-admin'], editor: ['编辑', 'tag-role'], user: ['普通用户', 'tag-user'] };
+                const role = roleLabels[u.role] || roleLabels.user;
+                const statusBadge = u.status === 'active' 
+                    ? '<span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs border border-emerald-500/20">正常</span>'
+                    : '<span class="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 text-xs border border-rose-500/20">已禁用</span>';
+
+                return `
+                <tr class="table-row border-b border-white/5 last:border-0">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <img src="${u.avatar}" class="w-9 h-9 rounded-xl object-cover border border-white/10">
+                            <div>
+                                <div class="text-sm font-medium text-white">${u.name}</div>
+                                <div class="text-xs text-slate-500">${u.email}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4"><span class="px-2.5 py-1 rounded-lg text-xs font-medium ${role[1]}">${role[0]}</span></td>
+                    <td class="px-6 py-4"><div class="text-sm font-mono text-white">${u.credits.toLocaleString()}</div></td>
+                    <td class="px-6 py-4">${statusBadge}</td>
+                    <td class="px-6 py-4 text-xs text-slate-400">${u.lastLogin}</td>
+                    <td class="px-6 py-4 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                            <button onclick="editUser(${u.id})" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-primary/20 flex items-center justify-center text-slate-400 hover:text-primary transition-all" title="编辑"><i class="fas fa-pen text-xs"></i></button>
+                            <button onclick="quickAddCredit(${u.id})" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-amber-500/20 flex items-center justify-center text-slate-400 hover:text-amber-400 transition-all" title="快速充值"><i class="fas fa-coins text-xs"></i></button>
+                            <button onclick="deleteUser(${u.id})" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-rose-500/20 flex items-center justify-center text-slate-400 hover:text-rose-400 transition-all" title="删除"><i class="fas fa-trash text-xs"></i></button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            // 更新统计
+            document.getElementById('adminTotalUsers').textContent = users.length;
+            document.getElementById('adminUserCount').textContent = users.length;
+            const totalCredits = users.reduce((sum, u) => sum + u.credits, 0);
+            document.getElementById('adminTotalCredits').textContent = totalCredits.toLocaleString();
+        }
+
+        function filterUsers() { renderUsers(); }
+
+        function deleteUser(id) {
+            if (!confirm('确定要删除该用户吗？此操作不可恢复。')) return;
+            users = users.filter(u => u.id !== id);
+            renderUsers();
+            showToast('用户已删除', 'success');
+        }
+
+        // ==================== 用户模态框 ====================
+        function openUserModal() {
+            editingUserId = null;
+            document.getElementById('userModalTitle').textContent = '新增用户';
+            document.getElementById('userModalSubtitle').textContent = '创建新用户并分配初始权限';
+            document.getElementById('editUserName').value = '';
+            document.getElementById('editUserEmail').value = '';
+            document.getElementById('editUserRole').value = 'user';
+            document.getElementById('editUserCurrentCredit').textContent = '0';
+            document.getElementById('editCreditAmount').value = '';
+            document.getElementById('editCreditReason').value = '';
+            document.getElementById('editUserAvatar').src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60';
+            document.getElementById('perm_video').checked = true;
+            document.getElementById('perm_image').checked = true;
+            document.getElementById('perm_team').checked = false;
+            document.getElementById('perm_asset').checked = false;
+            document.getElementById('perm_settings').checked = false;
+            document.getElementById('perm_analytics').checked = false;
+            document.getElementById('editUserStatus').checked = true;
+            showModal('userModal');
+        }
+
+        function editUser(id) {
+            const u = users.find(x => x.id === id);
+            if (!u) return;
+            editingUserId = id;
+            document.getElementById('userModalTitle').textContent = '编辑用户';
+            document.getElementById('userModalSubtitle').textContent = `修改 ${u.name} 的权限与积分`;
+            document.getElementById('editUserName').value = u.name;
+            document.getElementById('editUserEmail').value = u.email;
+            document.getElementById('editUserRole').value = u.role;
+            document.getElementById('editUserCurrentCredit').textContent = u.credits.toLocaleString();
+            document.getElementById('editUserAvatar').src = u.avatar;
+            document.getElementById('editCreditAmount').value = '';
+            document.getElementById('editCreditReason').value = '';
+            document.getElementById('editUserStatus').checked = u.status === 'active';
+            document.getElementById('perm_video').checked = u.permissions.video;
+            document.getElementById('perm_image').checked = u.permissions.image;
+            document.getElementById('perm_team').checked = u.permissions.team;
+            document.getElementById('perm_asset').checked = u.permissions.asset;
+            document.getElementById('perm_settings').checked = u.permissions.settings;
+            document.getElementById('perm_analytics').checked = u.permissions.analytics;
+            showModal('userModal');
+        }
+
+        function saveUser() {
+            const name = document.getElementById('editUserName').value;
+            const email = document.getElementById('editUserEmail').value;
+            const role = document.getElementById('editUserRole').value;
+            const creditAction = document.getElementById('editCreditAction').value;
+            const creditAmount = parseInt(document.getElementById('editCreditAmount').value) || 0;
+            const status = document.getElementById('editUserStatus').checked ? 'active' : 'disabled';
+            const permissions = {
+                video: document.getElementById('perm_video').checked,
+                image: document.getElementById('perm_image').checked,
+                team: document.getElementById('perm_team').checked,
+                asset: document.getElementById('perm_asset').checked,
+                settings: document.getElementById('perm_settings').checked,
+                analytics: document.getElementById('perm_analytics').checked,
+            };
+
+            if (editingUserId) {
+                const u = users.find(x => x.id === editingUserId);
+                u.name = name; u.email = email; u.role = role; u.status = status; u.permissions = permissions;
+                if (creditAmount > 0) {
+                    if (creditAction === 'add') u.credits += creditAmount;
+                    else if (creditAction === 'subtract') u.credits = Math.max(0, u.credits - creditAmount);
+                    else if (creditAction === 'set') u.credits = creditAmount;
+                    
+                    // 添加审计日志
+                    auditLogs.unshift({
+                        time: new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
+                        operator: '管理员',
+                        action: '积分调整',
+                        target: u.name,
+                        detail: `${creditAction === 'add' ? '增加' : creditAction === 'subtract' ? '扣除' : '设为'} ${creditAmount} 积分`,
+                        ip: '192.168.1.105'
+                    });
+                }
+                showToast('用户修改已保存', 'success');
+            } else {
+                const newId = Math.max(...users.map(x => x.id), 0) + 1;
+                users.unshift({
+                    id: newId, name, email, role, credits: creditAmount, status, lastLogin: '从未', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60', permissions
+                });
+                auditLogs.unshift({
+                    time: new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
+                    operator: '管理员',
+                    action: '用户管理',
+                    target: name,
+                    detail: '创建新用户账号',
+                    ip: '192.168.1.105'
+                });
+                showToast('新用户创建成功', 'success');
+            }
+
+            closeUserModal();
+            renderUsers();
+        }
+
+        function closeUserModal() { hideModal('userModal'); editingUserId = null; }
+
+        function quickAddCredit(id) {
+            const u = users.find(x => x.id === id);
+            if (!u) return;
+            const amount = prompt(`为 ${u.name} 增加积分数额：`, '100');
+            if (amount && !isNaN(amount) && parseInt(amount) > 0) {
+                u.credits += parseInt(amount);
+                if (u.id === currentUser.id) currentUser.credits = u.credits;
+                
+                transactions.unshift({
+                    id: 'TX' + Date.now(),
+                    type: 'bonus',
+                    amount: parseInt(amount),
+                    desc: `管理员赠送 - ${u.name}`,
+                    time: new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
+                    status: 'success',
+                    userId: u.id
+                });
+                
+                auditLogs.unshift({
+                    time: new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
+                    operator: '管理员',
+                    action: '积分调整',
+                    target: u.name,
+                    detail: `增加 ${amount} 积分（手动）`,
+                    ip: '192.168.1.105'
+                });
+
+                renderUsers();
+                refreshCreditDisplay();
+                renderMyTransactions();
+                showToast(`已为 ${u.name} 增加 ${amount} 积分`, 'success');
+            }
+        }
+
+        // ==================== 管理员：积分总览 ====================
+        function renderCreditsAdmin() {
+            const totalStock = users.reduce((sum, u) => sum + u.credits, 0);
+            document.getElementById('platformStock').textContent = totalStock.toLocaleString();
+
+            // 图表
+            const days = ['04-17', '04-18', '04-19', '04-20', '04-21', '04-22', '04-23'];
+            const values = [45, 89, 120, 65, 199, 80, 179];
+            const maxVal = Math.max(...values);
+            
+            document.getElementById('chartBars').innerHTML = values.map((v, i) => `
+                <div class="flex-1 flex flex-col items-center justify-end gap-2 group">
+                    <div class="text-xs text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">¥${v}</div>
+                    <div class="w-full bg-primary/20 rounded-t-lg relative overflow-hidden" style="height: ${(v/maxVal)*100}%">
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-primary to-secondary opacity-80" style="height: 100%"></div>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('chartLabels').innerHTML = days.map(d => `<span>${d}</span>`).join('');
+
+            // 排行
+            const sorted = [...users].sort((a, b) => b.credits - a.credits).slice(0, 5);
+            document.getElementById('rechargeRankList').innerHTML = sorted.map((u, i) => `
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
+                    <div class="w-6 h-6 rounded-lg ${i < 3 ? 'bg-primary/20 text-primary' : 'bg-white/5 text-slate-500'} flex items-center justify-center text-xs font-bold">${i+1}</div>
+                    <img src="${u.avatar}" class="w-8 h-8 rounded-lg object-cover">
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm text-white truncate">${u.name}</div>
+                        <div class="text-[10px] text-slate-500">${u.email}</div>
+                    </div>
+                    <div class="text-sm font-mono text-white">${u.credits.toLocaleString()}</div>
+                </div>
+            `).join('');
+
+            // 平台流水
+            const tbody = document.getElementById('platformTxBody');
+            tbody.innerHTML = transactions.slice(0, 10).map(t => {
+                const u = users.find(x => x.id === t.userId) || { name: '未知', avatar: '' };
+                const isRecharge = t.type === 'recharge' || t.type === 'bonus';
+                const amountColor = isRecharge ? 'text-emerald-400' : 'text-rose-400';
+                const amountPrefix = isRecharge ? '+' : '';
+                const typeBadge = {
+                    recharge: '<span class="px-2 py-0.5 rounded bg-primary/10 text-primary text-xs border border-primary/20">充值</span>',
+                    consume: '<span class="px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 text-xs border border-rose-500/20">消耗</span>',
+                    bonus: '<span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-xs border border-amber-500/20">赠送</span>'
+                };
+                return `
+                <tr class="table-row border-b border-white/5 last:border-0">
+                    <td class="px-6 py-3"><div class="flex items-center gap-2"><img src="${u.avatar}" class="w-6 h-6 rounded-lg object-cover"><span class="text-xs text-white">${u.name}</span></div></td>
+                    <td class="px-6 py-3">${typeBadge[t.type]}</td>
+                    <td class="px-6 py-3 text-sm font-mono ${amountColor}">${amountPrefix}${t.amount.toLocaleString()}</td>
+                    <td class="px-6 py-3 text-xs text-slate-300">${t.desc}</td>
+                    <td class="px-6 py-3 text-xs text-slate-500">${t.time}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        // ==================== 管理员：权限配置 ====================
+        function renderPermissionsAdmin() {
+            document.getElementById('roleTemplateList').innerHTML = roleTemplates.map(r => `
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-all cursor-pointer">
+                    <div class="w-10 h-10 rounded-xl bg-${r.color}/10 flex items-center justify-center border border-${r.color}/20">
+                        <i class="fas fa-user-tag text-${r.color} text-xs"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium text-white">${r.name}</span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-slate-400">${r.userCount} 人</span>
+                        </div>
+                        <div class="text-xs text-slate-500 mt-0.5 truncate">${r.desc}</div>
+                    </div>
+                    <i class="fas fa-chevron-right text-xs text-slate-600"></i>
+                </div>
+            `).join('');
+
+            document.getElementById('permissionMatrixBody').innerHTML = permissionModules.map(m => `
+                <tr class="table-row border-b border-white/5 last:border-0">
+                    <td class="px-6 py-3"><div class="flex items-center gap-2"><i class="fas ${m.icon} text-slate-500 text-xs"></i><span class="text-sm text-white">${m.label}</span></div></td>
+                    <td class="px-6 py-3 text-center"><input type="checkbox" ${defaultRolePerms.admin[m.key] ? 'checked' : ''} class="accent-primary w-4 h-4 cursor-pointer"></td>
+                    <td class="px-6 py-3 text-center"><input type="checkbox" ${defaultRolePerms.editor[m.key] ? 'checked' : ''} class="accent-primary w-4 h-4 cursor-pointer"></td>
+                    <td class="px-6 py-3 text-center"><input type="checkbox" ${defaultRolePerms.user[m.key] ? 'checked' : ''} class="accent-primary w-4 h-4 cursor-pointer"></td>
+                </tr>
+            `).join('');
+        }
+
+        // ==================== 管理员：日志 ====================
+        function renderLogs() {
+            const tbody = document.getElementById('auditLogBody');
+            tbody.innerHTML = auditLogs.map(log => {
+                const actionColors = {
+                    '积分调整': 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+                    '权限变更': 'text-primary bg-primary/10 border-primary/20',
+                    '用户管理': 'text-cyan bg-cyan/10 border-cyan/20',
+                    '自动任务': 'text-slate-400 bg-white/5 border-white/10'
+                };
+                const badgeClass = actionColors[log.action] || actionColors['自动任务'];
+                return `
+                <tr class="table-row border-b border-white/5 last:border-0">
+                    <td class="px-6 py-4 text-xs text-slate-400 font-mono">${log.time}</td>
+                    <td class="px-6 py-4 text-xs text-white">${log.operator}</td>
+                    <td class="px-6 py-4"><span class="px-2 py-0.5 rounded text-xs border ${badgeClass}">${log.action}</span></td>
+                    <td class="px-6 py-4 text-xs text-white">${log.target}</td>
+                    <td class="px-6 py-4 text-xs text-slate-400">${log.detail}</td>
+                    <td class="px-6 py-4 text-xs text-slate-600 font-mono text-right">${log.ip}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        // ==================== 通用工具 ====================
+        function refreshCreditDisplay() {
+            ['myCreditBalance', 'profileCredit'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = currentUser.credits.toLocaleString();
+            });
+        }
+
+        function showModal(id) {
+            const modal = document.getElementById(id);
+            const overlay = document.getElementById(id + 'Overlay');
+            modal.classList.remove('hidden');
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+        }
+
+        function hideModal(id) {
+            const modal = document.getElementById(id);
+            const overlay = document.getElementById(id + 'Overlay');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); overlay.classList.add('hidden'); }, 300);
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const colors = { success: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400', error: 'border-rose-500/30 bg-rose-500/10 text-rose-400', warning: 'border-amber-500/30 bg-amber-500/10 text-amber-400' };
+            const icons = { success: 'fa-check-circle', error: 'fa-circle-xmark', warning: 'fa-triangle-exclamation' };
+            toast.className = `toast pointer-events-auto flex items-center gap-3 px-5 py-3.5 rounded-xl border ${colors[type]} backdrop-blur-xl shadow-xl min-w-[280px]`;
+            toast.innerHTML = `<i class="fas ${icons[type]}"></i><span class="text-sm text-white font-medium">${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(100%)'; toast.style.transition = 'all 0.4s ease'; setTimeout(() => toast.remove(), 400); }, 3000);
+        }
+
+        // ==================== 初始化 ====================
+        renderProfile();
+        renderMyPermissions();
+        renderPlans();
+        renderMyTransactions();
+        renderUsers();
+        selectPlan('p2');
+    </script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+# Multi-Model Capability Catalog
+# Declares supported parameters per (provider, model) pair.
+# Loaded by CapabilityCatalog at startup.
+
+capabilities:
+  bailian:
+    qwen-max:
+      type: llm
+      provider: bailian
+      params:
+        temperature:
+          type: float
+          range: [0.0, 2.0]
+          default: 0.7
+        max_tokens:
+          type: int
+          range: [128, 32000]
+          default: 4000
+        top_p:
+          type: float
+          range: [0.0, 1.0]
+          default: 0.9
+
+    qwen-plus:
+      type: llm
+      provider: bailian
+      params:
+        temperature:
+          type: float
+          range: [0.0, 2.0]
+          default: 0.7
+        max_tokens:
+          type: int
+          range: [128, 32000]
+          default: 4000
+
+  wanx:
+    wan2.7-image:
+      type: t2i
+      provider: wanx
+      params:
+        size:
+          type: str
+          options: ["2K", "1024x1024", "1536x1536"]
+          default: "2K"
+        n:
+          type: int
+          range: [1, 4]
+          default: 1
+        enable_sequential:
+          type: bool
+          default: false
+
+    wan2.7-i2v:
+      type: i2v
+      provider: wanx
+      params:
+        duration:
+          type: str
+          options: ["5s", "10s", "15s"]
+          default: "5s"
+        resolution:
+          type: str
+          options: ["720p", "1080p"]
+          default: "720p"
+
+  volc:
+    seedream-4.5:
+      type: t2i
+      provider: volc
+      params:
+        style:
+          type: str
+          options: ["realistic", "anime", "watercolor", "ink"]
+          default: "realistic"
+        resolution:
+          type: str
+          options: ["1024x1024", "1536x1536", "2048x2048"]
+          default: "1024x1024"
+
+    seedance-2.0:
+      type: i2v
+      provider: volc
+      params:
+        duration:
+          type: str
+          options: ["3s", "5s", "10s"]
+          default: "5s"
+        motion_intensity:
+          type: float
+          range: [0.0, 1.0]
+          default: 0.5
+
+    seed-tts:
+      type: tts
+      provider: volc
+      params:
+        voice:
+          type: str
+          options: ["zh-CN-Female", "zh-CN-Male", "en-US-Female", "en-US-Male"]
+          default: "zh-CN-Female"
+        speed:
+          type: float
+          range: [0.5, 2.0]
+          default: 1.0

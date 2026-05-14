@@ -1,0 +1,140 @@
+# generated: 2026/04/29
+# last_updated: 2026/04/30
+# project: AI漫剧工厂
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026/04/29
+last_updated: 2026/04/30
+project: AI漫剧工厂
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # Epic 1: 用户认证与账户
+  epic-1: done
+  1-0-xiang-mu-chu-shi-hua: done
+  1-1-yong-hu-zhu-ce: done
+  1-2-yong-hu-deng-lu: done
+  1-3-bao-chi-deng-lu-zhuang-tai: done
+  epic-1-retrospective: optional
+
+  # Epic 2: 项目管理与协作
+  epic-2: done
+  2-1-chuang-jian-xiang-mu: done
+  2-2-cha-kan-xiang-mu-lie-biao: done
+  2-3-sou-suo-he-shai-xuan-xiang-mu: done
+  2-4-bian-ji-xiang-mu: done
+  2-5-fu-zhi-xiang-mu: done
+  2-6-shan-chu-he-hui-fu-xiang-mu: done
+  2-7-shou-cang-xiang-mu: done
+  epic-2-retrospective: optional
+
+  # Epic 3: 小说上传与资产处理
+  epic-3: in-progress
+  3-1-shang-chuan-xiao-shuo-wen-jian: done
+  3-2-que-ren-mian-ze-tiao-kuan: done
+  3-3-pei-zhi-ai-fen-ji-ce-lue: done
+  3-4-ai-zhi-neng-chai-fen-xiao-shuo: done
+  3-5-tiao-zheng-fen-ji-jie-guo: done
+  3-6-ti-qu-zi-chan: done
+  3-7-bian-ji-zi-chan-ti-shi-ci: done
+  3-8-pi-liang-sheng-cheng-zi-chan-can-kao-tu: review
+  3-9-zi-chan-que-ren-ru-ku: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: 分集故事板创作
+  epic-4: backlog
+  4-1-tuan-dui-xie-zuo-jie-mian: backlog
+  4-2-fen-ji-lie-biao-yu-guo-lv: backlog
+  4-3-ai-zi-dong-sheng-cheng-fen-jing: backlog
+  4-4-bian-ji-fen-jing-miao-shu: backlog
+  4-5-ai-you-hua-jian-yi: backlog
+  4-6-guan-lian-zi-chan: backlog
+  4-7-sheng-cheng-fen-jing-tu: backlog
+  4-8-cai-yong-zhong-xin-sheng-cheng: backlog
+  4-9-li-shi-ban-ben-guan-li: backlog
+  4-10-ti-jiao-dao-shi-pin-gong-zuo-tai: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5: 视频生成与时间轴编辑
+  epic-5: backlog
+  5-1-shi-pin-sheng-cheng-mo-shi-qie-huan: backlog
+  5-2-shou-wei-zhen-pei-zhi: backlog
+  5-3-yun-dong-miao-shu-pei-zhi: backlog
+  5-4-shi-pin-yu-lan-yu-sheng-cheng: backlog
+  5-5-pi-liang-sheng-cheng: backlog
+  5-6-shi-jian-zhou-bian-ji: backlog
+  5-7-zhuan-chang-xiao-guo: backlog
+  5-8-dao-chu-cheng-pian: backlog
+  5-9-ai-zhi-neng-zhu-shou: backlog
+  epic-5-retrospective: optional
+
+  # Epic 6: 资产库管理
+  epic-6: backlog
+  6-1-zi-chan-tong-ji-zhan-shi: backlog
+  6-2-zi-chan-shai-xuan: backlog
+  6-3-zi-chan-sou-suo-he-pai-xu: backlog
+  6-4-pi-liang-guan-li-zi-chan: backlog
+  6-5-zi-chan-xiang-qing-cha-kan: backlog
+  6-6-zhong-xin-sheng-cheng-zi-chan-tu: backlog
+  6-7-zi-chan-guan-lian-dao-fen-jing: backlog
+  6-8-xia-zai-zi-chan: backlog
+  epic-6-retrospective: optional
+
+  # Epic 7: 用户中心与积分
+  epic-7: backlog
+  7-1-cha-kan-ge-ren-xin-xi: backlog
+  7-2-cha-kan-ji-fen-yu-e-he-xiao-hao: backlog
+  7-3-ji-fen-chong-zhi: backlog
+  7-4-yong-hu-guan-li-guan-li-yuan: backlog
+  7-5-guan-li-yuan-shou-dong-chong-zhi: backlog
+  7-6-ping-tai-yun-ying-shu-ju-guan-li-yuan: backlog
+  7-7-quan-xian-pei-zhi-guan-li-yuan: backlog
+  7-8-shen-ji-ri-zhi-guan-li-yuan: backlog
+  epic-7-retrospective: optional
+
+  # Epic 8: 实时协作与通知
+  epic-8: backlog
+  8-1-ai-ren-wu-jin-du-tui-song: backlog
+  8-2-bian-ji-suo-zhuang-tai-tong-bu: backlog
+  8-3-tuan-dui-zai-xian-zhuang-tai: backlog
+  8-4-fang-jian-ding-xiang-tui-song: backlog
+  epic-8-retrospective: optional
+
+# Statistics
+total_epics: 8
+total_stories: 58
+epics_in_progress: 0
+stories_done: 7

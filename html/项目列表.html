@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI漫剧工厂 - 项目列表</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'Noto Sans SC', 'sans-serif'] },
+                    colors: {
+                        primary: '#6366f1', secondary: '#8b5cf6', accent: '#ec4899',
+                        cyan: '#06b6d4', emerald: '#10b981', amber: '#f59e0b', rose: '#f43f5e',
+                        dark: '#0f172a', darker: '#020617', surface: '#1e293b', 'surface-light': '#334155',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', 'Noto Sans SC', sans-serif; background: #020617; color: #e2e8f0; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+        .generate-btn { background: linear-gradient(135deg, #6366f1, #8b5cf6); transition: all 0.3s ease; }
+        .generate-btn:hover { box-shadow: 0 0 30px rgba(99,102,241,0.5); transform: translateY(-1px); }
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .project-card { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); cursor: pointer; }
+        .project-card:hover { transform: translateY(-4px); border-color: rgba(99,102,241,0.3); box-shadow: 0 16px 40px rgba(0,0,0,0.4); }
+        .project-card:hover .project-overlay { opacity: 1; }
+        .project-card:hover .project-actions { opacity: 1; transform: translateY(0); }
+        .project-overlay { opacity: 0; transition: opacity 0.3s; }
+        .project-actions { opacity: 0; transform: translateY(8px); transition: all 0.3s; }
+        .tag-pill { transition: all 0.2s ease; }
+        .filter-btn { transition: all 0.2s ease; }
+        .filter-btn.active { background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.4); color: #a5b4fc; }
+        .filter-btn:hover:not(.active) { background: rgba(255,255,255,0.05); }
+        .search-input { transition: all 0.2s ease; }
+        .search-input:focus { border-color: rgba(99,102,241,0.5); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+        .dropdown-menu { transform-origin: top right; transition: all 0.2s cubic-bezier(0.4,0,0.2,1); }
+        .dropdown-menu.hidden { opacity: 0; transform: scale(0.95); pointer-events: none; }
+        .dropdown-menu.visible { opacity: 1; transform: scale(1); pointer-events: auto; }
+        .fade-in { animation: fadeIn 0.5s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        .stagger-1 { animation-delay: 0.05s; }
+        .stagger-2 { animation-delay: 0.1s; }
+        .stagger-3 { animation-delay: 0.15s; }
+        .stagger-4 { animation-delay: 0.2s; }
+        .stagger-5 { animation-delay: 0.25s; }
+        .stagger-6 { animation-delay: 0.3s; }
+        .empty-state { animation: float 4s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        .progress-ring { transform: rotate(-90deg); }
+        .progress-ring-circle { transition: stroke-dashoffset 0.5s ease; }
+    </style>
+</head>
+<body class="h-screen overflow-hidden bg-darker">
+
+    <!-- 顶部导航 -->
+    <header class="h-16 glass-panel border-b border-white/5 flex items-center justify-between px-6 z-40 relative">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/30">
+                <i class="fas fa-film text-white text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-white tracking-tight">AI漫剧工厂</h1>
+                <p class="text-xs text-slate-400">项目列表</p>
+            </div>
+        </div>
+        <!-- 导航链接 -->
+        <nav class="hidden md:flex items-center gap-1">
+            <a href="项目列表.html" class="px-3 py-1.5 rounded-lg bg-primary/15 text-primary border border-primary/25 text-xs font-medium">
+                <i class="fas fa-folder mr-1.5"></i>项目列表
+            </a>
+            <a href="小说上传-分集与资产提取.html" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-xs font-medium transition-all">
+                <i class="fas fa-upload mr-1.5"></i>小说上传
+            </a>
+            <a href="分集.html" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-xs font-medium transition-all">
+                <i class="fas fa-list mr-1.5"></i>分集工作台
+            </a>
+            <a href="分镜生视频.html" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-xs font-medium transition-all">
+                <i class="fas fa-video mr-1.5"></i>视频工作台
+            </a>
+            <a href="用户中心.html" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-xs font-medium transition-all">
+                <i class="fas fa-user mr-1.5"></i>用户中心
+            </a>
+        </nav>
+        <div class="flex items-center gap-4">
+            <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface border border-white/5">
+                <div class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></div>
+                <span class="text-xs text-slate-400">所有模型正常</span>
+            </div>
+            <button class="w-9 h-9 rounded-lg bg-surface border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all">
+                <i class="fas fa-bell"></i>
+            </button>
+            <button class="w-9 h-9 rounded-lg bg-surface border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all">
+                <i class="fas fa-cog"></i>
+            </button>
+            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-sm">A</div>
+        </div>
+    </header>
+
+    <!-- 主体 -->
+    <div class="flex h-[calc(100vh-64px)]">
+
+        <!-- 左侧边栏 -->
+        <aside class="w-64 glass-panel border-r border-white/5 flex flex-col z-30 hidden lg:flex">
+            <div class="p-4">
+                <button onclick="window.location.href='创建项目.html'" class="generate-btn w-full py-3 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/25">
+                    <i class="fas fa-plus"></i>
+                    创建新项目
+                </button>
+            </div>
+
+            <nav class="flex-1 px-3 space-y-1">
+                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-primary/10 text-primary border border-primary/20 text-sm font-medium">
+                    <i class="fas fa-folder-open w-5 text-center"></i>
+                    全部项目
+                    <span class="ml-auto text-xs bg-primary/20 px-2 py-0.5 rounded-full">12</span>
+                </a>
+                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 text-sm font-medium transition-all">
+                    <i class="fas fa-clock w-5 text-center"></i>
+                    最近编辑
+                </a>
+                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 text-sm font-medium transition-all">
+                    <i class="fas fa-star w-5 text-center"></i>
+                    收藏项目
+                    <span class="ml-auto text-xs bg-white/5 px-2 py-0.5 rounded-full text-slate-500">3</span>
+                </a>
+                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 text-sm font-medium transition-all">
+                    <i class="fas fa-check-circle w-5 text-center"></i>
+                    已完成
+                    <span class="ml-auto text-xs bg-white/5 px-2 py-0.5 rounded-full text-slate-500">5</span>
+                </a>
+                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 text-sm font-medium transition-all">
+                    <i class="fas fa-trash w-5 text-center"></i>
+                    回收站
+                    <span class="ml-auto text-xs bg-white/5 px-2 py-0.5 rounded-full text-slate-500">2</span>
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-white/5">
+                <div class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface/50 border border-white/5">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xs font-bold">A</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium text-white truncate">Admin User</div>
+                        <div class="text-[10px] text-slate-500">专业版会员</div>
+                    </div>
+                    <button class="text-slate-500 hover:text-white transition-colors"><i class="fas fa-ellipsis-vertical"></i></button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 flex flex-col min-w-0 bg-darker/50 overflow-hidden">
+            <!-- 工具栏 -->
+            <div class="h-16 border-b border-white/5 flex items-center justify-between px-6 glass-panel">
+                <div class="flex items-center gap-4">
+                    <h2 class="text-base font-semibold text-white">全部项目</h2>
+                    <div class="h-4 w-px bg-white/10"></div>
+                    <div class="flex gap-1">
+                        <button class="filter-btn active px-3 py-1.5 rounded-lg border border-transparent text-xs font-medium" onclick="filterProjects('all', this)">全部</button>
+                        <button class="filter-btn px-3 py-1.5 rounded-lg border border-transparent text-xs font-medium text-slate-400" onclick="filterProjects('processing', this)">进行中</button>
+                        <button class="filter-btn px-3 py-1.5 rounded-lg border border-transparent text-xs font-medium text-slate-400" onclick="filterProjects('completed', this)">已完成</button>
+                        <button class="filter-btn px-3 py-1.5 rounded-lg border border-transparent text-xs font-medium text-slate-400" onclick="filterProjects('draft', this)">草稿</button>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                        <input type="text" placeholder="搜索项目..." id="searchInput"
+                            class="search-input w-56 pl-9 pr-4 py-2 bg-surface border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none"
+                            oninput="searchProjects(this.value)">
+                    </div>
+                    <div class="flex items-center gap-1 p-1 bg-surface rounded-lg border border-white/5">
+                        <button class="w-8 h-8 rounded-md bg-white/5 text-white flex items-center justify-center text-xs"><i class="fas fa-grid-2"></i></button>
+                        <button class="w-8 h-8 rounded-md text-slate-500 hover:text-white flex items-center justify-center text-xs transition-colors"><i class="fas fa-list"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 项目列表 -->
+            <div class="flex-1 overflow-y-auto custom-scroll p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5" id="projectGrid"></div>
+
+                <!-- 空状态 -->
+                <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20">
+                    <div class="empty-state w-20 h-20 rounded-2xl bg-surface border border-white/5 flex items-center justify-center mb-4">
+                        <i class="fas fa-folder-open text-slate-600 text-3xl"></i>
+                    </div>
+                    <p class="text-sm text-slate-500 mb-1">没有找到项目</p>
+                    <p class="text-xs text-slate-600">尝试更换筛选条件或搜索关键词</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const projects = [
+            {
+                id: 1, name: '星辰大海', genre: '科幻', style: '写实科幻',
+                desc: '人类最后的星际移民计划，探索未知星域的冒险史诗',
+                cover: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&auto=format&fit=crop&q=60',
+                status: 'processing', progress: 65,
+                episodes: 12, shots: 96, assets: 19,
+                updated: '2小时前', created: '2026-04-20',
+                models: { llm: 'GPT-4o', t2i: 'SDXL', i2v: 'Runway Gen-3' },
+                ratio: '16:9', starred: true
+            },
+            {
+                id: 2, name: '仙途漫漫', genre: '仙侠', style: '国风水墨',
+                desc: '少年偶得上古传承，踏上修仙问道之路',
+                cover: 'https://images.unsplash.com/photo-1515405295579-ba7b45403062?w=600&auto=format&fit=crop&q=60',
+                status: 'processing', progress: 32,
+                episodes: 24, shots: 45, assets: 31,
+                updated: '5小时前', created: '2026-04-18',
+                models: { llm: 'Claude 3.5', t2i: 'Midjourney V6', i2v: 'Pika 1.5' },
+                ratio: '16:9', starred: false
+            },
+            {
+                id: 3, name: '都市夜行', genre: '都市', style: '写实科幻',
+                desc: '异能觉醒的都市青年，在霓虹灯下守护城市',
+                cover: 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=600&auto=format&fit=crop&q=60',
+                status: 'completed', progress: 100,
+                episodes: 8, shots: 64, assets: 15,
+                updated: '1天前', created: '2026-04-10',
+                models: { llm: 'DeepSeek-V3', t2i: 'DALL·E 3', i2v: 'Luma Dream Machine' },
+                ratio: '9:16', starred: true
+            },
+            {
+                id: 4, name: '机甲纪元', genre: '科幻', style: '3D渲染',
+                desc: '人类与AI机甲的终极对决，决定地球命运',
+                cover: 'https://images.unsplash.com/photo-1633218388467-539651dcf81a?w=600&auto=format&fit=crop&q=60',
+                status: 'draft', progress: 0,
+                episodes: 0, shots: 0, assets: 0,
+                updated: '2天前', created: '2026-04-21',
+                models: { llm: 'GPT-4o', t2i: 'SDXL', i2v: 'Runway Gen-3' },
+                ratio: '16:9', starred: false
+            },
+            {
+                id: 5, name: '魔法学院', genre: '玄幻', style: '二次元动漫',
+                desc: '平凡少女进入魔法学院，揭开身世之谜',
+                cover: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=60',
+                status: 'processing', progress: 78,
+                episodes: 16, shots: 128, assets: 42,
+                updated: '3天前', created: '2026-04-15',
+                models: { llm: 'Claude 3.5', t2i: 'Midjourney V6', i2v: 'Pika 1.5' },
+                ratio: '9:16', starred: true
+            },
+            {
+                id: 6, name: '古镜奇缘', genre: '古言', style: '国风水墨',
+                desc: '一面古镜连接两个时空，跨越千年的爱恋',
+                cover: 'https://images.unsplash.com/photo-1544531585-9847b68c8c86?w=600&auto=format&fit=crop&q=60',
+                status: 'completed', progress: 100,
+                episodes: 10, shots: 80, assets: 22,
+                updated: '5天前', created: '2026-04-08',
+                models: { llm: 'DeepSeek-V3', t2i: 'DALL·E 3', i2v: 'Luma Dream Machine' },
+                ratio: '1:1', starred: false
+            },
+            {
+                id: 7, name: '赛博侦探', genre: '悬疑', style: '写实科幻',
+                desc: '2077年的私家侦探，在数据迷雾中寻找真相',
+                cover: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=600&auto=format&fit=crop&q=60',
+                status: 'draft', progress: 0,
+                episodes: 0, shots: 0, assets: 0,
+                updated: '1周前', created: '2026-04-16',
+                models: { llm: 'GPT-4o', t2i: 'SDXL', i2v: 'Runway Gen-3' },
+                ratio: '16:9', starred: false
+            },
+            {
+                id: 8, name: '像素冒险', genre: '奇幻', style: '像素风格',
+                desc: '8位像素世界的勇者传说，复古游戏风',
+                cover: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=60',
+                status: 'processing', progress: 45,
+                episodes: 6, shots: 48, assets: 12,
+                updated: '1周前', created: '2026-04-14',
+                models: { llm: 'Claude 3.5', t2i: 'Midjourney V6', i2v: 'Pika 1.5' },
+                ratio: '1:1', starred: false
+            },
+        ];
+
+        let currentFilter = 'all';
+        let searchQuery = '';
+
+        function getStatusConfig(status) {
+            const configs = {
+                processing: { label: '进行中', color: 'text-amber-400', bg: 'bg-amber-400', border: 'border-amber-400/30', bgLight: 'bg-amber-400/10' },
+                completed: { label: '已完成', color: 'text-emerald-400', bg: 'bg-emerald-400', border: 'border-emerald-400/30', bgLight: 'bg-emerald-400/10' },
+                draft: { label: '草稿', color: 'text-slate-400', bg: 'bg-slate-400', border: 'border-slate-400/30', bgLight: 'bg-slate-400/10' }
+            };
+            return configs[status] || configs.draft;
+        }
+
+        function getGenreColor(genre) {
+            const colors = {
+                '科幻': 'bg-primary/10 text-primary border-primary/30',
+                '仙侠': 'bg-cyan/10 text-cyan border-cyan/30',
+                '都市': 'bg-emerald/10 text-emerald border-emerald/30',
+                '古言': 'bg-amber/10 text-amber border-amber/30',
+                '玄幻': 'bg-secondary/10 text-secondary border-secondary/30',
+                '悬疑': 'bg-rose/10 text-rose border-rose/30',
+                '奇幻': 'bg-accent/10 text-accent border-accent/30'
+            };
+            return colors[genre] || 'bg-white/5 text-slate-400 border-white/10';
+        }
+
+        function renderProjects() {
+            const grid = document.getElementById('projectGrid');
+            const empty = document.getElementById('emptyState');
+
+            let filtered = projects.filter(p => {
+                if (currentFilter !== 'all' && p.status !== currentFilter) return false;
+                if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase()) && !p.genre.includes(searchQuery)) return false;
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            empty.classList.add('hidden');
+
+            grid.innerHTML = filtered.map((p, idx) => {
+                const status = getStatusConfig(p.status);
+                const genreClass = getGenreColor(p.genre);
+                const circumference = 2 * Math.PI * 18;
+                const offset = circumference - (p.progress / 100) * circumference;
+                const staggerClass = `stagger-${(idx % 6) + 1}`;
+
+                return `
+                <div class="project-card glass-panel rounded-2xl overflow-hidden fade-in ${staggerClass}" onclick="openProject(${p.id})">
+                    <!-- 封面 -->
+                    <div class="aspect-[16/10] relative overflow-hidden">
+                        <img src="${p.cover}" class="w-full h-full object-cover transition-transform duration-500 hover:scale-105">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+
+                        <!-- 顶部标签 -->
+                        <div class="absolute top-3 left-3 flex gap-2">
+                            <span class="px-2 py-0.5 rounded-md ${genreClass} text-[10px] font-medium border">${p.genre}</span>
+                            <span class="px-2 py-0.5 rounded-md ${status.bgLight} ${status.color} text-[10px] font-medium border ${status.border}">${status.label}</span>
+                        </div>
+
+                        <!-- 收藏 -->
+                        <button onclick="event.stopPropagation(); toggleStar(${p.id})" class="absolute top-3 right-3 w-7 h-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-xs transition-all hover:bg-black/60">
+                            <i class="fas fa-star ${p.starred ? 'text-amber-400' : 'text-white/50'}"></i>
+                        </button>
+
+                        <!-- 进度环 -->
+                        ${p.status === 'processing' ? `
+                        <div class="absolute bottom-3 right-3">
+                            <svg class="progress-ring w-10 h-10" viewBox="0 0 40 40">
+                                <circle cx="20" cy="20" r="18" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="3"/>
+                                <circle cx="20" cy="20" r="18" fill="none" stroke="#6366f1" stroke-width="3" stroke-linecap="round"
+                                    class="progress-ring-circle" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"/>
+                            </svg>
+                            <span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">${p.progress}%</span>
+                        </div>
+                        ` : ''}
+
+                        <!-- 悬浮操作 -->
+                        <div class="project-overlay absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                            <div class="project-actions flex gap-2">
+                                <button onclick="event.stopPropagation(); editProject(${p.id})" class="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all" title="编辑">
+                                    <i class="fas fa-pen text-xs"></i>
+                                </button>
+                                <button onclick="event.stopPropagation(); duplicateProject(${p.id})" class="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all" title="复制">
+                                    <i class="fas fa-copy text-xs"></i>
+                                </button>
+                                <button onclick="event.stopPropagation(); deleteProject(${p.id})" class="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-rose-500/80 transition-all" title="删除">
+                                    <i class="fas fa-trash text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 信息 -->
+                    <div class="p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-base font-bold text-white truncate">${p.name}</h3>
+                            <span class="text-[10px] text-slate-500">${p.updated}</span>
+                        </div>
+                        <p class="text-xs text-slate-400 line-clamp-2 mb-3 h-8">${p.desc}</p>
+
+                        <!-- 统计 -->
+                        <div class="flex items-center gap-4 mb-3">
+                            <div class="flex items-center gap-1.5">
+                                <i class="fas fa-film text-slate-600 text-[10px]"></i>
+                                <span class="text-xs text-slate-400">${p.episodes} 集</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <i class="fas fa-image text-slate-600 text-[10px]"></i>
+                                <span class="text-xs text-slate-400">${p.shots} 分镜</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <i class="fas fa-cube text-slate-600 text-[10px]"></i>
+                                <span class="text-xs text-slate-400">${p.assets} 资产</span>
+                            </div>
+                        </div>
+
+                        <!-- 模型配置 -->
+                        <div class="flex items-center gap-2 p-2 rounded-lg bg-surface/50 border border-white/5">
+                            <div class="flex -space-x-1.5">
+                                <div class="w-5 h-5 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center" title="LLM: ${p.models.llm}">
+                                    <i class="fas fa-brain text-primary text-[7px]"></i>
+                                </div>
+                                <div class="w-5 h-5 rounded-full bg-cyan/20 border border-cyan/30 flex items-center justify-center" title="文生图: ${p.models.t2i}">
+                                    <i class="fas fa-image text-cyan text-[7px]"></i>
+                                </div>
+                                <div class="w-5 h-5 rounded-full bg-amber/20 border border-amber/30 flex items-center justify-center" title="图生视频: ${p.models.i2v}">
+                                    <i class="fas fa-video text-amber text-[7px]"></i>
+                                </div>
+                            </div>
+                            <span class="text-[10px] text-slate-500">${p.models.llm} · ${p.models.t2i} · ${p.models.i2v}</span>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function filterProjects(filter, btn) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderProjects();
+        }
+
+        function searchProjects(query) {
+            searchQuery = query;
+            renderProjects();
+        }
+
+        function toggleStar(id) {
+            const p = projects.find(proj => proj.id === id);
+            if (p) { p.starred = !p.starred; renderProjects(); }
+        }
+
+        function openProject(id) {
+            // 根据项目状态决定跳转目标
+            const p = projects.find(proj => proj.id === id);
+            if (!p) return;
+            
+            // 保存当前项目ID到sessionStorage
+            sessionStorage.setItem('currentProjectId', id);
+            sessionStorage.setItem('currentProject', JSON.stringify(p));
+            
+            if (p.status === 'draft') {
+                // 草稿状态 → 跳转小说上传
+                window.location.href = '小说上传-分集与资产提取.html';
+            } else if (p.status === 'processing') {
+                // 进行中 → 跳转分集工作台
+                window.location.href = '分集.html';
+            } else if (p.status === 'completed') {
+                // 已完成 → 跳转分集工作台（可查看）
+                window.location.href = '分集.html';
+            }
+        }
+
+        function editProject(id) {
+            const p = projects.find(proj => proj.id === id);
+            alert(`编辑项目：${p.name}`);
+        }
+
+        function duplicateProject(id) {
+            const p = projects.find(proj => proj.id === id);
+            const newProject = { ...p, id: Date.now(), name: p.name + ' (副本)', status: 'draft', progress: 0, episodes: 0, shots: 0, updated: '刚刚' };
+            projects.unshift(newProject);
+            renderProjects();
+        }
+
+        function deleteProject(id) {
+            if (!confirm('确定要删除该项目吗？此操作不可撤销。')) return;
+            const idx = projects.findIndex(p => p.id === id);
+            if (idx > -1) { projects.splice(idx, 1); renderProjects(); }
+        }
+
+        // 初始化
+        renderProjects();
+    </script>
+</body>
+</html>

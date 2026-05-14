@@ -1,0 +1,14 @@
+fastapi==0.136.1
+uvicorn[standard]==0.46.0
+python-multipart>=0.0.9
+pydantic==2.13.3
+pydantic-settings==2.13.1
+python-jose[cryptography]==3.5.0
+libpass[bcrypt]==1.9.3
+prisma==0.15.0
+psycopg2-binary==2.9.12
+redis==6.1.0
+minio==7.2.17
+httpx==0.28.1
+dashscope>=1.14.0
+Pillow>=10.0.0

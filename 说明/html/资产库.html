@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI漫剧 - 资产库</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'Noto Sans SC', 'sans-serif'] },
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6',
+                        accent: '#ec4899',
+                        cyan: '#06b6d4',
+                        emerald: '#10b981',
+                        amber: '#f59e0b',
+                        rose: '#f43f5e',
+                        dark: '#0f172a',
+                        darker: '#020617',
+                        surface: '#1e293b',
+                        'surface-light': '#334155',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #8b5cf6;
+            --accent: #ec4899;
+            --emerald: #10b981;
+            --amber: #f59e0b;
+            --cyan: #06b6d4;
+            --rose: #f43f5e;
+            --dark: #0f172a;
+            --darker: #020617;
+            --surface: #1e293b;
+            --surface-light: #334155;
+        }
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            background: #020617;
+            color: #e2e8f0;
+            -webkit-font-smoothing: antialiased;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-panel-strong {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .asset-card {
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+        .asset-card:hover {
+            border-color: rgba(255, 255, 255, 0.18);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        .asset-card.selected {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2), 0 8px 25px rgba(0, 0, 0, 0.35);
+        }
+        .fade-in { animation: fadeIn 0.45s ease forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .slide-up { animation: slideUp 0.4s ease forwards; }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal-overlay {
+            animation: modalFadeIn 0.3s ease;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-content {
+            animation: modalSlideUp 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes modalSlideUp {
+            from { opacity: 0; transform: translateY(30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .checkbox-custom {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .checkbox-custom:checked {
+            background: #6366f1;
+            border-color: #6366f1;
+        }
+        .checkbox-custom:checked::after {
+            content: '\f00c';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 10px;
+            color: white;
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .glow-ring { box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3), 0 0 30px rgba(99, 102, 241, 0.1); }
+        .glow-ring-emerald { box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.3), 0 0 30px rgba(16, 185, 129, 0.1); }
+        .category-tab {
+            transition: all 0.25s ease;
+        }
+        .category-tab:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .category-tab.active {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: rgba(99, 102, 241, 0.4);
+            color: #a5b4fc;
+        }
+        .project-badge {
+            transition: all 0.2s ease;
+        }
+        .project-badge:hover {
+            filter: brightness(1.1);
+        }
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
+        }
+        .toast {
+            animation: toastSlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes toastSlideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .tag-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.625rem;
+            border-radius: 0.375rem;
+            font-size: 0.6875rem;
+            font-weight: 500;
+        }
+        @media (max-width: 768px) {
+            .hide-mobile { display: none !important; }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-darker">
+
+    <!-- 顶部导航 -->
+    <header class="h-16 glass-panel-strong border-b border-white/5 flex items-center justify-between px-5 md:px-6 z-50 relative sticky top-0">
+        <div class="flex items-center gap-3 md:gap-4">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/30 flex-shrink-0">
+                <i class="fas fa-film text-white text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-base md:text-lg font-bold text-white tracking-tight">AI漫剧生成工作台</h1>
+                <p class="text-xs text-slate-400 hidden sm:block">资产库管理</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 md:gap-3">
+            <button class="w-9 h-9 rounded-lg bg-surface border border-white/5 flex items-center justify-center text-slate-400 hover:text-white hover:border-white/15 transition-all flex-shrink-0">
+                <i class="fas fa-upload"></i>
+            </button>
+            <button class="w-9 h-9 rounded-lg bg-surface border border-white/5 flex items-center justify-center text-slate-400 hover:text-white hover:border-white/15 transition-all flex-shrink-0">
+                <i class="fas fa-cog"></i>
+            </button>
+            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-lg shadow-primary/25">A</div>
+        </div>
+    </header>
+
+    <!-- 导航链接 -->
+    <nav class="hidden md:flex items-center gap-1 px-5 md:px-6 py-2 border-b border-white/5 bg-surface/30">
+        <a href="项目列表.html" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-[11px] font-medium transition-all">
+            <i class="fas fa-folder mr-1"></i>项目
+        </a>
+        <a href="创建项目.html" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-[11px] font-medium transition-all">
+            <i class="fas fa-plus mr-1"></i>创建
+        </a>
+        <a href="小说上传-分集与资产提取.html" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-[11px] font-medium transition-all">
+            <i class="fas fa-upload mr-1"></i>小说上传
+        </a>
+        <a href="资产库.html" class="px-2.5 py-1 rounded-lg bg-primary/15 text-primary border border-primary/25 text-[11px] font-medium">
+            <i class="fas fa-boxes-stacked mr-1"></i>资产库
+        </a>
+        <a href="分镜生视频.html" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-[11px] font-medium transition-all">
+            <i class="fas fa-video mr-1"></i>视频
+        </a>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="max-w-7xl mx-auto p-4 md:p-6">
+
+        <!-- 统计概览 -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+            <!-- 总资产 -->
+            <div class="stat-card glass-panel rounded-2xl p-4 md:p-5 cursor-pointer" onclick="filterByProject('all')">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-primary/20 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-boxes-stacked text-primary text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="text-2xl md:text-3xl font-bold text-white">47</div>
+                        <div class="text-xs text-slate-400">资产总数</div>
+                    </div>
+                </div>
+            </div>
+            <!-- 角色 -->
+            <div class="stat-card glass-panel rounded-2xl p-4 md:p-5 cursor-pointer" onclick="switchCategory('character')">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-primary/15 border border-primary/20 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-user text-primary text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="text-2xl md:text-3xl font-bold text-white" id="char-count">12</div>
+                        <div class="text-xs text-slate-400">角色</div>
+                    </div>
+                </div>
+            </div>
+            <!-- 场景 -->
+            <div class="stat-card glass-panel rounded-2xl p-4 md:p-5 cursor-pointer" onclick="switchCategory('scene')">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-cyan/15 border border-cyan/20 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-image text-cyan text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="text-2xl md:text-3xl font-bold text-white" id="scene-count">23</div>
+                        <div class="text-xs text-slate-400">场景</div>
+                    </div>
+                </div>
+            </div>
+            <!-- 道具 -->
+            <div class="stat-card glass-panel rounded-2xl p-4 md:p-5 cursor-pointer" onclick="switchCategory('prop')">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-amber/15 border border-amber/20 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-cube text-amber text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="text-2xl md:text-3xl font-bold text-white" id="prop-count">12</div>
+                        <div class="text-xs text-slate-400">道具</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 筛选工具栏 -->
+        <div class="glass-panel rounded-2xl p-4 mb-6">
+            <div class="flex flex-col md:flex-row gap-3 md:items-center justify-between">
+                <!-- 左侧：分类切换 + 批量选择 -->
+                <div class="flex items-center gap-3 flex-wrap">
+                    <!-- 分类切换 -->
+                    <div class="flex items-center gap-1 p-1 bg-surface/50 rounded-xl border border-white/5">
+                        <button onclick="switchCategory('all')" class="category-tab active px-3 py-1.5 rounded-lg text-xs font-medium border border-transparent" data-category="all">
+                            <i class="fas fa-border-all mr-1"></i>全部
+                        </button>
+                        <button onclick="switchCategory('character')" class="category-tab px-3 py-1.5 rounded-lg text-xs font-medium border border-transparent" data-category="character">
+                            <i class="fas fa-user mr-1"></i>角色
+                        </button>
+                        <button onclick="switchCategory('scene')" class="category-tab px-3 py-1.5 rounded-lg text-xs font-medium border border-transparent" data-category="scene">
+                            <i class="fas fa-image mr-1"></i>场景
+                        </button>
+                        <button onclick="switchCategory('prop')" class="category-tab px-3 py-1.5 rounded-lg text-xs font-medium border border-transparent" data-category="prop">
+                            <i class="fas fa-cube mr-1"></i>道具
+                        </button>
+                    </div>
+
+                    <!-- 批量选择 -->
+                    <button onclick="toggleSelectMode()" id="select-mode-btn" class="px-3 py-1.5 rounded-lg bg-surface border border-white/10 text-slate-400 hover:text-white text-xs transition-all">
+                        <i class="fas fa-check-square mr-1"></i>批量选择
+                    </button>
+
+                    <!-- 批量操作（选中后显示） -->
+                    <div id="batch-actions" class="hidden items-center gap-2">
+                        <span class="text-xs text-slate-400">已选 <span id="selected-count" class="text-primary font-bold">0</span> 个</span>
+                        <button onclick="batchDelete()" class="px-3 py-1.5 rounded-lg bg-rose/15 text-rose border border-rose/20 text-xs hover:bg-rose/25 transition-all">
+                            <i class="fas fa-trash mr-1"></i>删除
+                        </button>
+                        <button onclick="batchExport()" class="px-3 py-1.5 rounded-lg bg-emerald/15 text-emerald border border-emerald/20 text-xs hover:bg-emerald/25 transition-all">
+                            <i class="fas fa-download mr-1"></i>导出
+                        </button>
+                        <button onclick="cancelSelect()" class="px-3 py-1.5 rounded-lg bg-surface border border-white/10 text-slate-400 text-xs hover:text-white transition-all">
+                            取消
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 右侧：搜索 + 项目筛选 -->
+                <div class="flex items-center gap-3 flex-wrap">
+                    <!-- 项目筛选 -->
+                    <div class="relative">
+                        <select id="project-filter" onchange="filterByProject(this.value)" class="appearance-none w-40 px-3 py-2 pr-8 bg-surface/80 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-primary/50 cursor-pointer">
+                            <option value="all">全部项目</option>
+                            <option value="星辰大海">星辰大海</option>
+                            <option value="星际迷航">星际迷航</option>
+                            <option value="未来纪元">未来纪元</option>
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
+                    </div>
+
+                    <!-- 搜索框 -->
+                    <div class="relative flex-1 md:flex-none md:w-64">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                        <input type="text" id="search-input" oninput="searchAssets(this.value)" placeholder="搜索资产名称..." class="w-full pl-9 pr-4 py-2 bg-surface/80 border border-white/10 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary/50 transition-all">
+                    </div>
+
+                    <!-- 排序 -->
+                    <div class="relative">
+                        <select id="sort-select" onchange="sortAssets(this.value)" class="appearance-none w-32 px-3 py-2 pr-8 bg-surface/80 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-primary/50 cursor-pointer">
+                            <option value="recent">最近使用</option>
+                            <option value="name">名称排序</option>
+                            <option value="episodes">按集数</option>
+                            <option value="created">创建时间</option>
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 项目标签 -->
+        <div class="flex items-center gap-2 mb-4 overflow-x-auto custom-scroll pb-2">
+            <span class="text-xs text-slate-500 flex-shrink-0">快速筛选：</span>
+            <button onclick="filterByProject('星辰大海')" class="project-badge px-3 py-1 rounded-full bg-primary/15 text-primary border border-primary/25 text-xs whitespace-nowrap hover:bg-primary/25 transition-all">
+                星辰大海
+            </button>
+            <button onclick="filterByProject('星际迷航')" class="project-badge px-3 py-1 rounded-full bg-cyan/15 text-cyan border border-cyan/25 text-xs whitespace-nowrap hover:bg-cyan/25 transition-all">
+                星际迷航
+            </button>
+            <button onclick="filterByProject('未来纪元')" class="project-badge px-3 py-1 rounded-full bg-amber/15 text-amber border border-amber/25 text-xs whitespace-nowrap hover:bg-amber/25 transition-all">
+                未来纪元
+            </button>
+            <button onclick="filterByProject('all')" class="project-badge px-3 py-1 rounded-full bg-surface border border-white/10 text-slate-400 text-xs whitespace-nowrap hover:text-white transition-all">
+                查看全部
+            </button>
+        </div>
+
+        <!-- 资产网格 -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4" id="asset-grid">
+            <!-- 资产卡片将通过 JS 动态渲染 -->
+        </div>
+
+        <!-- 空状态 -->
+        <div id="empty-state" class="hidden text-center py-16">
+            <div class="w-20 h-20 rounded-2xl bg-surface/50 border border-white/5 flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-box-open text-slate-600 text-3xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-white mb-2">暂无资产</h3>
+            <p class="text-sm text-slate-400 mb-4">从小说中提取角色、场景、道具后会自动出现在这里</p>
+            <button onclick="window.location.href='小说上传-分集与资产提取.html'" class="px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/80 transition-all">
+                <i class="fas fa-plus mr-2"></i>上传小说提取资产
+            </button>
+        </div>
+
+        <!-- 加载更多 -->
+        <div id="load-more" class="text-center py-8">
+            <button onclick="loadMoreAssets()" class="px-6 py-2.5 rounded-xl bg-surface border border-white/10 text-slate-400 hover:text-white text-sm transition-all">
+                <i class="fas fa-arrow-down mr-2"></i>加载更多
+            </button>
+        </div>
+    </main>
+
+    <!-- 资产详情模态框 -->
+    <div id="asset-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden modal-overlay flex items-center justify-center p-4" onclick="closeModal(event)">
+        <div class="glass-panel-strong rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden modal-content" onclick="event.stopPropagation()">
+            <!-- 模态框头部 -->
+            <div class="flex items-center justify-between p-5 border-b border-white/10">
+                <div class="flex items-center gap-3">
+                    <div id="modal-type-icon" class="w-10 h-10 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-user text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 id="modal-asset-name" class="text-lg font-bold text-white">资产名称</h3>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span id="modal-asset-type" class="tag-badge bg-primary/15 text-primary border border-primary/20">角色</span>
+                            <span id="modal-asset-subtype" class="tag-badge bg-surface text-slate-400 border border-white/10">主角</span>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="closeAssetModal()" class="w-9 h-9 rounded-lg bg-surface border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:border-white/20 transition-all">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- 模态框内容 -->
+            <div class="p-5 overflow-y-auto custom-scroll max-h-[60vh]">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- 左侧：图片预览 -->
+                    <div class="space-y-4">
+                        <div class="aspect-[4/3] rounded-xl overflow-hidden bg-surface border border-white/10">
+                            <img id="modal-asset-img" src="" alt="" class="w-full h-full object-cover">
+                        </div>
+                        <!-- 缩略图 -->
+                        <div class="flex gap-2" id="modal-thumbnails">
+                            <div class="w-16 h-16 rounded-lg overflow-hidden border-2 border-primary cursor-pointer">
+                                <img src="" alt="" class="w-full h-full object-cover">
+                            </div>
+                            <div class="w-16 h-16 rounded-lg overflow-hidden border border-white/10 cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
+                                <img src="" alt="" class="w-full h-full object-cover">
+                            </div>
+                            <div class="w-16 h-16 rounded-lg overflow-hidden border border-white/10 cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
+                                <img src="" alt="" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右侧：详细信息 -->
+                    <div class="space-y-4">
+                        <!-- 基本信息 -->
+                        <div class="p-4 rounded-xl bg-surface/50 border border-white/5">
+                            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">基本信息</h4>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs text-slate-500">所属项目</span>
+                                    <span id="modal-asset-project" class="text-sm text-white">星辰大海</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs text-slate-500">出场集数</span>
+                                    <span id="modal-asset-episodes" class="text-sm text-white">12 集</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs text-slate-500">创建时间</span>
+                                    <span id="modal-asset-created" class="text-sm text-white">2024-01-15</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs text-slate-500">使用次数</span>
+                                    <span id="modal-asset-usage" class="text-sm text-white">48 次</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 生成提示词 -->
+                        <div class="p-4 rounded-xl bg-surface/50 border border-white/5">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">生成提示词</h4>
+                                <button onclick="copyPrompt()" class="text-xs text-primary hover:text-primary/80 transition-colors">
+                                    <i class="fas fa-copy mr-1"></i>复制
+                                </button>
+                            </div>
+                            <p id="modal-asset-prompt" class="text-sm text-slate-300 leading-relaxed">年轻亚洲男性，短发，穿银色太空服，眼神坚定，赛博朋克风格，电影级光影</p>
+                        </div>
+
+                        <!-- 出场集数预览 -->
+                        <div class="p-4 rounded-xl bg-surface/50 border border-white/5">
+                            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">出场集数</h4>
+                            <div class="flex flex-wrap gap-1.5" id="modal-episode-tags">
+                                <span class="px-2 py-1 rounded bg-primary/15 text-primary text-xs">第1集</span>
+                                <span class="px-2 py-1 rounded bg-primary/15 text-primary text-xs">第2集</span>
+                                <span class="px-2 py-1 rounded bg-primary/15 text-primary text-xs">第3集</span>
+                                <span class="px-2 py-1 rounded bg-slate-700 text-slate-400 text-xs">...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 模态框底部操作 -->
+            <div class="flex items-center justify-between p-5 border-t border-white/10 bg-surface/30">
+                <div class="flex items-center gap-2">
+                    <button onclick="downloadAsset()" class="px-4 py-2 rounded-lg bg-surface border border-white/10 text-slate-400 hover:text-white text-sm transition-all">
+                        <i class="fas fa-download mr-1"></i>下载
+                    </button>
+                    <button onclick="duplicateAsset()" class="px-4 py-2 rounded-lg bg-surface border border-white/10 text-slate-400 hover:text-white text-sm transition-all">
+                        <i class="fas fa-copy mr-1"></i>复制
+                    </button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="editAsset()" class="px-4 py-2 rounded-lg bg-surface border border-white/10 text-slate-400 hover:text-white text-sm transition-all">
+                        <i class="fas fa-edit mr-1"></i>编辑
+                    </button>
+                    <button onclick="regenerateAsset()" class="px-4 py-2 rounded-lg bg-secondary/15 text-secondary border border-secondary/20 text-sm hover:bg-secondary/25 transition-all">
+                        <i class="fas fa-redo mr-1"></i>重新生成
+                    </button>
+                    <button onclick="deleteAssetFromModal()" class="px-4 py-2 rounded-lg bg-rose/15 text-rose border border-rose/20 text-sm hover:bg-rose/25 transition-all">
+                        <i class="fas fa-trash mr-1"></i>删除
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 示例资产数据
+        const assetsData = [
+            // 角色
+            { id: 'c1', name: '林晨', type: 'character', subtype: '男主角', project: '星辰大海', prompt: '年轻亚洲男性，短发，穿银色太空服，眼神坚定，赛博朋克风格，电影级光影', img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=60', episodes: [1,2,3,4,5,6,7,8,9,10,11,12], created: '2024-01-15', usage: 48 },
+            { id: 'c2', name: '苏雨', type: 'character', subtype: '女主角', project: '星辰大海', prompt: '年轻亚洲女性，长发，穿黑色战斗服，手持光剑，冷酷表情，科幻风格', img: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=60', episodes: [2,3,4,5,6,10,11,12], created: '2024-01-15', usage: 35 },
+            { id: 'c3', name: '黑曜', type: 'character', subtype: '反派', project: '星辰大海', prompt: '中年男性，短发带灰，穿黑色军装，阴沉表情，暗光环境', img: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&auto=format&fit=crop&q=60', episodes: [3,6,11], created: '2024-01-15', usage: 12 },
+            { id: 'c4', name: '老船长', type: 'character', subtype: '配角', project: '星辰大海', prompt: '老年男性，白发，穿棕色皮夹克，慈祥笑容，飞船驾驶舱背景', img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=60', episodes: [1,5,6,10,11], created: '2024-01-15', usage: 18 },
+            { id: 'c5', name: 'AI助手-小七', type: 'character', subtype: 'AI角色', project: '星辰大海', prompt: '全息投影少女，蓝发，半透明身体，未来科技感，悬浮姿态', img: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&auto=format&fit=crop&q=60', episodes: [1,2,3,4,6,7,8,9,10,11,12], created: '2024-01-15', usage: 42 },
+            { id: 'c6', name: '星舰指挥官', type: 'character', subtype: '配角', project: '星际迷航', prompt: '中年女性，严肃表情，穿舰队制服，指挥舱背景', img: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=60', episodes: [1,2,3,4,5], created: '2024-02-10', usage: 15 },
+            { id: 'c7', name: '神秘博士', type: 'character', subtype: '神秘角色', project: '未来纪元', prompt: '老年男性，白大褂，手持时间装置，维多利亚风格实验室', img: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&auto=format&fit=crop&q=60', episodes: [1,3,5,7,9], created: '2024-02-20', usage: 8 },
+            { id: 'c8', name: '机械战士', type: 'character', subtype: '机械', project: '未来纪元', prompt: '机械身体，金属质感，红色LED眼睛，未来战场背景', img: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&auto=format&fit=crop&q=60', episodes: [2,4,6,8,10], created: '2024-02-20', usage: 22 },
+            // 场景
+            { id: 's1', name: '星际飞船「曙光号」', type: 'scene', subtype: '飞船内部', project: '星辰大海', prompt: '未来主义飞船驾驶舱，全息控制台，金属质感，冷色调蓝光', img: 'https://images.unsplash.com/photo-1446776811953-d23d5233e4d6?w=400&auto=format&fit=crop&q=60', episodes: [1,3,5,6,9,10,11,12], created: '2024-01-15', usage: 56 },
+            { id: 's2', name: '蓝色星球「蓝晶」', type: 'scene', subtype: '行星表面', project: '星辰大海', prompt: '异星地表，蓝色植被，双太阳天空，远处山脉，科幻概念艺术', img: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&auto=format&fit=crop&q=60', episodes: [1,2,3,4,7,8,11,12], created: '2024-01-15', usage: 38 },
+            { id: 's3', name: '紫云星云', type: 'scene', subtype: '太空', project: '星辰大海', prompt: '深空星云，紫色和粉色气体云，遥远星系，星光点点', img: 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=400&auto=format&fit=crop&q=60', episodes: [1,6,8,10,11,12], created: '2024-01-15', usage: 28 },
+            { id: 's4', name: '异星遗迹', type: 'scene', subtype: '外景', project: '星辰大海', prompt: '古老外星遗迹，巨型石柱，发光符文，神秘氛围，黄昏光线', img: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&auto=format&fit=crop&q=60', episodes: [2,4,8], created: '2024-01-15', usage: 19 },
+            { id: 's5', name: '地下基地', type: 'scene', subtype: '室内', project: '星辰大海', prompt: '秘密地下基地，红色警报灯，金属走廊，科技感十足', img: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&auto=format&fit=crop&q=60', episodes: [3], created: '2024-01-15', usage: 8 },
+            { id: 's6', name: '太空港', type: 'scene', subtype: '建筑', project: '星辰大海', prompt: '繁忙太空港口，飞船起降，霓虹灯牌，未来都市风格', img: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&auto=format&fit=crop&q=60', episodes: [1,10,12], created: '2024-01-15', usage: 14 },
+            { id: 's7', name: '废弃空间站', type: 'scene', subtype: '太空建筑', project: '星辰迷航', prompt: '破败空间站内部，漂浮碎片，昏暗灯光，末日氛围', img: 'https://images.unsplash.com/photo-1589254065878-42c9da997008?w=400&auto=format&fit=crop&q=60', episodes: [4,7], created: '2024-02-10', usage: 11 },
+            { id: 's8', name: '水晶洞穴', type: 'scene', subtype: '自然', project: '星辰大海', prompt: '发光水晶洞穴，蓝紫色光芒，地下湖倒影，奇幻风格', img: 'https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?w=400&auto=format&fit=crop&q=60', episodes: [4,7,8], created: '2024-01-15', usage: 16 },
+            // 道具
+            { id: 'p1', name: '光剑', type: 'prop', subtype: '武器', project: '星辰大海', prompt: '蓝色光剑，能量刃发光，金属握把，科幻武器设计', img: 'https://images.unsplash.com/photo-1589254065878-42c9da997008?w=400&auto=format&fit=crop&q=60', episodes: [2,3,5,6,11], created: '2024-01-15', usage: 32 },
+            { id: 'p2', name: '全息平板', type: 'prop', subtype: '设备', project: '星辰大海', prompt: '透明全息显示屏，悬浮界面，蓝色数据流，未来科技设备', img: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&auto=format&fit=crop&q=60', episodes: [1,2,3,5,6,10,11,12], created: '2024-01-15', usage: 45 },
+            { id: 'p3', name: '星际通讯器', type: 'prop', subtype: '设备', project: '星辰大海', prompt: '小型通讯设备，天线展开，绿色指示灯，金属外壳', img: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&auto=format&fit=crop&q=60', episodes: [2,10,12], created: '2024-01-15', usage: 18 },
+            { id: 'p4', name: '能量核心', type: 'prop', subtype: '能源', project: '星辰大海', prompt: '发光球体能量核心，蓝色脉冲光芒，悬浮状态，科幻风格', img: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400&auto=format&fit=crop&q=60', episodes: [4,6,7,8,11], created: '2024-01-15', usage: 25 },
+            { id: 'p5', name: '太空服头盔', type: 'prop', subtype: '装备', project: '星辰大海', prompt: '未来太空服头盔，金色面罩反光，金属质感，细节丰富', img: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&auto=format&fit=crop&q=60', episodes: [2], created: '2024-01-15', usage: 9 },
+            { id: 'p6', name: '古代石板', type: 'prop', subtype: '文物', project: '星辰大海', prompt: '刻有符文的古代石板，发光纹路，神秘符号，考古风格', img: 'https://images.unsplash.com/photo-1446776811953-d23d5233e4d6?w=400&auto=format&fit=crop&q=60', episodes: [4,8], created: '2024-01-15', usage: 7 },
+            { id: 'p7', name: '相位手枪', type: 'prop', subtype: '武器', project: '星际迷航', prompt: '未来派手枪，透明能量仓，蓝色光芒，纤细设计', img: 'https://images.unsplash.com/photo-1589254065878-42c9da997008?w=400&auto=format&fit=crop&q=60', episodes: [1,2,4,5], created: '2024-02-10', usage: 14 },
+            { id: 'p8', name: '时间装置', type: 'prop', subtype: '科技', project: '未来纪元', prompt: '蒸汽朋克风格时间机器，黄铜齿轮，蓝色能量核心', img: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400&auto=format&fit=crop&q=60', episodes: [1,3,5,7,9], created: '2024-02-20', usage: 6 },
+        ];
+
+        let currentCategory = 'all';
+        let currentProject = 'all';
+        let searchQuery = '';
+        let selectMode = false;
+        let selectedAssets = new Set();
+        let currentModalAsset = null;
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            renderAssets();
+        });
+
+        // 渲染资产列表
+        function renderAssets() {
+            const grid = document.getElementById('asset-grid');
+            let filtered = assetsData;
+
+            // 按分类筛选
+            if (currentCategory !== 'all') {
+                filtered = filtered.filter(a => a.type === currentCategory);
+            }
+
+            // 按项目筛选
+            if (currentProject !== 'all') {
+                filtered = filtered.filter(a => a.project === currentProject);
+            }
+
+            // 按搜索词筛选
+            if (searchQuery) {
+                const query = searchQuery.toLowerCase();
+                filtered = filtered.filter(a =>
+                    a.name.toLowerCase().includes(query) ||
+                    a.prompt.toLowerCase().includes(query)
+                );
+            }
+
+            // 更新统计
+            updateCounts();
+
+            // 显示空状态
+            const emptyState = document.getElementById('empty-state');
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                grid.innerHTML = '';
+                document.getElementById('load-more').classList.add('hidden');
+                return;
+            }
+            emptyState.classList.add('hidden');
+            document.getElementById('load-more').classList.remove('hidden');
+
+            // 渲染卡片
+            grid.innerHTML = filtered.map((asset, idx) => {
+                const colors = { character: 'primary', scene: 'cyan', prop: 'amber' };
+                const c = colors[asset.type];
+                const icons = { character: 'fa-user', scene: 'fa-image', prop: 'fa-cube' };
+                const typeNames = { character: '角色', scene: '场景', prop: '道具' };
+
+                return `
+                    <div class="asset-card rounded-xl overflow-hidden border border-white/5 bg-surface/50 relative fade-in"
+                         style="animation-delay: ${idx * 0.03}s"
+                         onclick="openAssetModal('${asset.id}')">
+                        <!-- 选择框 -->
+                        ${selectMode ? `
+                            <div class="absolute top-2 left-2 z-10" onclick="event.stopPropagation(); toggleSelect('${asset.id}')">
+                                <input type="checkbox" class="checkbox-custom ${selectedAssets.has(asset.id) ? 'checked' : ''}" ${selectedAssets.has(asset.id) ? 'checked' : ''}>
+                            </div>
+                        ` : ''}
+                        <!-- 图片 -->
+                        <div class="aspect-[4/3] relative overflow-hidden">
+                            <img src="${asset.img}" alt="${asset.name}" class="w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                            <!-- 类型标签 -->
+                            <div class="absolute top-2 ${selectMode ? 'left-10' : 'left-2'}">
+                                <span class="px-2 py-0.5 rounded-md bg-${c}/20 text-${c} text-[9px] border border-${c}/30">${asset.subtype}</span>
+                            </div>
+                            <!-- 项目标签 -->
+                            <div class="absolute bottom-2 right-2">
+                                <span class="px-1.5 py-0.5 rounded bg-black/50 text-white/80 text-[9px]">${asset.project}</span>
+                            </div>
+                        </div>
+                        <!-- 信息 -->
+                        <div class="p-3">
+                            <h4 class="text-sm font-semibold text-white truncate mb-1">${asset.name}</h4>
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] text-slate-500">
+                                    <i class="fas fa-${icons[asset.type]} text-${c} text-[8px]"></i>
+                                    ${typeNames[asset.type]}
+                                </span>
+                                <span class="text-[10px] text-slate-500">${asset.episodes.length}集</span>
+                            </div>
+                        </div>
+                        <!-- 悬停效果 -->
+                        <div class="absolute inset-0 bg-gradient-to-t from-primary/10 to-transparent opacity-0 hover:opacity-100 transition-opacity pointer-events-none rounded-xl"></div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 更新统计数量
+        function updateCounts() {
+            const all = assetsData;
+            const characters = all.filter(a => a.type === 'character');
+            const scenes = all.filter(a => a.type === 'scene');
+            const props = all.filter(a => a.type === 'prop');
+
+            document.getElementById('char-count').textContent = characters.length;
+            document.getElementById('scene-count').textContent = scenes.length;
+            document.getElementById('prop-count').textContent = props.length;
+        }
+
+        // 切换分类
+        function switchCategory(category) {
+            currentCategory = category;
+
+            // 更新标签样式
+            document.querySelectorAll('.category-tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.dataset.category === category) {
+                    tab.classList.add('active');
+                }
+            });
+
+            renderAssets();
+        }
+
+        // 按项目筛选
+        function filterByProject(project) {
+            currentProject = project;
+            document.getElementById('project-filter').value = project;
+            renderAssets();
+        }
+
+        // 搜索
+        function searchAssets(query) {
+            searchQuery = query;
+            renderAssets();
+        }
+
+        // 排序
+        function sortAssets(sortBy) {
+            // 实现排序逻辑
+            console.log('Sorting by:', sortBy);
+            renderAssets();
+        }
+
+        // 切换选择模式
+        function toggleSelectMode() {
+            selectMode = !selectMode;
+            const btn = document.getElementById('select-mode-btn');
+            const batchActions = document.getElementById('batch-actions');
+
+            if (selectMode) {
+                btn.classList.add('bg-primary/15', 'text-primary', 'border', 'border-primary/30');
+                batchActions.classList.remove('hidden');
+                batchActions.classList.add('flex');
+            } else {
+                btn.classList.remove('bg-primary/15', 'text-primary', 'border', 'border-primary/30');
+                batchActions.classList.add('hidden');
+                batchActions.classList.remove('flex');
+                selectedAssets.clear();
+            }
+
+            renderAssets();
+        }
+
+        // 切换单个选择
+        function toggleSelect(id) {
+            if (selectedAssets.has(id)) {
+                selectedAssets.delete(id);
+            } else {
+                selectedAssets.add(id);
+            }
+            document.getElementById('selected-count').textContent = selectedAssets.size;
+            renderAssets();
+        }
+
+        // 取消选择
+        function cancelSelect() {
+            selectMode = false;
+            selectedAssets.clear();
+            document.getElementById('select-mode-btn').classList.remove('bg-primary/15', 'text-primary', 'border', 'border-primary/30');
+            document.getElementById('batch-actions').classList.add('hidden');
+            document.getElementById('batch-actions').classList.remove('flex');
+            renderAssets();
+        }
+
+        // 批量删除
+        function batchDelete() {
+            if (selectedAssets.size === 0) return;
+            if (!confirm(`确定要删除选中的 ${selectedAssets.size} 个资产吗？`)) return;
+
+            // 实际项目中应该调用 API
+            selectedAssets.forEach(id => {
+                const idx = assetsData.findIndex(a => a.id === id);
+                if (idx > -1) assetsData.splice(idx, 1);
+            });
+
+            showToast(`已删除 ${selectedAssets.size} 个资产`, 'success');
+            cancelSelect();
+            renderAssets();
+        }
+
+        // 批量导出
+        function batchExport() {
+            if (selectedAssets.size === 0) return;
+            showToast(`正在导出 ${selectedAssets.size} 个资产...`, 'info');
+            // 实际项目中应该调用导出逻辑
+        }
+
+        // 加载更多
+        function loadMoreAssets() {
+            showToast('加载更多资产...', 'info');
+        }
+
+        // 打开资产详情
+        function openAssetModal(id) {
+            if (selectMode) {
+                toggleSelect(id);
+                return;
+            }
+
+            const asset = assetsData.find(a => a.id === id);
+            if (!asset) return;
+
+            currentModalAsset = asset;
+            const modal = document.getElementById('asset-modal');
+            const colors = { character: 'primary', scene: 'cyan', prop: 'amber' };
+            const c = colors[asset.type];
+            const icons = { character: 'fa-user', scene: 'fa-image', prop: 'fa-cube' };
+            const typeNames = { character: '角色', scene: '场景', prop: '道具' };
+
+            // 填充数据
+            document.getElementById('modal-asset-name').textContent = asset.name;
+            document.getElementById('modal-asset-type').textContent = typeNames[asset.type];
+            document.getElementById('modal-asset-type').className = `tag-badge bg-${c}/15 text-${c} border border-${c}/20`;
+            document.getElementById('modal-asset-subtype').textContent = asset.subtype;
+            document.getElementById('modal-asset-img').src = asset.img;
+            document.getElementById('modal-asset-project').textContent = asset.project;
+            document.getElementById('modal-asset-episodes').textContent = `${asset.episodes.length} 集`;
+            document.getElementById('modal-asset-created').textContent = asset.created;
+            document.getElementById('modal-asset-usage').textContent = `${asset.usage} 次`;
+            document.getElementById('modal-asset-prompt').textContent = asset.prompt;
+
+            // 类型图标
+            const typeIcon = document.getElementById('modal-type-icon');
+            typeIcon.className = `w-10 h-10 rounded-xl bg-${c}/15 border border-${c}/20 flex items-center justify-center`;
+            typeIcon.innerHTML = `<i class="fas fa-${icons[asset.type]} text-${c}"></i>`;
+
+            // 出场集数标签
+            const episodesTags = document.getElementById('modal-episode-tags');
+            const episodesHtml = asset.episodes.slice(0, 5).map(ep =>
+                `<span class="px-2 py-1 rounded bg-${c}/15 text-${c} text-xs">第${ep}集</span>`
+            ).join('') + (asset.episodes.length > 5 ?
+                `<span class="px-2 py-1 rounded bg-slate-700 text-slate-400 text-xs">...</span>` : ''
+            );
+            episodesTags.innerHTML = episodesHtml;
+
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // 关闭模态框
+        function closeModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            closeAssetModal();
+        }
+
+        function closeAssetModal() {
+            document.getElementById('asset-modal').classList.add('hidden');
+            document.body.style.overflow = '';
+            currentModalAsset = null;
+        }
+
+        // 复制提示词
+        function copyPrompt() {
+            if (!currentModalAsset) return;
+            navigator.clipboard.writeText(currentModalAsset.prompt);
+            showToast('提示词已复制到剪贴板', 'success');
+        }
+
+        // 下载资产
+        function downloadAsset() {
+            if (!currentModalAsset) return;
+            showToast(`正在下载 ${currentModalAsset.name}...`, 'info');
+        }
+
+        // 复制资产
+        function duplicateAsset() {
+            if (!currentModalAsset) return;
+            showToast('资产已复制', 'success');
+        }
+
+        // 编辑资产
+        function editAsset() {
+            if (!currentModalAsset) return;
+            showToast('打开编辑界面...', 'info');
+        }
+
+        // 重新生成
+        function regenerateAsset() {
+            if (!currentModalAsset) return;
+            showToast(`正在重新生成 ${currentModalAsset.name}...`, 'info');
+        }
+
+        // 删除资产
+        function deleteAssetFromModal() {
+            if (!currentModalAsset) return;
+            if (!confirm(`确定要删除「${currentModalAsset.name}」吗？`)) return;
+
+            const idx = assetsData.findIndex(a => a.id === currentModalAsset.id);
+            if (idx > -1) {
+                assetsData.splice(idx, 1);
+            }
+
+            closeAssetModal();
+            showToast('资产已删除', 'success');
+            renderAssets();
+        }
+
+        // Toast 提示
+        function showToast(message, type = 'info') {
+            const colors = {
+                success: 'bg-emerald',
+                error: 'bg-rose',
+                info: 'bg-primary',
+                warning: 'bg-amber'
+            };
+            const icons = {
+                success: 'check-circle',
+                error: 'exclamation-circle',
+                info: 'info-circle',
+                warning: 'exclamation-triangle'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `toast fixed bottom-6 right-6 ${colors[type]} text-white px-5 py-3 rounded-xl shadow-2xl z-[100] flex items-center gap-3`;
+            toast.innerHTML = `
+                <i class="fas fa-${icons[type]}"></i>
+                <span class="text-sm font-medium">${message}</span>
+            `;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(20px)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        // ESC 关闭模态框
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeAssetModal();
+            }
+        });
+    </script>
+</body>
+</html>

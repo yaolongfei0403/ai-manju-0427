@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 视频生成工作台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+        
+        :root {
+            --bg-primary: #0c0c12;
+            --bg-secondary: #13131f;
+            --bg-tertiary: #1a1a2e;
+            --border-subtle: rgba(255,255,255,0.06);
+            --border-active: rgba(99,102,241,0.4);
+            --accent-indigo: #6366f1;
+            --accent-purple: #a855f7;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+        }
+        
+        * { font-family: 'Inter', 'Noto Sans SC', sans-serif; }
+        
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        /* Glass */
+        .glass {
+            background: rgba(19, 19, 31, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+        }
+        .glass-hover:hover {
+            background: rgba(30, 30, 46, 0.9);
+            border-color: rgba(255,255,255,0.1);
+        }
+        
+        /* Animations */
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(99,102,241,0.4); }
+            70% { box-shadow: 0 0 0 8px rgba(99,102,241,0); }
+            100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
+        }
+        .ai-pulse { animation: pulse-ring 2s infinite; }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-4px); }
+        }
+        
+        /* Cards */
+        .story-card {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid transparent;
+        }
+        .story-card:hover {
+            transform: translateX(2px);
+            border-color: rgba(99,102,241,0.2);
+            background: rgba(99,102,241,0.04);
+        }
+        .story-card.active {
+            border-color: var(--accent-indigo);
+            background: rgba(99,102,241,0.08);
+            box-shadow: 0 0 20px rgba(99,102,241,0.1);
+        }
+        .story-card.completed { border-left: 2px solid var(--accent-emerald); }
+        .story-card.generating { border-left: 2px solid var(--accent-amber); }
+        
+        /* Mode badges */
+        .badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+        .badge-single {
+            background: rgba(99,102,241,0.15);
+            color: #818cf8;
+            border: 1px solid rgba(99,102,241,0.25);
+        }
+        .badge-firstlast {
+            background: rgba(168,85,247,0.15);
+            color: #c084fc;
+            border: 1px solid rgba(168,85,247,0.25);
+        }
+        
+        /* Frame containers */
+        .frame-container {
+            background: linear-gradient(135deg, rgba(0,0,0,0.6), rgba(20,20,35,0.4));
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: all 0.3s ease;
+        }
+        .frame-container.has-content {
+            border-color: rgba(99,102,241,0.4);
+            box-shadow: inset 0 0 20px rgba(99,102,241,0.05);
+        }
+        
+        /* Timeline */
+        .timeline-track {
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 49px,
+                rgba(255,255,255,0.03) 49px,
+                rgba(255,255,255,0.03) 50px
+            );
+        }
+        .clip-block {
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .clip-block::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, var(--accent-indigo), var(--accent-purple));
+            opacity: 0.6;
+        }
+        .clip-block:hover { transform: translateY(-1px); filter: brightness(1.1); }
+        .clip-block.selected {
+            box-shadow: 0 0 0 2px var(--accent-indigo), 0 4px 12px rgba(99,102,241,0.2);
+            z-index: 10;
+        }
+        .clip-single { background: linear-gradient(180deg, rgba(99,102,241,0.2), rgba(99,102,241,0.08)); }
+        .clip-firstlast { background: linear-gradient(180deg, rgba(168,85,247,0.2), rgba(168,85,247,0.08)); }
+        
+        /* Inputs */
+        .input-dark {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: var(--text-primary);
+            transition: all 0.2s;
+        }
+        .input-dark:focus {
+            outline: none;
+            border-color: var(--accent-indigo);
+            background: rgba(0,0,0,0.4);
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+        }
+        .input-dark::placeholder { color: var(--text-muted); }
+        
+        /* AI Button */
+        .ai-btn {
+            background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.2));
+            border: 1px solid rgba(168,85,247,0.3);
+            color: #c084fc;
+            transition: all 0.3s;
+        }
+        .ai-btn:hover {
+            background: linear-gradient(135deg, rgba(99,102,241,0.3), rgba(168,85,247,0.3));
+            box-shadow: 0 0 20px rgba(168,85,247,0.2);
+            transform: translateY(-1px);
+        }
+        
+        /* Range slider */
+        input[type="range"] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: var(--accent-indigo);
+            cursor: pointer;
+            margin-top: -4px;
+            box-shadow: 0 0 8px rgba(99,102,241,0.5);
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px;
+            background: #334155;
+            border-radius: 2px;
+        }
+        
+        /* Toast */
+        .toast-enter { transform: translateY(20px); opacity: 0; }
+        .toast-enter-active { transform: translateY(0); opacity: 1; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .toast-exit { transform: translateY(0); opacity: 1; }
+        .toast-exit-active { transform: translateY(20px); opacity: 0; transition: all 0.3s ease; }
+        
+        /* Resizable panels */
+        .resizer {
+            width: 4px;
+            background: transparent;
+            cursor: col-resize;
+            transition: background 0.2s;
+        }
+        .resizer:hover { background: rgba(99,102,241,0.3); }
+        
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+        }
+        .tooltip::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-4px);
+            padding: 4px 8px;
+            background: #1e1e2e;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 4px;
+            font-size: 10px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s;
+            z-index: 50;
+        }
+        .tooltip:hover::after { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+        
+        /* Empty state pattern */
+        .pattern-grid {
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            border: 2px solid rgba(99,102,241,0.2);
+            border-top-color: var(--accent-indigo);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Context menu */
+        .context-menu {
+            position: absolute;
+            background: #1a1a2e;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 4px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 100;
+            min-width: 160px;
+        }
+        .context-item {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .context-item:hover { background: rgba(99,102,241,0.1); color: var(--text-primary); }
+        .context-item.danger:hover { background: rgba(239,68,68,0.1); color: #ef4444; }
+        
+        /* AI Panel */
+        .ai-panel {
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .ai-panel.open { transform: translateX(0); }
+        
+        /* Transition effects preview */
+        .transition-preview {
+            width: 40px; height: 24px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .transition-preview:hover { border-color: var(--accent-indigo); }
+        .transition-preview.active { border-color: var(--accent-indigo); box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
+    </style>
+</head>
+<body class="h-screen flex flex-col text-sm">
+
+    <!-- Header -->
+    <header class="glass h-12 flex items-center justify-between px-4 shrink-0 z-50 border-b border-white/5">
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2.5">
+                <div class="w-7 h-7 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <i class="fas fa-film text-white text-xs"></i>
+                </div>
+                <h1 class="font-bold text-sm tracking-tight text-slate-100">AI 视频工作台</h1>
+            </div>
+            
+            <div class="h-5 w-px bg-white/10"></div>
+            
+            <!-- Navigation -->
+            <nav class="hidden md:flex items-center gap-0.5">
+                <a href="项目列表.html" class="px-2.5 py-1.5 rounded-md text-xs text-slate-500 hover:text-slate-200 hover:bg-white/5 transition-all">
+                    <i class="fas fa-folder mr-1.5 text-[10px]"></i>项目
+                </a>
+                <a href="小说上传-分集与资产提取.html" class="px-2.5 py-1.5 rounded-md text-xs text-slate-500 hover:text-slate-200 hover:bg-white/5 transition-all">
+                    <i class="fas fa-upload mr-1.5 text-[10px]"></i>小说
+                </a>
+                <a href="分集.html" class="px-2.5 py-1.5 rounded-md text-xs text-slate-500 hover:text-slate-200 hover:bg-white/5 transition-all">
+                    <i class="fas fa-list mr-1.5 text-[10px]"></i>分集
+                </a>
+                <a href="分镜生视频.html" class="px-2.5 py-1.5 rounded-md text-xs bg-indigo-500/15 text-indigo-300 font-medium border border-indigo-500/20">
+                    <i class="fas fa-video mr-1.5 text-[10px]"></i>视频
+                </a>
+            </nav>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <!-- Default Mode Toggle -->
+            <div class="flex items-center gap-2 bg-black/30 rounded-lg p-0.5 border border-white/5">
+                <button onclick="app.setDefaultMode('single')" id="btn-default-single" class="px-3 py-1 rounded-md text-[11px] font-medium transition-all badge-single">
+                    <i class="fas fa-image mr-1"></i>单图
+                </button>
+                <button onclick="app.setDefaultMode('firstlast')" id="btn-default-firstlast" class="px-3 py-1 rounded-md text-[11px] font-medium transition-all text-slate-500 hover:text-slate-300">
+                    <i class="fas fa-exchange-alt mr-1"></i>首尾帧
+                </button>
+            </div>
+            
+            <div class="h-5 w-px bg-white/10"></div>
+            
+            <button onclick="app.toggleAIPanel()" class="ai-btn px-3 py-1.5 rounded-lg text-[11px] font-medium flex items-center gap-1.5 tooltip" data-tip="AI 智能助手">
+                <i class="fas fa-sparkles"></i>
+                <span>AI 助手</span>
+            </button>
+            
+            <button onclick="app.saveProject()" class="px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors tooltip" data-tip="保存项目">
+                <i class="fas fa-save"></i>
+            </button>
+            
+            <button onclick="app.exportVideo()" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition-all flex items-center gap-2 shadow-lg shadow-indigo-600/20">
+                <i class="fas fa-download text-[10px]"></i>
+                导出成片
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- LEFT: Storyboard Panel -->
+        <aside class="w-[380px] glass border-r border-white/5 flex flex-col shrink-0">
+            <!-- Panel Header -->
+            <div class="p-3 border-b border-white/5">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-layer-group text-indigo-400 text-xs"></i>
+                        <h2 class="font-semibold text-xs text-slate-300 uppercase tracking-wider">分镜序列</h2>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="app.addStoryboard()" class="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all tooltip" data-tip="添加分镜">
+                            <i class="fas fa-plus text-[10px] text-slate-400"></i>
+                        </button>
+                        <button onclick="app.autoGenerateStoryboards()" class="w-7 h-7 rounded-lg ai-btn flex items-center justify-center transition-all tooltip" data-tip="AI 自动分镜">
+                            <i class="fas fa-wand-magic-sparkles text-[10px]"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Stats Bar -->
+                <div class="flex items-center gap-3 text-[11px]">
+                    <span class="text-slate-500">共 <strong class="text-slate-300" id="stat-total">0</strong> 段</span>
+                    <div class="flex-1 h-1.5 bg-black/40 rounded-full overflow-hidden flex">
+                        <div id="stat-bar-single" class="h-full bg-indigo-500/60" style="width: 0%"></div>
+                        <div id="stat-bar-firstlast" class="h-full bg-purple-500/60" style="width: 0%"></div>
+                    </div>
+                    <span class="text-indigo-400 text-[10px]"><i class="fas fa-image mr-0.5"></i><span id="stat-single">0</span></span>
+                    <span class="text-purple-400 text-[10px]"><i class="fas fa-exchange-alt mr-0.5"></i><span id="stat-firstlast">0</span></span>
+                </div>
+            </div>
+            
+            <!-- Storyboard List -->
+            <div id="storyboard-list" class="flex-1 overflow-y-auto p-2 space-y-1.5">
+                <!-- Injected by JS -->
+            </div>
+            
+            <!-- Bottom Actions -->
+            <div class="p-3 border-t border-white/5 space-y-2">
+                <button onclick="app.generateAll()" class="w-full py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-900/20">
+                    <i class="fas fa-magic"></i>
+                    一键生成全部
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="app.importScript()" class="flex-1 py-1.5 bg-white/5 hover:bg-white/10 text-slate-400 text-[11px] rounded-lg transition-all border border-white/5">
+                        <i class="fas fa-file-import mr-1"></i>导入脚本
+                    </button>
+                    <button onclick="app.batchEdit()" class="flex-1 py-1.5 bg-white/5 hover:bg-white/10 text-slate-400 text-[11px] rounded-lg transition-all border border-white/5">
+                        <i class="fas fa-pen-square mr-1"></i>批量编辑
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CENTER: Preview & Editor -->
+        <section class="flex-1 flex flex-col min-w-0 bg-black/20">
+            
+            <!-- Preview Area -->
+            <div class="flex-1 p-4 flex flex-col min-h-0">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-3">
+                        <span id="preview-badge" class="badge bg-slate-800 text-slate-400 border-slate-700">
+                            <i class="fas fa-hand-pointer mr-1"></i>请选择分镜
+                        </span>
+                        <span id="preview-title" class="text-sm font-medium text-slate-200 truncate max-w-[300px]">未选择分镜</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="app.togglePlay()" id="btn-play" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all tooltip" data-tip="播放/暂停">
+                            <i class="fas fa-play text-[10px] text-white"></i>
+                        </button>
+                        <span id="time-display" class="text-[11px] text-slate-500 font-mono tabular-nums">00:00 / 00:00</span>
+                    </div>
+                </div>
+
+                <!-- Preview Container -->
+                <div id="preview-container" class="flex-1 rounded-xl overflow-hidden border border-white/5 bg-black relative min-h-0">
+                    
+                    <!-- Empty State -->
+                    <div id="state-empty" class="absolute inset-0 pattern-grid flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4 animate-[float_3s_ease-in-out_infinite]">
+                                <i class="fas fa-film text-slate-600 text-xl"></i>
+                            </div>
+                            <p class="text-slate-500 text-sm font-medium">从左侧选择一个分镜开始编辑</p>
+                            <p class="text-slate-600 text-xs mt-1.5">支持单图生视频和首尾帧生视频</p>
+                        </div>
+                    </div>
+
+                    <!-- Single Mode Preview -->
+                    <div id="state-single" class="hidden absolute inset-0 flex flex-col">
+                        <div class="flex-1 relative bg-black">
+                            <div id="single-placeholder" class="absolute inset-0 pattern-grid flex items-center justify-center">
+                                <div class="text-center">
+                                    <div class="w-14 h-14 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-3">
+                                        <i class="fas fa-image text-slate-700 text-lg"></i>
+                                    </div>
+                                    <p class="text-slate-600 text-xs">上传图片生成视频</p>
+                                    <button onclick="app.uploadImage()" class="mt-3 px-4 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[11px] text-slate-400 transition-all">
+                                        <i class="fas fa-upload mr-1"></i>选择图片
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="single-content" class="hidden absolute inset-0 bg-gradient-to-br from-indigo-950/30 to-purple-950/30 flex items-center justify-center">
+                                <div class="text-center">
+                                    <i class="fas fa-video text-4xl text-indigo-400/20 mb-3"></i>
+                                    <p class="text-indigo-200/40 text-xs" id="single-label">视频预览</p>
+                                </div>
+                            </div>
+                            <div id="single-loading" class="hidden absolute inset-0 bg-black/90 flex items-center justify-center backdrop-blur-sm">
+                                <div class="text-center">
+                                    <div class="w-10 h-10 spinner mx-auto mb-3"></div>
+                                    <p class="text-xs text-indigo-300 font-medium">AI 生成中</p>
+                                    <p class="text-[10px] text-slate-600 mt-1" id="single-loading-text">正在推理...</p>
+                                    <div class="w-32 h-1 bg-slate-800 rounded-full mt-3 mx-auto overflow-hidden">
+                                        <div id="single-progress" class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 w-0 transition-all duration-300"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Progress bar at bottom -->
+                            <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-white/5">
+                                <div id="single-playbar" class="h-full bg-indigo-500 w-0"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- First-Last Mode Preview -->
+                    <div id="state-firstlast" class="hidden absolute inset-0 flex flex-col">
+                        <div class="flex-1 flex gap-3 p-3">
+                            <!-- First Frame -->
+                            <div class="flex-1 flex flex-col min-w-0">
+                                <div class="flex items-center justify-between mb-2 px-1">
+                                    <span class="text-[10px] font-semibold text-blue-400 uppercase tracking-wider">首帧</span>
+                                    <button onclick="app.uploadFirstFrame()" class="text-[10px] text-slate-500 hover:text-blue-400 transition-colors">
+                                        <i class="fas fa-upload"></i>
+                                    </button>
+                                </div>
+                                <div id="fl-first-box" class="flex-1 frame-container rounded-lg flex items-center justify-center relative overflow-hidden">
+                                    <div id="fl-first-empty" class="text-center">
+                                        <i class="fas fa-image text-slate-700 text-lg mb-1"></i>
+                                        <p class="text-slate-600 text-[10px]">上传首帧</p>
+                                    </div>
+                                    <div id="fl-first-img" class="hidden absolute inset-0 bg-gradient-to-br from-blue-900/20 to-indigo-900/20 flex items-center justify-center">
+                                        <i class="fas fa-image text-2xl text-blue-400/20"></i>
+                                    </div>
+                                    <div id="fl-first-inherited" class="hidden absolute inset-0 bg-amber-900/10 border border-amber-500/30 flex items-center justify-center">
+                                        <div class="text-center">
+                                            <i class="fas fa-link text-amber-400/40 text-lg mb-1"></i>
+                                            <p class="text-amber-400/60 text-[9px]">继承上一段尾帧</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Generated Video (Center, Larger) -->
+                            <div class="flex-[1.4] flex flex-col min-w-0">
+                                <div class="flex items-center justify-between mb-2 px-1">
+                                    <span class="text-[10px] font-semibold text-indigo-400 uppercase tracking-wider">
+                                        <i class="fas fa-play-circle mr-1"></i>生成结果
+                                    </span>
+                                    <span id="fl-status" class="text-[10px] text-slate-600">未生成</span>
+                                </div>
+                                <div id="fl-gen-box" class="flex-1 frame-container rounded-lg flex items-center justify-center relative overflow-hidden border-indigo-500/20">
+                                    <div id="fl-gen-empty" class="text-center">
+                                        <i class="fas fa-film text-slate-700 text-xl mb-1"></i>
+                                        <p class="text-slate-600 text-[10px]">生成结果</p>
+                                    </div>
+                                    <div id="fl-gen-content" class="hidden absolute inset-0 bg-gradient-to-br from-indigo-900/20 to-purple-900/20 flex items-center justify-center">
+                                        <i class="fas fa-video text-3xl text-indigo-400/20"></i>
+                                    </div>
+                                    <div id="fl-gen-loading" class="hidden absolute inset-0 bg-black/90 flex items-center justify-center backdrop-blur-sm">
+                                        <div class="text-center">
+                                            <div class="w-8 h-8 spinner mx-auto mb-2"></div>
+                                            <p class="text-[10px] text-indigo-300">生成中...</p>
+                                            <div class="w-24 h-1 bg-slate-800 rounded-full mt-2 mx-auto overflow-hidden">
+                                                <div id="fl-progress" class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 w-0 transition-all"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Last Frame -->
+                            <div class="flex-1 flex flex-col min-w-0">
+                                <div class="flex items-center justify-between mb-2 px-1">
+                                    <span class="text-[10px] font-semibold text-purple-400 uppercase tracking-wider">尾帧</span>
+                                    <div class="flex gap-1.5">
+                                        <button onclick="app.toggleLastFrameAuto()" id="btn-auto-last" class="text-[10px] text-purple-400 hover:text-purple-300 tooltip" data-tip="AI 自动生成尾帧">
+                                            <i class="fas fa-magic"></i>
+                                        </button>
+                                        <button onclick="app.uploadLastFrame()" class="text-[10px] text-slate-500 hover:text-purple-400 transition-colors">
+                                            <i class="fas fa-upload"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="fl-last-box" class="flex-1 frame-container rounded-lg flex items-center justify-center relative overflow-hidden">
+                                    <div id="fl-last-empty" class="text-center">
+                                        <i class="fas fa-flag-checkered text-slate-700 text-lg mb-1"></i>
+                                        <p class="text-slate-600 text-[10px]">尾帧</p>
+                                        <p class="text-slate-700 text-[9px]">AI 生成或上传</p>
+                                    </div>
+                                    <div id="fl-last-img" class="hidden absolute inset-0 bg-gradient-to-br from-purple-900/20 to-pink-900/20 flex items-center justify-center">
+                                        <i class="fas fa-image text-2xl text-purple-400/20"></i>
+                                    </div>
+                                    <div id="fl-last-auto" class="hidden absolute top-2 right-2">
+                                        <span class="text-[8px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded border border-purple-500/30">AI</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor Panel -->
+            <div id="editor-panel" class="px-4 pb-4 hidden">
+                <div class="glass rounded-xl p-4 border border-white/5">
+                    
+                    <!-- Single Mode Editor -->
+                    <div id="editor-single" class="hidden space-y-3">
+                        <div class="flex items-center justify-between">
+                            <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">提示词</label>
+                            <div class="flex items-center gap-2">
+                                <button onclick="app.aiOptimizePrompt()" class="ai-btn px-2.5 py-1 rounded-md text-[10px] font-medium flex items-center gap-1">
+                                    <i class="fas fa-sparkles"></i>AI 优化
+                                </button>
+                                <button onclick="app.aiRecommendPrompt()" class="text-[10px] text-slate-500 hover:text-indigo-400 transition-colors flex items-center gap-1">
+                                    <i class="fas fa-lightbulb"></i>推荐
+                                </button>
+                            </div>
+                        </div>
+                        <div class="relative">
+                            <textarea id="input-single-prompt" rows="3" class="w-full input-dark rounded-lg p-3 text-xs leading-relaxed resize-none" placeholder="描述视频内容和运动：例如「夕阳下的城市，镜头缓慢推进，电影级画质，4K，浅景深」..."></textarea>
+                            <div class="absolute bottom-2 right-2 text-[10px] text-slate-600" id="prompt-count">0/500</div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div class="flex items-center gap-2">
+                                    <i class="far fa-clock text-slate-600 text-[10px]"></i>
+                                    <input type="number" id="input-single-duration" value="5" min="1" max="10" class="w-12 input-dark rounded px-2 py-1 text-xs text-center">
+                                    <span class="text-[11px] text-slate-500">秒</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-sliders-h text-slate-600 text-[10px]"></i>
+                                    <select class="input-dark rounded px-2 py-1 text-xs min-w-[80px]">
+                                        <option>标准质量</option>
+                                        <option selected>高品质</option>
+                                        <option>极速</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-expand text-slate-600 text-[10px]"></i>
+                                    <select class="input-dark rounded px-2 py-1 text-xs">
+                                        <option selected>16:9 宽屏</option>
+                                        <option>9:16 竖屏</option>
+                                        <option>1:1 方形</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button onclick="app.generateCurrent()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition-all flex items-center gap-2 shadow-lg shadow-indigo-600/20">
+                                <i class="fas fa-wand-magic-sparkles"></i>
+                                生成视频
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- First-Last Mode Editor -->
+                    <div id="editor-firstlast" class="hidden space-y-3">
+                        <div class="flex items-center justify-between">
+                            <label class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                                <i class="fas fa-exchange-alt mr-1 text-purple-400"></i>运动描述
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <button onclick="app.aiOptimizeMotion()" class="ai-btn px-2.5 py-1 rounded-md text-[10px] font-medium flex items-center gap-1">
+                                    <i class="fas fa-sparkles"></i>AI 优化
+                                </button>
+                                <div class="flex items-center gap-2 ml-2">
+                                    <span class="text-[10px] text-slate-500">约束强度</span>
+                                    <input type="range" id="input-constraint" min="0" max="100" value="70" class="w-20">
+                                    <span id="constraint-val" class="text-[10px] text-purple-400 w-5 font-mono">70</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="relative">
+                            <textarea id="input-fl-prompt" rows="3" class="w-full input-dark rounded-lg p-3 text-xs leading-relaxed resize-none" placeholder="描述从首帧到尾帧的运动过程：例如「镜头缓慢推进，光线由暖转冷，画面渐变为电影颗粒感」..."></textarea>
+                            <div class="absolute bottom-2 right-2 text-[10px] text-slate-600" id="fl-prompt-count">0/500</div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div class="flex items-center gap-2">
+                                    <i class="far fa-clock text-slate-600 text-[10px]"></i>
+                                    <input type="number" id="input-fl-duration" value="4" min="1" max="10" class="w-12 input-dark rounded px-2 py-1 text-xs text-center">
+                                    <span class="text-[11px] text-slate-500">秒</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-shoe-prints text-slate-600 text-[10px]"></i>
+                                    <select class="input-dark rounded px-2 py-1 text-xs">
+                                        <option>25 步</option>
+                                        <option selected>50 步</option>
+                                        <option>100 步</option>
+                                    </select>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-expand text-slate-600 text-[10px]"></i>
+                                    <select class="input-dark rounded px-2 py-1 text-xs">
+                                        <option selected>16:9 宽屏</option>
+                                        <option>9:16 竖屏</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="app.previewMotion()" class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-xs rounded-lg transition-all flex items-center gap-2">
+                                    <i class="fas fa-eye"></i>预演
+                                </button>
+                                <button onclick="app.generateCurrent()" class="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium rounded-lg transition-all flex items-center gap-2 shadow-lg shadow-purple-600/20">
+                                    <i class="fas fa-wand-magic-sparkles"></i>生成视频
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT: Timeline & Editing -->
+        <aside class="w-80 glass border-l border-white/5 flex flex-col shrink-0">
+            <!-- Timeline Header -->
+            <div class="p-3 border-b border-white/5">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-stream text-purple-400 text-xs"></i>
+                        <h2 class="font-semibold text-xs text-slate-300">时间轴</h2>
+                    </div>
+                    <button onclick="app.clearTimeline()" class="text-[10px] text-slate-500 hover:text-red-400 px-2 py-1 rounded hover:bg-red-500/10 transition-all">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                <div class="flex items-center justify-between text-[11px]">
+                    <span class="text-slate-500">总时长: <strong class="text-slate-300 font-mono" id="tl-total">00:00</strong></span>
+                    <span class="text-slate-500"><span id="tl-count" class="text-slate-300">0</span> 片段</span>
+                </div>
+            </div>
+
+            <!-- Timeline Visual -->
+            <div class="flex-1 overflow-y-auto p-3">
+                <div id="tl-empty" class="text-center py-10">
+                    <div class="w-12 h-12 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-layer-group text-slate-700 text-sm"></i>
+                    </div>
+                    <p class="text-slate-600 text-xs">时间轴为空</p>
+                    <p class="text-slate-700 text-[10px] mt-1">生成视频后自动加入</p>
+                </div>
+
+                <div id="tl-visual" class="hidden space-y-3">
+                    <!-- Track Label -->
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] text-slate-600 font-mono">V1 视频轨道</span>
+                        <div class="flex gap-1">
+                            <button onclick="app.zoomTimeline(-1)" class="w-5 h-5 rounded bg-white/5 flex items-center justify-center text-[9px] text-slate-500 hover:text-white"><i class="fas fa-minus"></i></button>
+                            <button onclick="app.zoomTimeline(1)" class="w-5 h-5 rounded bg-white/5 flex items-center justify-center text-[9px] text-slate-500 hover:text-white"><i class="fas fa-plus"></i></button>
+                        </div>
+                    </div>
+                    
+                    <!-- Track -->
+                    <div class="timeline-track rounded-lg p-2 min-h-[80px] border border-white/5 relative">
+                        <div id="tl-clips" class="flex gap-1 flex-wrap">
+                            <!-- Injected -->
+                        </div>
+                    </div>
+
+                    <!-- Transition Panel -->
+                    <div class="pt-2 border-t border-white/5">
+                        <div class="text-[10px] text-slate-600 mb-2 font-medium">转场效果</div>
+                        <div class="grid grid-cols-4 gap-1.5">
+                            <div class="transition-preview active" onclick="app.setTransition('none')" title="无">
+                                <div class="absolute inset-0 flex items-center justify-center text-[8px] text-slate-500">无</div>
+                            </div>
+                            <div class="transition-preview" onclick="app.setTransition('fade')" title="淡入淡出">
+                                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+                            </div>
+                            <div class="transition-preview" onclick="app.setTransition('dissolve')" title="溶解">
+                                <div class="absolute inset-0 bg-[radial-gradient(circle,transparent_30%,rgba(255,255,255,0.2)_70%)]"></div>
+                            </div>
+                            <div class="transition-preview" onclick="app.setTransition('wipe')" title="擦除">
+                                <div class="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent w-1/2"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Legend -->
+                    <div class="flex gap-3 text-[9px] text-slate-600 pt-1">
+                        <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-sm bg-indigo-500/40 border border-indigo-500/60"></div> 单图</span>
+                        <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-sm bg-purple-500/30 border border-purple-500/40"></div> 首尾帧</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline Controls -->
+            <div class="p-3 border-t border-white/5 space-y-3">
+                <!-- Transport -->
+                <div class="flex items-center gap-3">
+                    <button onclick="app.playTimeline()" class="w-9 h-9 rounded-full bg-white text-black hover:bg-slate-200 flex items-center justify-center transition-all shadow-lg">
+                        <i class="fas fa-play text-[10px] ml-0.5"></i>
+                    </button>
+                    <div class="flex-1">
+                        <input type="range" id="tl-scrubber" min="0" max="100" value="0" class="w-full" oninput="app.scrubTimeline(this.value)">
+                        <div class="flex justify-between text-[10px] text-slate-600 mt-1 font-mono">
+                            <span id="tl-current">00:00</span>
+                            <span id="tl-end">00:00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Edit Tools -->
+                <div class="grid grid-cols-3 gap-1.5">
+                    <button onclick="app.splitClip()" class="py-2 bg-white/5 hover:bg-white/10 rounded-lg text-[11px] text-slate-400 transition-all border border-white/5 flex items-center justify-center gap-1.5">
+                        <i class="fas fa-cut text-[10px]"></i>分割
+                    </button>
+                    <button onclick="app.deleteClip()" class="py-2 bg-white/5 hover:bg-white/10 rounded-lg text-[11px] text-slate-400 transition-all border border-white/5 flex items-center justify-center gap-1.5">
+                        <i class="fas fa-trash text-[10px]"></i>删除
+                    </button>
+                    <button onclick="app.duplicateClip()" class="py-2 bg-white/5 hover:bg-white/10 rounded-lg text-[11px] text-slate-400 transition-all border border-white/5 flex items-center justify-center gap-1.5">
+                        <i class="fas fa-copy text-[10px]"></i>复制
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- AI Assistant Panel (Slide-over) -->
+    <div id="ai-panel" class="ai-panel fixed right-0 top-12 bottom-0 w-96 glass border-l border-white/10 z-40 flex flex-col shadow-2xl">
+        <div class="p-4 border-b border-white/5 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg ai-btn flex items-center justify-center">
+                    <i class="fas fa-sparkles text-sm"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-200">AI 智能助手</h3>
+                    <p class="text-[10px] text-slate-500">基于大模型的智能推荐</p>
+                </div>
+            </div>
+            <button onclick="app.toggleAIPanel()" class="w-7 h-7 rounded-lg hover:bg-white/5 flex items-center justify-center text-slate-500 transition-all">
+                <i class="fas fa-times text-xs"></i>
+            </button>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+            <!-- Quick Actions -->
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="app.aiRecommendPrompt()" class="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all text-left group">
+                    <i class="fas fa-lightbulb text-amber-400 text-sm mb-2 group-hover:scale-110 transition-transform block"></i>
+                    <div class="text-xs font-medium text-slate-300">提示词推荐</div>
+                    <div class="text-[10px] text-slate-600 mt-0.5">根据画面智能生成</div>
+                </button>
+                <button onclick="app.aiOptimizePrompt()" class="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all text-left group">
+                    <i class="fas fa-wand-magic-sparkles text-purple-400 text-sm mb-2 group-hover:scale-110 transition-transform block"></i>
+                    <div class="text-xs font-medium text-slate-300">提示词优化</div>
+                    <div class="text-[10px] text-slate-600 mt-0.5">增强画面表现力</div>
+                </button>
+                <button onclick="app.autoGenerateStoryboards()" class="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all text-left group">
+                    <i class="fas fa-layer-group text-indigo-400 text-sm mb-2 group-hover:scale-110 transition-transform block"></i>
+                    <div class="text-xs font-medium text-slate-300">自动分镜</div>
+                    <div class="text-[10px] text-slate-600 mt-0.5">基于剧情智能拆分</div>
+                </button>
+                <button onclick="app.aiRecommendStyle()" class="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all text-left group">
+                    <i class="fas fa-palette text-emerald-400 text-sm mb-2 group-hover:scale-110 transition-transform block"></i>
+                    <div class="text-xs font-medium text-slate-300">风格推荐</div>
+                    <div class="text-[10px] text-slate-600 mt-0.5">匹配视觉风格</div>
+                </button>
+            </div>
+
+            <!-- AI Chat / Suggestions -->
+            <div class="space-y-3">
+                <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">智能建议</div>
+                
+                <div id="ai-suggestions" class="space-y-2">
+                    <div class="p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/10 cursor-pointer hover:bg-indigo-500/10 transition-all" onclick="app.applySuggestion(0)">
+                        <div class="flex items-start gap-2">
+                            <i class="fas fa-quote-left text-indigo-400/50 text-[10px] mt-0.5"></i>
+                            <div>
+                                <p class="text-xs text-slate-300 leading-relaxed">建议增加「电影级打光」和「浅景深」描述，可显著提升画面质感。</p>
+                                <div class="flex items-center gap-2 mt-2">
+                                    <span class="text-[10px] text-indigo-400">点击应用</span>
+                                    <span class="text-[10px] text-slate-600">置信度 92%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 rounded-xl bg-purple-500/5 border border-purple-500/10 cursor-pointer hover:bg-purple-500/10 transition-all" onclick="app.applySuggestion(1)">
+                        <div class="flex items-start gap-2">
+                            <i class="fas fa-film text-purple-400/50 text-[10px] mt-0.5"></i>
+                            <div>
+                                <p class="text-xs text-slate-300 leading-relaxed">当前分镜节奏偏快，建议将时长延长至 5 秒，配合慢速推进镜头。</p>
+                                <div class="flex items-center gap-2 mt-2">
+                                    <span class="text-[10px] text-purple-400">点击应用</span>
+                                    <span class="text-[10px] text-slate-600">节奏分析</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Style Presets -->
+            <div class="space-y-3">
+                <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">风格预设</div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="app.applyStyle('cinematic')" class="p-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-all text-left">
+                        <div class="text-xs text-slate-300 font-medium">电影感</div>
+                        <div class="text-[9px] text-slate-600 mt-0.5">Cinematic, 35mm</div>
+                    </button>
+                    <button onclick="app.applyStyle('anime')" class="p-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-all text-left">
+                        <div class="text-xs text-slate-300 font-medium">动漫风</div>
+                        <div class="text-[9px] text-slate-600 mt-0.5">Anime, vibrant</div>
+                    </button>
+                    <button onclick="app.applyStyle('cyberpunk')" class="p-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-all text-left">
+                        <div class="text-xs text-slate-300 font-medium">赛博朋克</div>
+                        <div class="text-[9px] text-slate-600 mt-0.5">Neon, dystopian</div>
+                    </button>
+                    <button onclick="app.applyStyle('realistic')" class="p-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-all text-left">
+                        <div class="text-xs text-slate-300 font-medium">写实风</div>
+                        <div class="text-[9px] text-slate-600 mt-0.5">Photorealistic, 8K</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 glass-strong px-5 py-3 rounded-xl transform translate-y-20 opacity-0 z-50 flex items-center gap-3 border border-white/10 shadow-2xl">
+        <i id="toast-icon" class="fas fa-check-circle text-emerald-400"></i>
+        <span id="toast-message" class="text-xs text-slate-200">操作成功</span>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu hidden"></div>
+
+    <script>
+        class VideoWorkbench {
+            constructor() {
+                this.defaultMode = 'single';
+                this.storyboards = [
+                    {
+                        id: 1, mode: 'single', title: '开场 - 城市夕阳',
+                        prompt: '夕阳下的城市天际线，镜头缓慢推进，金色光线洒在高楼玻璃幕墙上，电影级画质，4K，浅景深',
+                        firstFrame: { url: 'uploaded' }, lastFrame: null, lastFrameAuto: true,
+                        motionPrompt: '', duration: 5, status: 'completed', progress: 100
+                    },
+                    {
+                        id: 2, mode: 'firstlast', title: '城市转场',
+                        prompt: '', firstFrame: 'inherited', lastFrame: null, lastFrameAuto: true,
+                        motionPrompt: '镜头从城市全景快速 zoom in 到女主角面部特写，光线由暖转冷，逆光剪影',
+                        duration: 4, status: 'completed', progress: 100
+                    },
+                    {
+                        id: 3, mode: 'single', title: '主角特写',
+                        prompt: '女主角面部特写，眼神坚定，微风吹动发丝，电影级打光，浅景深',
+                        firstFrame: null, lastFrame: null, lastFrameAuto: true,
+                        motionPrompt: '', duration: 3, status: 'pending', progress: 0
+                    },
+                    {
+                        id: 4, mode: 'firstlast', title: '回忆闪回',
+                        prompt: '', firstFrame: 'inherited', lastFrame: null, lastFrameAuto: false,
+                        motionPrompt: '画面渐变为黑白老电影风格，快速剪辑街道场景，时间流逝的抽象表现',
+                        duration: 3, status: 'pending', progress: 0
+                    }
+                ];
+                this.timeline = [
+                    { id: 't1', storyId: 1, title: '开场 - 城市夕阳', duration: 5, mode: 'single', transition: 'none' },
+                    { id: 't2', storyId: 2, title: '城市转场', duration: 4, mode: 'firstlast', transition: 'fade' }
+                ];
+                this.selectedId = null;
+                this.selectedTimelineClip = null;
+                this.isPlaying = false;
+                this.aiPanelOpen = false;
+                this.timelineZoom = 1;
+                
+                this.init();
+            }
+            
+            init() {
+                if (!sessionStorage.getItem('currentProjectId')) {
+                    if (confirm('请先选择一个项目才能使用视频工作台。是否跳转到项目列表？')) {
+                        window.location.href = '项目列表.html';
+                    }
+                    return;
+                }
+                
+                this.renderStoryboards();
+                this.renderTimeline();
+                this.updateStats();
+                this.setupEventListeners();
+                
+                if (this.storyboards.length > 0) {
+                    this.selectStoryboard(this.storyboards[0].id);
+                }
+            }
+            
+            setupEventListeners() {
+                // Constraint slider
+                const constraint = document.getElementById('input-constraint');
+                if (constraint) {
+                    constraint.addEventListener('input', (e) => {
+                        document.getElementById('constraint-val').textContent = e.target.value;
+                    });
+                }
+                
+                // Prompt counters
+                const singlePrompt = document.getElementById('input-single-prompt');
+                const flPrompt = document.getElementById('input-fl-prompt');
+                
+                if (singlePrompt) {
+                    singlePrompt.addEventListener('input', (e) => {
+                        document.getElementById('prompt-count').textContent = `${e.target.value.length}/500`;
+                    });
+                }
+                if (flPrompt) {
+                    flPrompt.addEventListener('input', (e) => {
+                        document.getElementById('fl-prompt-count').textContent = `${e.target.value.length}/500`;
+                    });
+                }
+                
+                // Close context menu on click
+                document.addEventListener('click', (e) => {
+                    const menu = document.getElementById('context-menu');
+                    if (!menu.contains(e.target)) menu.classList.add('hidden');
+                });
+                
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+                    
+                    if (e.code === 'Space') {
+                        e.preventDefault();
+                        this.togglePlay();
+                    }
+                    if (e.code === 'Delete' || e.code === 'Backspace') {
+                        if (this.selectedTimelineClip) this.deleteClip();
+                    }
+                    if (e.key === 'g' && e.ctrlKey) {
+                        e.preventDefault();
+                        this.generateCurrent();
+                    }
+                });
+            }
+            
+            // ─── Mode Management ───
+            setDefaultMode(mode) {
+                this.defaultMode = mode;
+                const singleBtn = document.getElementById('btn-default-single');
+                const firstlastBtn = document.getElementById('btn-default-firstlast');
+                
+                if (mode === 'single') {
+                    singleBtn.className = 'px-3 py-1 rounded-md text-[11px] font-medium transition-all badge-single';
+                    firstlastBtn.className = 'px-3 py-1 rounded-md text-[11px] font-medium transition-all text-slate-500 hover:text-slate-300';
+                } else {
+                    singleBtn.className = 'px-3 py-1 rounded-md text-[11px] font-medium transition-all text-slate-500 hover:text-slate-300';
+                    firstlastBtn.className = 'px-3 py-1 rounded-md text-[11px] font-medium transition-all badge-firstlast';
+                }
+            }
+            
+            // ─── Rendering ───
+            renderStoryboards() {
+                const container = document.getElementById('storyboard-list');
+                container.innerHTML = this.storyboards.map((sb, index) => {
+                    const isActive = sb.id === this.selectedId;
+                    const isSingle = sb.mode === 'single';
+                    const prev = index > 0 ? this.storyboards[index - 1] : null;
+                    const hasInherited = sb.firstFrame === 'inherited' && prev;
+                    
+                    return `
+                    <div class="story-card rounded-xl p-3 cursor-pointer ${isActive ? 'active' : 'bg-white/[0.02]'} ${sb.status === 'generating' ? 'generating' : ''} ${sb.status === 'completed' ? 'completed' : ''}"
+                         onclick="app.selectStoryboard(${sb.id})" 
+                         oncontextmenu="app.showContextMenu(event, ${sb.id})"
+                         draggable="true" 
+                         ondragstart="app.dragStart(event, ${sb.id})">
+                        
+                        <!-- Header -->
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-mono text-slate-600 bg-black/30 px-1.5 py-0.5 rounded">${String(index + 1).padStart(2, '0')}</span>
+                                <span class="font-medium text-xs text-slate-200 truncate max-w-[120px]">${sb.title}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="badge ${isSingle ? 'badge-single' : 'badge-firstlast'}">
+                                    ${isSingle ? '<i class="fas fa-image mr-0.5"></i>单图' : '<i class="fas fa-exchange-alt mr-0.5"></i>首尾帧'}
+                                </span>
+                                ${this.renderStatusIcon(sb.status)}
+                            </div>
+                        </div>
+                        
+                        <!-- Preview Content -->
+                        ${isSingle ? `
+                            <div class="flex gap-2.5">
+                                <div class="w-16 h-11 rounded-lg border ${sb.firstFrame ? 'border-indigo-500/40 bg-indigo-500/10' : 'border-white/5 bg-black/30'} flex items-center justify-center shrink-0">
+                                    ${sb.firstFrame 
+                                        ? '<i class="fas fa-image text-indigo-400/60 text-xs"></i>'
+                                        : '<i class="fas fa-plus text-slate-700 text-[10px]"></i>'
+                                    }
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-[10px] text-slate-500 line-clamp-2 leading-relaxed">${sb.prompt || '无提示词'}</p>
+                                    <div class="flex items-center gap-2 mt-1.5">
+                                        <span class="text-[9px] text-slate-600 flex items-center gap-1">
+                                            <i class="far fa-clock text-[8px]"></i>${sb.duration}s
+                                        </span>
+                                        ${sb.status === 'completed' ? `
+                                            <button onclick="event.stopPropagation(); app.addToTimeline(${sb.id})" class="text-[9px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
+                                                <i class="fas fa-plus text-[8px]"></i>加入时间轴
+                                            </button>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="w-14 h-10 rounded-lg border ${sb.firstFrame || hasInherited ? 'border-blue-500/30' : 'border-white/5'} ${hasInherited ? 'bg-amber-500/5' : 'bg-black/30'} flex items-center justify-center">
+                                    ${hasInherited 
+                                        ? '<i class="fas fa-link text-amber-400/60 text-[10px]"></i>'
+                                        : sb.firstFrame 
+                                            ? '<i class="fas fa-image text-blue-400/60 text-xs"></i>'
+                                            : '<i class="fas fa-plus text-slate-700 text-[10px]"></i>'
+                                    }
+                                </div>
+                                <div class="flex-1 h-px bg-gradient-to-r from-indigo-500/30 to-purple-500/30 relative">
+                                    <div class="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-purple-500/50"></div>
+                                </div>
+                                <div class="w-14 h-10 rounded-lg border ${sb.lastFrame ? 'border-purple-500/40 bg-purple-500/10' : sb.lastFrameAuto ? 'border-dashed border-purple-500/20' : 'border-white/5 bg-black/30'} flex items-center justify-center">
+                                    ${sb.lastFrame 
+                                        ? '<i class="fas fa-image text-purple-400/60 text-xs"></i>'
+                                        : sb.lastFrameAuto
+                                            ? '<i class="fas fa-magic text-purple-400/40 text-[10px]"></i>'
+                                            : '<i class="fas fa-plus text-slate-700 text-[10px]"></i>'
+                                    }
+                                </div>
+                            </div>
+                            <p class="text-[10px] text-slate-500 line-clamp-1">${sb.motionPrompt || '无运动描述'}</p>
+                        `}
+                        
+                        <!-- Progress -->
+                        ${sb.status === 'generating' ? `
+                            <div class="mt-2.5">
+                                <div class="flex justify-between text-[9px] text-amber-400 mb-1">
+                                    <span class="flex items-center gap-1"><i class="fas fa-spinner fa-spin text-[8px]"></i>生成中</span>
+                                    <span class="font-mono">${Math.floor(sb.progress)}%</span>
+                                </div>
+                                <div class="h-1 bg-black/40 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-300" style="width: ${sb.progress}%"></div>
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        <!-- Footer -->
+                        <div class="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
+                            <div class="flex gap-2">
+                                <button onclick="event.stopPropagation(); app.switchMode(${sb.id})" class="text-[10px] text-slate-600 hover:text-slate-300 transition-colors" title="切换模式">
+                                    <i class="fas fa-random"></i>
+                                </button>
+                                ${!isSingle ? `
+                                    <button onclick="event.stopPropagation(); app.setFirstFrame(${sb.id})" class="text-[10px] text-blue-400/70 hover:text-blue-400">
+                                        <i class="fas fa-image mr-0.5"></i>首帧
+                                    </button>
+                                    <button onclick="event.stopPropagation(); app.setLastFrame(${sb.id})" class="text-[10px] text-purple-400/70 hover:text-purple-400">
+                                        <i class="fas fa-flag mr-0.5"></i>尾帧
+                                    </button>
+                                ` : `
+                                    <button onclick="event.stopPropagation(); app.setSingleImage(${sb.id})" class="text-[10px] text-indigo-400/70 hover:text-indigo-400">
+                                        <i class="fas fa-image mr-0.5"></i>图片
+                                    </button>
+                                `}
+                            </div>
+                            <button onclick="event.stopPropagation(); app.aiOptimizeForStoryboard(${sb.id})" class="text-[10px] text-slate-600 hover:text-purple-400 transition-colors" title="AI 优化">
+                                <i class="fas fa-sparkles"></i>
+                            </button>
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+                
+                this.updateStats();
+            }
+            
+            renderStatusIcon(status) {
+                const icons = {
+                    pending: '<i class="far fa-circle text-slate-600 text-[10px]"></i>',
+                    generating: '<i class="fas fa-spinner fa-spin text-amber-400 text-[10px]"></i>',
+                    completed: '<i class="fas fa-check-circle text-emerald-400 text-[10px]"></i>',
+                    error: '<i class="fas fa-exclamation-circle text-red-400 text-[10px]"></i>'
+                };
+                return `<span>${icons[status] || icons.pending}</span>`;
+            }
+            
+            // ─── Selection ───
+            selectStoryboard(id) {
+                this.selectedId = id;
+                const sb = this.storyboards.find(s => s.id === id);
+                if (!sb) return;
+                
+                this.renderStoryboards();
+                
+                const empty = document.getElementById('state-empty');
+                const single = document.getElementById('state-single');
+                const firstlast = document.getElementById('state-firstlast');
+                const editorPanel = document.getElementById('editor-panel');
+                const editorSingle = document.getElementById('editor-single');
+                const editorFirstlast = document.getElementById('editor-firstlast');
+                
+                empty.classList.add('hidden');
+                editorPanel.classList.remove('hidden');
+                
+                if (sb.mode === 'single') {
+                    single.classList.remove('hidden');
+                    firstlast.classList.add('hidden');
+                    editorSingle.classList.remove('hidden');
+                    editorFirstlast.classList.add('hidden');
+                    
+                    document.getElementById('input-single-prompt').value = sb.prompt;
+                    document.getElementById('input-single-duration').value = sb.duration;
+                    document.getElementById('prompt-count').textContent = `${sb.prompt.length}/500`;
+                    document.getElementById('preview-title').textContent = sb.title;
+                    document.getElementById('preview-badge').innerHTML = `<i class="fas fa-image mr-1"></i>单图模式`;
+                    document.getElementById('preview-badge').className = 'badge badge-single';
+                    
+                    this.updateSinglePreview(sb);
+                    
+                } else {
+                    single.classList.add('hidden');
+                    firstlast.classList.remove('hidden');
+                    editorSingle.classList.add('hidden');
+                    editorFirstlast.classList.remove('hidden');
+                    
+                    document.getElementById('input-fl-prompt').value = sb.motionPrompt;
+                    document.getElementById('input-fl-duration').value = sb.duration;
+                    document.getElementById('fl-prompt-count').textContent = `${sb.motionPrompt.length}/500`;
+                    document.getElementById('preview-title').textContent = sb.title;
+                    document.getElementById('preview-badge').innerHTML = `<i class="fas fa-exchange-alt mr-1"></i>首尾帧模式`;
+                    document.getElementById('preview-badge').className = 'badge badge-firstlast';
+                    
+                    this.updateFLPreview(sb);
+                }
+            }
+            
+            updateSinglePreview(sb) {
+                const placeholder = document.getElementById('single-placeholder');
+                const content = document.getElementById('single-content');
+                const loading = document.getElementById('single-loading');
+                
+                if (sb.status === 'completed') {
+                    placeholder.classList.add('hidden');
+                    content.classList.remove('hidden');
+                    loading.classList.add('hidden');
+                    document.getElementById('single-label').textContent = sb.title;
+                } else if (sb.status === 'generating') {
+                    placeholder.classList.add('hidden');
+                    content.classList.add('hidden');
+                    loading.classList.remove('hidden');
+                } else {
+                    placeholder.classList.remove('hidden');
+                    content.classList.add('hidden');
+                    loading.classList.add('hidden');
+                }
+            }
+            
+            updateFLPreview(sb) {
+                const hasInherited = sb.firstFrame === 'inherited';
+                const hasFirst = !!sb.firstFrame && !hasInherited;
+                const hasLast = !!sb.lastFrame;
+                
+                document.getElementById('fl-first-empty').classList.toggle('hidden', hasFirst || hasInherited);
+                document.getElementById('fl-first-img').classList.toggle('hidden', !hasFirst);
+                document.getElementById('fl-first-inherited').classList.toggle('hidden', !hasInherited);
+                
+                document.getElementById('fl-last-empty').classList.toggle('hidden', hasLast);
+                document.getElementById('fl-last-img').classList.toggle('hidden', !hasLast);
+                document.getElementById('fl-last-auto').classList.toggle('hidden', !(sb.lastFrameAuto && !hasLast));
+                
+                const genEmpty = document.getElementById('fl-gen-empty');
+                const genContent = document.getElementById('fl-gen-content');
+                const genLoading = document.getElementById('fl-gen-loading');
+                const statusEl = document.getElementById('fl-status');
+                
+                if (sb.status === 'completed') {
+                    genEmpty.classList.add('hidden');
+                    genContent.classList.remove('hidden');
+                    genLoading.classList.add('hidden');
+                    statusEl.textContent = '已完成';
+                    statusEl.className = 'text-[10px] text-emerald-400';
+                } else if (sb.status === 'generating') {
+                    genEmpty.classList.add('hidden');
+                    genContent.classList.add('hidden');
+                    genLoading.classList.remove('hidden');
+                    statusEl.textContent = '生成中...';
+                    statusEl.className = 'text-[10px] text-amber-400';
+                } else {
+                    genEmpty.classList.remove('hidden');
+                    genContent.classList.add('hidden');
+                    genLoading.classList.add('hidden');
+                    statusEl.textContent = '未生成';
+                    statusEl.className = 'text-[10px] text-slate-600';
+                }
+            }
+            
+            // ─── Actions ───
+            switchMode(id) {
+                const sb = this.storyboards.find(s => s.id === id);
+                sb.mode = sb.mode === 'single' ? 'firstlast' : 'single';
+                if (sb.mode === 'single') {
+                    sb.firstFrame = sb.firstFrame === 'inherited' ? null : sb.firstFrame;
+                    sb.lastFrame = null;
+                } else {
+                    sb.firstFrame = sb.firstFrame ? sb.firstFrame : null;
+                    sb.lastFrame = null;
+                    sb.lastFrameAuto = true;
+                }
+                this.selectStoryboard(id);
+                this.showToast(`已切换为${sb.mode === 'single' ? '单图' : '首尾帧'}模式`, 'info');
+            }
+            
+            setSingleImage(id) {
+                const sb = this.storyboards.find(s => s.id === id);
+                sb.firstFrame = { url: 'uploaded' };
+                this.selectStoryboard(id);
+                this.showToast('图片已上传', 'success');
+            }
+            
+            setFirstFrame(id) {
+                const sb = this.storyboards.find(s => s.id === id);
+                sb.firstFrame = { url: 'uploaded' };
+                this.selectStoryboard(id);
+                this.showToast('首帧已设置', 'success');
+            }
+            
+            setLastFrame(id) {
+                const sb = this.storyboards.find(s => s.id === id);
+                sb.lastFrameAuto = false;
+                sb.lastFrame = { url: 'uploaded' };
+                this.selectStoryboard(id);
+                this.showToast('尾帧已设置', 'success');
+            }
+            
+            uploadImage() { if (this.selectedId) this.setSingleImage(this.selectedId); }
+            uploadFirstFrame() { if (this.selectedId) this.setFirstFrame(this.selectedId); }
+            uploadLastFrame() { if (this.selectedId) this.setLastFrame(this.selectedId); }
+            
+            toggleLastFrameAuto() {
+                if (!this.selectedId) return;
+                const sb = this.storyboards.find(s => s.id === this.selectedId);
+                sb.lastFrameAuto = !sb.lastFrameAuto;
+                if (sb.lastFrameAuto) sb.lastFrame = null;
+                this.selectStoryboard(this.selectedId);
+                this.showToast(sb.lastFrameAuto ? '尾帧改为 AI 自动生成' : '尾帧改为手动上传', 'info');
+            }
+            
+            // ─── Generation ───
+            generateCurrent() {
+                if (!this.selectedId) return;
+                const sb = this.storyboards.find(s => s.id === this.selectedId);
+                if (sb.status === 'generating') return;
+                
+                if (sb.mode === 'single' && !sb.firstFrame) {
+                    this.showToast('请先上传图片', 'error'); return;
+                }
+                if (sb.mode === 'firstlast' && !sb.firstFrame) {
+                    this.showToast('请先设置首帧', 'error'); return;
+                }
+                
+                if (sb.mode === 'single') {
+                    sb.prompt = document.getElementById('input-single-prompt').value;
+                    sb.duration = parseInt(document.getElementById('input-single-duration').value) || 5;
+                } else {
+                    sb.motionPrompt = document.getElementById('input-fl-prompt').value;
+                    sb.duration = parseInt(document.getElementById('input-fl-duration').value) || 4;
+                }
+                
+                sb.status = 'generating';
+                sb.progress = 0;
+                this.selectStoryboard(sb.id);
+                this.simulateGeneration(sb.id);
+            }
+            
+            simulateGeneration(id) {
+                const sb = this.storyboards.find(s => s.id === id);
+                const interval = setInterval(() => {
+                    sb.progress += Math.random() * 12 + 3;
+                    if (sb.progress >= 100) {
+                        sb.progress = 100;
+                        sb.status = 'completed';
+                        clearInterval(interval);
+                        if (sb.mode === 'firstlast' && sb.lastFrameAuto && !sb.lastFrame) {
+                            sb.lastFrame = { url: 'ai-generated' };
+                        }
+                        this.renderStoryboards();
+                        if (this.selectedId === id) this.selectStoryboard(id);
+                        this.showToast('生成完成！', 'success');
+                        setTimeout(() => this.addToTimeline(id), 500);
+                    } else {
+                        if (this.selectedId === id) {
+                            if (sb.mode === 'single') {
+                                document.getElementById('single-loading-text').textContent = `推理帧 ${Math.floor(sb.progress * 0.24)}/24`;
+                                document.getElementById('single-progress').style.width = sb.progress + '%';
+                            } else {
+                                document.getElementById('fl-progress').style.width = sb.progress + '%';
+                            }
+                        }
+                    }
+                }, 250);
+            }
+            
+            generateAll() {
+                const pending = this.storyboards.filter(s => s.status === 'pending');
+                if (pending.length === 0) { this.showToast('全部已完成', 'info'); return; }
+                pending.forEach((sb, i) => {
+                    setTimeout(() => {
+                        sb.status = 'generating'; sb.progress = 0;
+                        this.renderStoryboards();
+                        this.simulateGeneration(sb.id);
+                    }, i * 800);
+                });
+                this.showToast(`开始生成 ${pending.length} 个分镜...`, 'info');
+            }
+            
+            previewMotion() {
+                this.showToast('运动预演：显示首尾帧过渡轨迹', 'info');
+            }
+            
+            // ─── Timeline ───
+            addToTimeline(storyId) {
+                const sb = this.storyboards.find(s => s.id === storyId);
+                if (!sb || sb.status !== 'completed') return;
+                if (this.timeline.some(t => t.storyId === storyId)) return;
+                
+                this.timeline.push({
+                    id: 't' + Date.now(),
+                    storyId: sb.id,
+                    title: sb.title,
+                    duration: sb.duration,
+                    mode: sb.mode,
+                    transition: 'none'
+                });
+                this.renderTimeline();
+                this.showToast('已加入时间轴', 'success');
+            }
+            
+            renderTimeline() {
+                const empty = document.getElementById('tl-empty');
+                const visual = document.getElementById('tl-visual');
+                const clipsContainer = document.getElementById('tl-clips');
+                
+                if (this.timeline.length === 0) {
+                    empty.classList.remove('hidden');
+                    visual.classList.add('hidden');
+                    return;
+                }
+                empty.classList.add('hidden');
+                visual.classList.remove('hidden');
+                
+                const zoom = this.timelineZoom;
+                clipsContainer.innerHTML = this.timeline.map(clip => {
+                    const isSel = this.selectedTimelineClip?.id === clip.id;
+                    const cls = clip.mode === 'single' ? 'clip-single' : 'clip-firstlast';
+                    const width = Math.max(clip.duration * 16 * zoom, 50);
+                    return `
+                        <div class="clip-block ${cls} ${isSel ? 'selected' : ''} rounded-lg px-2 py-1.5 cursor-pointer"
+                             onclick="app.selectTimelineClip('${clip.id}')"
+                             style="width: ${width}px; min-width: 50px;">
+                            <div class="text-[10px] font-medium text-slate-200 truncate">${clip.title}</div>
+                            <div class="text-[9px] text-slate-400 flex items-center gap-1">
+                                ${clip.duration}s 
+                                ${clip.mode === 'firstlast' ? '<i class="fas fa-exchange-alt text-[7px]"></i>' : ''}
+                                ${clip.transition !== 'none' ? '<i class="fas fa-shuffle text-[7px] text-amber-400/60"></i>' : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                const total = this.timeline.reduce((s, c) => s + c.duration, 0);
+                document.getElementById('tl-total').textContent = this.formatTime(total);
+                document.getElementById('tl-end').textContent = this.formatTime(total);
+                document.getElementById('tl-count').textContent = this.timeline.length;
+            }
+            
+            selectTimelineClip(tid) {
+                const clip = this.timeline.find(c => c.id === tid);
+                if (!clip) return;
+                this.selectedTimelineClip = clip;
+                this.renderTimeline();
+                
+                const sb = this.storyboards.find(s => s.id === clip.storyId);
+                if (sb) {
+                    document.getElementById('preview-badge').innerHTML = '<i class="fas fa-stream mr-1"></i>时间轴';
+                    document.getElementById('preview-badge').className = 'badge bg-slate-800 text-purple-400 border-purple-500/30';
+                    document.getElementById('preview-title').textContent = `${sb.title} (时间轴)`;
+                }
+            }
+            
+            zoomTimeline(dir) {
+                this.timelineZoom = Math.max(0.5, Math.min(3, this.timelineZoom + dir * 0.5));
+                this.renderTimeline();
+            }
+            
+            formatTime(s) {
+                const m = Math.floor(s / 60);
+                const sec = Math.floor(s % 60);
+                return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+            }
+            
+            // ─── Playback & Editing ───
+            togglePlay() {
+                this.isPlaying = !this.isPlaying;
+                const btn = document.getElementById('btn-play');
+                btn.innerHTML = this.isPlaying 
+                    ? '<i class="fas fa-pause text-[10px] text-white"></i>' 
+                    : '<i class="fas fa-play text-[10px] text-white"></i>';
+            }
+            
+            playTimeline() {
+                if (this.timeline.length === 0) { this.showToast('时间轴为空', 'error'); return; }
+                this.isPlaying = true;
+                document.getElementById('btn-play').innerHTML = '<i class="fas fa-pause text-[10px] text-white"></i>';
+                this.showToast('播放时间轴', 'info');
+            }
+            
+            scrubTimeline(v) {
+                document.getElementById('tl-current').textContent = this.formatTime(v * 0.1);
+            }
+            
+            splitClip() {
+                if (!this.selectedTimelineClip) { this.showToast('请先选择片段', 'error'); return; }
+                this.showToast('分割片段', 'info');
+            }
+            
+            deleteClip() {
+                if (!this.selectedTimelineClip) { this.showToast('请先选择片段', 'error'); return; }
+                this.timeline = this.timeline.filter(c => c.id !== this.selectedTimelineClip.id);
+                this.selectedTimelineClip = null;
+                this.renderTimeline();
+                this.showToast('已删除', 'success');
+            }
+            
+            duplicateClip() {
+                if (!this.selectedTimelineClip) { this.showToast('请先选择片段', 'error'); return; }
+                const clip = this.timeline.find(c => c.id === this.selectedTimelineClip.id);
+                this.timeline.push({ ...clip, id: 't' + Date.now() });
+                this.renderTimeline();
+                this.showToast('已复制', 'success');
+            }
+            
+            setTransition(type) {
+                if (!this.selectedTimelineClip) { this.showToast('请先选择片段', 'error'); return; }
+                this.selectedTimelineClip.transition = type;
+                this.renderTimeline();
+                this.showToast(`转场: ${type === 'none' ? '无' : type}`, 'success');
+            }
+            
+            clearTimeline() {
+                if (!confirm('确定清空时间轴？')) return;
+                this.timeline = [];
+                this.selectedTimelineClip = null;
+                this.renderTimeline();
+                this.showToast('已清空', 'success');
+            }
+            
+            // ─── AI Features ───
+            toggleAIPanel() {
+                this.aiPanelOpen = !this.aiPanelOpen;
+                document.getElementById('ai-panel').classList.toggle('open', this.aiPanelOpen);
+            }
+            
+            aiOptimizePrompt() {
+                if (!this.selectedId) { this.showToast('请先选择分镜', 'error'); return; }
+                const sb = this.storyboards.find(s => s.id === this.selectedId);
+                const optimized = sb.prompt + '，电影级打光，浅景深，4K 分辨率，细腻纹理';
+                document.getElementById('input-single-prompt').value = optimized;
+                document.getElementById('prompt-count').textContent = `${optimized.length}/500`;
+                this.showToast('AI 已优化提示词', 'success');
+            }
+            
+            aiOptimizeMotion() {
+                if (!this.selectedId) { this.showToast('请先选择分镜', 'error'); return; }
+                const sb = this.storyboards.find(s => s.id === this.selectedId);
+                const optimized = sb.motionPrompt + '，平滑过渡，自然光影变化，稳定镜头运动';
+                document.getElementById('input-fl-prompt').value = optimized;
+                document.getElementById('fl-prompt-count').textContent = `${optimized.length}/500`;
+                this.showToast('AI 已优化运动描述', 'success');
+            }
+            
+            aiRecommendPrompt() {
+                const suggestions = [
+                    '清晨阳光透过窗帘洒入房间，尘埃在光束中缓缓飘动，电影级画质',
+                    '雨夜城市街道，霓虹灯倒映在湿润的地面上，镜头缓慢推进',
+                    '高山云海日出，延时摄影效果，壮丽自然风光，8K 超清'
+                ];
+                const random = suggestions[Math.floor(Math.random() * suggestions.length)];
+                if (this.selectedId) {
+                    const sb = this.storyboards.find(s => s.id === this.selectedId);
+                    if (sb.mode === 'single') {
+                        document.getElementById('input-single-prompt').value = random;
+                        document.getElementById('prompt-count').textContent = `${random.length}/500`;
+                    } else {
+                        document.getElementById('input-fl-prompt').value = random;
+                        document.getElementById('fl-prompt-count').textContent = `${random.length}/500`;
+                    }
+                }
+                this.showToast('AI 已推荐提示词', 'success');
+            }
+            
+            aiRecommendStyle() {
+                this.showToast('风格推荐面板已打开', 'info');
+            }
+            
+            autoGenerateStoryboards() {
+                const newId = Math.max(...this.storyboards.map(s => s.id), 0) + 1;
+                this.storyboards.push({
+                    id: newId,
+                    mode: 'single',
+                    title: `AI 分镜 ${newId}`,
+                    prompt: 'AI 自动生成的场景描述，包含动态镜头运动和光影变化',
+                    firstFrame: null,
+                    lastFrame: null,
+                    lastFrameAuto: true,
+                    motionPrompt: '',
+                    duration: 5,
+                    status: 'pending',
+                    progress: 0
+                });
+                this.renderStoryboards();
+                this.selectStoryboard(newId);
+                this.showToast('AI 已自动生成分镜', 'success');
+            }
+            
+            aiOptimizeForStoryboard(id) {
+                this.selectStoryboard(id);
+                setTimeout(() => {
+                    const sb = this.storyboards.find(s => s.id === id);
+                    if (sb.mode === 'single') this.aiOptimizePrompt();
+                    else this.aiOptimizeMotion();
+                }, 100);
+            }
+            
+            applySuggestion(index) {
+                const suggestions = [
+                    '电影级打光，浅景深，细腻纹理',
+                    '将时长延长至 5 秒，配合慢速推进镜头'
+                ];
+                this.showToast(`已应用建议: ${suggestions[index]}`, 'success');
+            }
+            
+            applyStyle(style) {
+                const styles = {
+                    cinematic: 'Cinematic, 35mm film, shallow depth of field, golden hour lighting',
+                    anime: 'Anime style, vibrant colors, clean lines, studio ghibli inspired',
+                    cyberpunk: 'Cyberpunk, neon lights, dystopian city, rain, futuristic',
+                    realistic: 'Photorealistic, 8K, ultra detailed, natural lighting, DSLR'
+                };
+                if (this.selectedId) {
+                    const sb = this.storyboards.find(s => s.id === this.selectedId);
+                    if (sb.mode === 'single') {
+                        const current = document.getElementById('input-single-prompt').value;
+                        document.getElementById('input-single-prompt').value = current + '，' + styles[style];
+                    } else {
+                        const current = document.getElementById('input-fl-prompt').value;
+                        document.getElementById('input-fl-prompt').value = current + '，' + styles[style];
+                    }
+                }
+                this.showToast(`已应用风格: ${style}`, 'success');
+            }
+            
+            // ─── Global ───
+            addStoryboard() {
+                const newId = Math.max(...this.storyboards.map(s => s.id), 0) + 1;
+                const isSingle = this.defaultMode === 'single';
+                this.storyboards.push({
+                    id: newId,
+                    mode: this.defaultMode,
+                    title: `分镜 ${newId}`,
+                    prompt: isSingle ? '' : '',
+                    firstFrame: null,
+                    lastFrame: null,
+                    lastFrameAuto: !isSingle,
+                    motionPrompt: isSingle ? '' : '',
+                    duration: isSingle ? 5 : 4,
+                    status: 'pending',
+                    progress: 0
+                });
+                this.renderStoryboards();
+                this.selectStoryboard(newId);
+                this.showToast(`已添加${isSingle ? '单图' : '首尾帧'}分镜`, 'success');
+            }
+            
+            importScript() {
+                this.showToast('导入脚本功能开发中', 'info');
+            }
+            
+            batchEdit() {
+                this.showToast('批量编辑功能开发中', 'info');
+            }
+            
+            saveProject() { this.showToast('项目已保存', 'success'); }
+            
+            exportVideo() {
+                const total = this.timeline.reduce((s, c) => s + c.duration, 0);
+                if (total === 0) { this.showToast('时间轴为空', 'error'); return; }
+                this.showToast('开始渲染成片...', 'info');
+                setTimeout(() => this.showToast('导出成功！', 'success'), 2000);
+            }
+            
+            updateStats() {
+                const total = this.storyboards.length;
+                const single = this.storyboards.filter(s => s.mode === 'single').length;
+                const firstlast = this.storyboards.filter(s => s.mode === 'firstlast').length;
+                
+                document.getElementById('stat-total').textContent = total;
+                document.getElementById('stat-single').textContent = single;
+                document.getElementById('stat-firstlast').textContent = firstlast;
+                
+                if (total > 0) {
+                    document.getElementById('stat-bar-single').style.width = `${(single / total) * 100}%`;
+                    document.getElementById('stat-bar-firstlast').style.width = `${(firstlast / total) * 100}%`;
+                }
+            }
+            
+            dragStart(e, id) { e.dataTransfer.setData('storyId', id); }
+            
+            showContextMenu(e, id) {
+                e.preventDefault();
+                const menu = document.getElementById('context-menu');
+                menu.innerHTML = `
+                    <div class="context-item" onclick="app.selectStoryboard(${id}); app.hideContextMenu()">
+                        <i class="fas fa-edit text-[10px]"></i>编辑分镜
+                    </div>
+                    <div class="context-item" onclick="app.switchMode(${id}); app.hideContextMenu()">
+                        <i class="fas fa-random text-[10px]"></i>切换模式
+                    </div>
+                    <div class="context-item" onclick="app.aiOptimizeForStoryboard(${id}); app.hideContextMenu()">
+                        <i class="fas fa-sparkles text-[10px]"></i>AI 优化
+                    </div>
+                    <div class="context-item danger" onclick="app.deleteStoryboard(${id}); app.hideContextMenu()">
+                        <i class="fas fa-trash text-[10px]"></i>删除分镜
+                    </div>
+                `;
+                menu.style.left = e.pageX + 'px';
+                menu.style.top = e.pageY + 'px';
+                menu.classList.remove('hidden');
+            }
+            
+            hideContextMenu() {
+                document.getElementById('context-menu').classList.add('hidden');
+            }
+            
+            deleteStoryboard(id) {
+                this.storyboards = this.storyboards.filter(s => s.id !== id);
+                if (this.selectedId === id) {
+                    this.selectedId = null;
+                    document.getElementById('state-empty').classList.remove('hidden');
+                    document.getElementById('state-single').classList.add('hidden');
+                    document.getElementById('state-firstlast').classList.add('hidden');
+                    document.getElementById('editor-panel').classList.add('hidden');
+                    document.getElementById('preview-title').textContent = '未选择分镜';
+                    document.getElementById('preview-badge').innerHTML = '<i class="fas fa-hand-pointer mr-1"></i>请选择分镜';
+                    document.getElementById('preview-badge').className = 'badge bg-slate-800 text-slate-400 border-slate-700';
+                }
+                this.renderStoryboards();
+                this.showToast('分镜已删除', 'success');
+            }
+            
+            showToast(msg, type = 'success') {
+                const toast = document.getElementById('toast');
+                const icon = document.getElementById('toast-icon');
+                const text = document.getElementById('toast-message');
+                
+                text.textContent = msg;
+                const icons = {
+                    success: 'fa-check-circle text-emerald-400',
+                    error: 'fa-exclamation-circle text-red-400',
+                    info: 'fa-info-circle text-blue-400'
+                };
+                icon.className = `fas ${icons[type]}`;
+                
+                toast.classList.remove('translate-y-20', 'opacity-0');
+                setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3000);
+            }
+        }
+        
+        const app = new VideoWorkbench();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1722 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI漫剧自动化生成工作台 - 团队协作版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'Noto Sans SC', 'sans-serif'] },
+                    colors: {
+                        primary: '#6366f1', secondary: '#8b5cf6', accent: '#ec4899',
+                        cyan: '#06b6d4', emerald: '#10b981', amber: '#f59e0b', rose: '#f43f5e',
+                        dark: '#0f172a', darker: '#020617', surface: '#1e293b', 'surface-light': '#334155',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', 'Noto Sans SC', sans-serif; background: #020617; color: #e2e8f0; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+        .glass-panel-strong { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
+        .episode-card { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
+        .episode-card:hover { transform: translateX(4px); border-color: rgba(99,102,241,0.5); }
+        .episode-card.active { background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.1)); border-color: #6366f1; box-shadow: 0 0 20px rgba(99,102,241,0.2); }
+        .shot-item { transition: all 0.2s ease; }
+        .shot-item:hover { background: rgba(99,102,241,0.08); }
+        .shot-item.active { background: linear-gradient(90deg, rgba(99,102,241,0.15), transparent); border-left: 3px solid #6366f1; }
+        .step-badge { transition: all 0.3s ease; }
+        .step-badge.active { background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 0 20px rgba(99,102,241,0.4); }
+        .step-badge.completed { background: #10b981; }
+        .step-line { transition: all 0.5s ease; }
+        .step-line.active { background: linear-gradient(to right, #6366f1, #8b5cf6); }
+        .generate-btn { background: linear-gradient(135deg, #6366f1, #8b5cf6); transition: all 0.3s ease; }
+        .generate-btn:hover { box-shadow: 0 0 30px rgba(99,102,241,0.5); transform: translateY(-1px); }
+        .ref-card { transition: all 0.2s ease; cursor: pointer; }
+        .ref-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+        .ref-card.selected { ring: 2px; ring-color: #6366f1; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.2); }
+        .drawer { transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); }
+        .drawer.closed { transform: translateX(100%); }
+        .tag { background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.25); }
+        .tag-cyan { background: rgba(6,182,212,0.12); border-color: rgba(6,182,212,0.25); color: #22d3ee; }
+        .tag-emerald { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.25); color: #34d399; }
+        .tag-amber { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.25); color: #fbbf24; }
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .timeline-line { background: linear-gradient(to bottom, #6366f1, #8b5cf6, #ec4899); }
+        .weight-slider { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; background: #334155; outline: none; }
+        .weight-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #6366f1; cursor: pointer; box-shadow: 0 0 10px rgba(99,102,241,0.5); }
+        .prompt-block { background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.04)); border: 1px solid rgba(99,102,241,0.2); }
+        .image-preview { background: linear-gradient(135deg, #1e293b, #0f172a); position: relative; overflow: hidden; }
+        .image-preview::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent); animation: shimmer 2.5s infinite; }
+        @keyframes shimmer { 100% { left: 100%; } }
+        .step-panel { transition: all 0.4s cubic-bezier(0.4,0,0.2,1); }
+        .step-panel.hidden { opacity: 0; pointer-events: none; position: absolute; }
+        .step-panel.visible { opacity: 1; position: relative; }
+        .inject-pill { animation: injectPop 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+        @keyframes injectPop { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .drop-zone { border: 2px dashed rgba(99,102,241,0.3); background: rgba(99,102,241,0.03); transition: all 0.2s; }
+        .drop-zone.dragover { border-color: #6366f1; background: rgba(99,102,241,0.08); }
+        .ai-suggestion { background: linear-gradient(90deg, rgba(99,102,241,0.1), rgba(139,92,246,0.05)); border-left: 2px solid #6366f1; }
+        .asset-card { transition: all 0.2s ease; }
+        .asset-card:hover { border-color: rgba(255,255,255,0.15); }
+        .asset-img-wrap { position: relative; overflow: hidden; }
+        .asset-img-wrap::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.4); opacity: 0; transition: opacity 0.2s; }
+        .asset-card:hover .asset-img-wrap::after { opacity: 1; }
+        .asset-img-wrap .img-action { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; z-index: 10; }
+        .asset-card:hover .asset-img-wrap .img-action { opacity: 1; }
+        .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+        /* 新增协作样式 */
+        .avatar-ring { position: relative; }
+        .avatar-ring::after { content: ''; position: absolute; inset: -2px; border-radius: 50%; border: 2px solid transparent; transition: all 0.2s; }
+        .avatar-ring.online::after { border-color: #10b981; }
+        .avatar-ring.editing::after { border-color: #f59e0b; animation: pulse-ring 2s infinite; }
+        @keyframes pulse-ring { 0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.4); } 50% { box-shadow: 0 0 0 4px rgba(245,158,11,0); } }
+        .assignee-popover { animation: popoverIn 0.2s cubic-bezier(0.4,0,0.2,1); }
+        @keyframes popoverIn { from { opacity: 0; transform: translateY(-8px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .member-option { transition: all 0.15s ease; }
+        .member-option:hover { background: rgba(99,102,241,0.1); }
+        .member-option.selected { background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.4); }
+        .filter-chip { transition: all 0.2s; }
+        .filter-chip.active { background: rgba(99,102,241,0.2); color: #818cf8; border-color: rgba(99,102,241,0.4); }
+        .lock-overlay { background: rgba(2,6,23,0.85); backdrop-filter: blur(4px); }
+    </style>
+</head>
+<body class="h-screen overflow-hidden bg-darker">
+
+    <!-- 顶部导航 -->
+    <header class="h-14 sm:h-16 glass-panel border-b border-white/5 flex items-center justify-between px-4 sm:px-6 z-40 relative gap-2">
+        <div class="flex items-center gap-2 sm:gap-4">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/30 flex-shrink-0">
+                <i class="fas fa-film text-white text-sm sm:text-lg"></i>
+            </div>
+            <div class="hidden sm:block">
+                <h1 class="text-base sm:text-lg font-bold text-white tracking-tight">AI漫剧生成工作台</h1>
+                <p class="text-xs text-slate-400">《星辰大海》自动化分镜系统 · 团队协作模式</p>
+            </div>
+        </div>
+
+        <!-- 导航链接 - 桌面端 -->
+        <nav class="hidden xl:flex items-center gap-1 mx-4">
+            <a href="项目列表.html" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-[11px] font-medium transition-all">
+                <i class="fas fa-folder mr-1"></i>项目
+            </a>
+            <a href="创建项目.html" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-[11px] font-medium transition-all">
+                <i class="fas fa-plus mr-1"></i>创建
+            </a>
+            <a href="小说上传-分集与资产提取.html" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-[11px] font-medium transition-all">
+                <i class="fas fa-upload mr-1"></i>小说上传
+            </a>
+            <a href="分集.html" class="px-2.5 py-1 rounded-lg bg-primary/15 text-primary border border-primary/25 text-[11px] font-medium">
+                <i class="fas fa-list mr-1"></i>分集
+            </a>
+            <a href="分镜生视频.html" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-[11px] font-medium transition-all">
+                <i class="fas fa-video mr-1"></i>视频
+            </a>
+            <a href="用户中心.html" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-[11px] font-medium transition-all">
+                <i class="fas fa-user mr-1"></i>用户
+            </a>
+        </nav>
+
+        <!-- 右侧：团队成员与协作状态 -->
+        <div class="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+            <!-- 团队成员 - 桌面端完整显示，移动端简化 -->
+            <div class="hidden md:flex items-center gap-3 px-3 py-2 rounded-xl bg-surface/60 border border-white/5">
+                <span class="text-xs text-slate-500 mr-1">创作团队</span>
+                <div class="flex -space-x-2" id="teamAvatars">
+                    <!-- 动态渲染 -->
+                </div>
+                <button onclick="openTeamModal()" class="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all ml-1">
+                    <i class="fas fa-plus text-xs"></i>
+                </button>
+                <div class="w-px h-4 bg-white/10 mx-1"></div>
+                <div class="flex items-center gap-2 text-xs">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-emerald-400 font-medium">4 人在线</span>
+                </div>
+            </div>
+
+            <!-- 移动端：仅显示团队图标 -->
+            <div class="md:hidden flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface/60 border border-white/5">
+                <div class="flex -space-x-1.5">
+                    <div class="w-6 h-6 rounded-full border-2 border-surface overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60" class="w-full h-full object-cover">
+                    </div>
+                    <div class="w-6 h-6 rounded-full border-2 border-surface overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1599566150163-29194dcabd55?w=100&auto=format&fit=crop&q=60" class="w-full h-full object-cover">
+                    </div>
+                    <div class="w-6 h-6 rounded-full border-2 border-surface overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=60" class="w-full h-full object-cover">
+                    </div>
+                </div>
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            </div>
+
+            <!-- 生成队列 - 桌面端显示，移动端隐藏 -->
+            <div class="hidden lg:flex items-center gap-2 px-4 py-2 rounded-lg bg-surface border border-white/5">
+                <div class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"></div>
+                <span class="text-sm text-slate-300">生成队列: <span class="text-emerald-400 font-semibold">3</span> 个任务运行中</span>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-surface border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <div class="relative group flex-shrink-0">
+                    <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-xs sm:text-sm avatar-ring online cursor-pointer">我</div>
+                    <div class="absolute top-full mt-2 right-0 w-48 glass-panel-strong rounded-lg p-3 hidden group-hover:block z-50">
+                        <div class="text-xs text-white font-medium mb-1">当前用户</div>
+                        <div class="text-xs text-slate-400">项目经理 · 全部权限</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主体 -->
+    <div class="flex h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] relative">
+
+        <!-- 左侧：分集列表 - 移动端可折叠 -->
+        <aside class="hidden lg:flex w-72 xl:w-80 glass-panel border-r border-white/5 flex flex-col z-30" id="leftSidebar">
+            <div class="p-4 border-b border-white/5">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">分集列表</h2>
+                    <span class="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary border border-primary/30">共 12 集</span>
+                </div>
+
+                <!-- 筛选标签 -->
+                <div class="flex gap-2 mb-3">
+                    <button onclick="setFilter('all')" id="filter-all" class="filter-chip active flex-1 py-1.5 rounded-lg border border-white/5 bg-white/5 text-xs text-slate-400 text-center">
+                        全部
+                    </button>
+                    <button onclick="setFilter('mine')" id="filter-mine" class="filter-chip flex-1 py-1.5 rounded-lg border border-white/5 bg-white/5 text-xs text-slate-400 text-center">
+                        我的
+                    </button>
+                    <button onclick="setFilter('unassigned')" id="filter-unassigned" class="filter-chip flex-1 py-1.5 rounded-lg border border-white/5 bg-white/5 text-xs text-slate-400 text-center">
+                        未指派
+                    </button>
+                </div>
+
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                    <input type="text" placeholder="搜索分集..." class="w-full pl-9 pr-4 py-2.5 bg-surface border border-white/10 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary/50 transition-all">
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto custom-scroll p-3 space-y-2" id="episodeList"></div>
+        </aside>
+
+        <!-- 移动端：左侧栏切换按钮 -->
+        <div class="lg:hidden fixed left-0 top-14 sm:top-16 z-20">
+            <button onclick="toggleLeftSidebar()" id="toggleLeftBtn" class="h-12 px-3 rounded-r-lg bg-surface border border-white/10 border-l-0 glass-panel flex items-center justify-center text-slate-400 hover:text-white transition-all shadow-lg">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+
+        <!-- 移动端：左侧栏弹出层 -->
+        <div id="leftSidebarMobile" class="lg:hidden fixed inset-0 z-30 hidden">
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="toggleLeftSidebar()"></div>
+            <div class="absolute left-0 top-0 bottom-0 w-72 bg-darker glass-panel border-r border-white/5 flex flex-col shadow-2xl transform -translate-x-full transition-transform duration-300" id="leftSidebarPanel">
+                <div class="h-14 border-b border-white/5 flex items-center justify-between px-4 bg-surface/30">
+                    <h2 class="text-sm font-semibold text-slate-300">分集列表</h2>
+                    <button onclick="toggleLeftSidebar()" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="p-4 border-b border-white/5">
+                    <div class="flex gap-2 mb-3">
+                        <button onclick="setFilter('all')" id="filter-all-mobile" class="filter-chip active flex-1 py-1.5 rounded-lg border border-white/5 bg-white/5 text-xs text-slate-400 text-center">
+                            全部
+                        </button>
+                        <button onclick="setFilter('mine')" id="filter-mine-mobile" class="filter-chip flex-1 py-1.5 rounded-lg border border-white/5 bg-white/5 text-xs text-slate-400 text-center">
+                            我的
+                        </button>
+                        <button onclick="setFilter('unassigned')" id="filter-unassigned-mobile" class="filter-chip flex-1 py-1.5 rounded-lg border border-white/5 bg-white/5 text-xs text-slate-400 text-center">
+                            未指派
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                        <input type="text" placeholder="搜索分集..." class="w-full pl-9 pr-4 py-2.5 bg-surface border border-white/10 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary/50 transition-all">
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scroll p-3 space-y-2" id="episodeListMobile"></div>
+            </div>
+        </div>
+
+        <!-- 中间：分镜时间轴 -->
+        <main class="flex-1 flex flex-col min-w-0 bg-darker/50 z-20">
+            <div class="min-h-14 border-b border-white/5 flex items-center justify-between px-4 sm:px-6 glass-panel gap-4 flex-wrap">
+                <!-- 左侧：标题和状态 -->
+                <div class="flex items-center gap-2 sm:gap-4 flex-wrap flex-1 min-w-0">
+                    <h2 class="text-sm sm:text-base font-semibold text-white truncate" id="currentEpisodeTitle">第一集：初入星海</h2>
+                    <span class="px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-xs border border-emerald-500/30 whitespace-nowrap">已拆分 8 个分镜</span>
+                    <!-- 当前编辑者提示 -->
+                    <div id="editorBadge" class="hidden flex items-center gap-2 px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full bg-amber-500/15 text-amber-400 text-xs border border-amber-500/30">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                        <span id="editorName">张三 正在编辑...</span>
+                    </div>
+                </div>
+                <!-- 右侧：操作按钮 -->
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <!-- 在小屏幕上显示下拉菜单 -->
+                    <div class="relative lg:hidden">
+                        <button onclick="toggleActionsMenu()" class="px-3 py-2 rounded-lg bg-surface border border-white/10 text-sm text-slate-300 hover:text-white hover:border-primary/50 transition-all flex items-center gap-2">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <div id="actionsMenu" class="hidden absolute right-0 top-full mt-2 w-56 glass-panel-strong rounded-xl border border-white/10 shadow-xl z-50 py-2">
+                            <button onclick="autoSplit()" class="w-full px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-all flex items-center gap-3">
+                                <i class="fas fa-magic text-primary w-5"></i>AI自动拆分
+                            </button>
+                            <button onclick="batchGenerate()" class="w-full px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-all flex items-center gap-3">
+                                <i class="fas fa-play text-emerald-400 w-5"></i>批量生成
+                            </button>
+                            <div class="h-px bg-white/10 my-2"></div>
+                            <button onclick="window.location.href='分镜生视频.html'" class="w-full px-4 py-2.5 text-left text-sm text-white bg-primary/20 hover:bg-primary/30 transition-all flex items-center gap-3">
+                                <i class="fas fa-arrow-right w-5"></i>提交并进入视频工作台
+                            </button>
+                        </div>
+                    </div>
+                    <!-- 大屏幕显示完整按钮 -->
+                    <div class="hidden lg:flex items-center gap-2">
+                        <button onclick="autoSplit()" class="px-3 py-2 lg:px-4 lg:py-2 rounded-lg bg-surface border border-white/10 text-sm text-slate-300 hover:text-white hover:border-primary/50 transition-all flex items-center gap-2 whitespace-nowrap">
+                            <i class="fas fa-magic text-primary"></i>AI自动拆分
+                        </button>
+                        <button onclick="batchGenerate()" class="px-3 py-2 lg:px-4 lg:py-2 rounded-lg bg-surface border border-white/10 text-sm text-slate-300 hover:text-white hover:border-primary/50 transition-all flex items-center gap-2 whitespace-nowrap">
+                            <i class="fas fa-play text-emerald-400"></i>批量生成
+                        </button>
+                        <div class="w-px h-6 bg-white/10 mx-1"></div>
+                        <button onclick="window.location.href='分镜生视频.html'" class="generate-btn px-4 py-2 lg:px-5 lg:py-2 rounded-lg text-white text-sm font-semibold flex items-center gap-2 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all whitespace-nowrap">
+                            <i class="fas fa-arrow-right"></i>提交并进入视频工作台
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto custom-scroll p-4 sm:p-6" id="shotList"></div>
+
+            <!-- 移动端：打开右侧面板按钮 -->
+            <div class="lg:hidden fixed bottom-6 right-6 z-30">
+                <button onclick="openRightPanel()" class="w-14 h-14 rounded-full bg-gradient-to-r from-primary to-secondary text-white shadow-lg shadow-primary/30 flex items-center justify-center hover:scale-105 transition-transform">
+                    <i class="fas fa-edit text-lg"></i>
+                </button>
+            </div>
+        </main>
+
+        <!-- 右侧：两步式工作区 -->
+        <aside class="w-full lg:w-[580px] xl:w-[620px] glass-panel border-l border-white/5 flex flex-col z-30 fixed lg:relative right-0 top-14 sm:top-16 lg:top-0 h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] lg:h-auto transform translate-x-full lg:translate-x-0 transition-transform duration-300" id="rightPanel">
+
+            <!-- 移动端：顶部拖动手柄 -->
+            <div class="lg:hidden h-12 border-b border-white/5 flex items-center justify-center bg-surface/30">
+                <div class="w-10 h-1 rounded-full bg-slate-600"></div>
+                <button onclick="closeRightPanel()" class="absolute right-4 w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- 步骤指示器 -->
+            <div class="h-20 border-b border-white/5 flex items-center px-4 sm:px-6 bg-surface/20">
+                <div class="flex items-center w-full">
+                    <div class="flex items-center gap-3 flex-1 cursor-pointer" onclick="switchStep(1)">
+                        <div id="step1-badge" class="step-badge active w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                            <i class="fas fa-pen-to-square"></i>
+                        </div>
+                        <div>
+                            <div id="step1-title" class="text-sm font-semibold text-white">编辑分镜描述</div>
+                            <div class="text-xs text-slate-400">拆解元素 / 调整Prompt</div>
+                        </div>
+                    </div>
+                    <div class="w-12 h-0.5 mx-2 bg-surface-light rounded-full overflow-hidden">
+                        <div id="step-line" class="h-full w-0 step-line"></div>
+                    </div>
+                    <div class="flex items-center gap-3 flex-1 cursor-pointer" onclick="switchStep(2)">
+                        <div id="step2-badge" class="step-badge w-10 h-10 rounded-full bg-surface border border-white/10 flex items-center justify-center text-slate-400 font-bold text-sm">
+                            <i class="fas fa-wand-magic-sparkles"></i>
+                        </div>
+                        <div>
+                            <div id="step2-title" class="text-sm font-semibold text-slate-400">生成分镜图</div>
+                            <div class="text-xs text-slate-500">关联参考图 / 文生图</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 工作区内容 -->
+            <div class="flex-1 overflow-y-auto custom-scroll relative">
+
+                <!-- ========== 第一步：编辑分镜描述 ========== -->
+                <div id="step1-panel" class="step-panel visible p-5 space-y-5">
+
+                    <!-- 分镜基本信息 -->
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-base font-bold text-white" id="shotTitleStep1">分镜 #001：星空开场</h3>
+                            <p class="text-xs text-slate-400 mt-1">基于小说原文第 1 章第 3 段自动生成</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full bg-primary/15 text-primary text-xs border border-primary/25">
+                            <i class="fas fa-robot mr-1"></i>AI生成
+                        </span>
+                    </div>
+
+                    <!-- 原文对照 -->
+                    <div class="bg-surface/40 border border-white/5 rounded-xl p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fas fa-book-open text-slate-500 text-sm"></i>
+                            <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">原文片段</span>
+                        </div>
+                        <p class="text-sm text-slate-300 leading-relaxed italic">
+                            "林晨站在星际飞船「曙光号」的观景舱内，透过巨大的舷窗凝视着前方那颗散发着幽蓝光芒的星球。星云如同丝带般在飞船周围流转，他的手指无意识地敲击着舱壁，眼神中既有期待，也有一丝难以察觉的恐惧。"
+                        </p>
+                    </div>
+
+                    <!-- AI建议的分镜描述（可编辑） -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-medium text-slate-400 uppercase tracking-wider">AI分镜描述</label>
+                            <div class="flex items-center gap-2">
+                                <button class="text-xs text-primary hover:text-white transition-colors flex items-center gap-1">
+                                    <i class="fas fa-rotate"></i>重新生成
+                                </button>
+                                <button class="text-xs text-slate-500 hover:text-white transition-colors">
+                                    <i class="fas fa-expand"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="prompt-block rounded-xl p-4 space-y-3">
+                            <div>
+                                <label class="text-[10px] text-primary/70 uppercase tracking-wider mb-1 block">画面描述 (Prompt)</label>
+                                <textarea id="promptText" class="w-full h-28 bg-transparent border-0 p-0 text-sm text-slate-200 focus:outline-none focus:ring-0 resize-none custom-scroll leading-relaxed" placeholder="描述画面内容...">浩瀚星空中，一艘银色星际飞船缓缓驶过星云，舷窗内主角林晨凝视着远方的蓝色星球，眼神坚定而忧郁。赛博朋克风格，电影级光影，8K超清，概念艺术</textarea>
+                            </div>
+                            <div class="border-t border-white/10 pt-3">
+                                <label class="text-[10px] text-rose-400/70 uppercase tracking-wider mb-1 block">负面提示 (Negative Prompt)</label>
+                                <textarea class="w-full h-14 bg-transparent border-0 p-0 text-sm text-slate-400 focus:outline-none focus:ring-0 resize-none custom-scroll" placeholder="描述不希望出现的内容...">模糊，低质量，变形，多余的手指，糟糕的构图，低分辨率</textarea>
+                            </div>
+                        </div>
+
+                        <!-- AI优化建议 -->
+                        <div class="ai-suggestion rounded-lg p-3 flex items-start gap-3">
+                            <i class="fas fa-lightbulb text-primary mt-0.5"></i>
+                            <div>
+                                <div class="text-xs text-slate-300 font-medium mb-1">AI优化建议</div>
+                                <div class="text-xs text-slate-400">检测到「星云」和「舷窗」元素，建议增加 <span class="text-primary cursor-pointer hover:underline">玻璃反光细节</span> 和 <span class="text-primary cursor-pointer hover:underline">舱内HUD投影</span> 以增强科幻氛围。</div>
+                            </div>
+                            <button class="text-xs px-2 py-1 rounded bg-primary/20 text-primary hover:bg-primary/30 transition-colors ml-auto flex-shrink-0">采纳</button>
+                        </div>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- 分镜元素拆解 - 重新设计（核心改动区域） -->
+                    <!-- ========================================== -->
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-medium text-slate-400 uppercase tracking-wider">分镜元素拆解</label>
+                            <span class="text-xs text-slate-500">从原文提取的资产，配置Prompt与参考图</span>
+                        </div>
+
+                        <!-- 角色 -->
+                        <div class="bg-surface/30 border border-white/5 rounded-xl overflow-hidden">
+                            <div class="px-4 py-3 border-b border-white/5 flex items-center justify-between bg-surface/20">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-5 h-5 rounded bg-primary/20 flex items-center justify-center">
+                                        <i class="fas fa-user text-primary text-[10px]"></i>
+                                    </div>
+                                    <span class="text-sm font-semibold text-white">角色</span>
+                                    <span class="text-xs text-slate-500" id="charCount">1 个</span>
+                                </div>
+                                <button onclick="toggleDrawer('character')" class="text-xs text-primary hover:text-white transition-colors flex items-center gap-1">
+                                    <i class="fas fa-plus"></i>从素材库添加
+                                </button>
+                            </div>
+                            <div class="p-3 space-y-3" id="characterList"></div>
+                        </div>
+
+                        <!-- 场景 -->
+                        <div class="bg-surface/30 border border-white/5 rounded-xl overflow-hidden">
+                            <div class="px-4 py-3 border-b border-white/5 flex items-center justify-between bg-surface/20">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-5 h-5 rounded bg-cyan/20 flex items-center justify-center">
+                                        <i class="fas fa-image text-cyan text-[10px]"></i>
+                                    </div>
+                                    <span class="text-sm font-semibold text-white">场景</span>
+                                    <span class="text-xs text-slate-500" id="sceneCount">2 个</span>
+                                </div>
+                                <button onclick="toggleDrawer('scene')" class="text-xs text-cyan hover:text-white transition-colors flex items-center gap-1">
+                                    <i class="fas fa-plus"></i>从素材库添加
+                                </button>
+                            </div>
+                            <div class="p-3 space-y-3" id="sceneList"></div>
+                        </div>
+
+                        <!-- 道具 -->
+                        <div class="bg-surface/30 border border-white/5 rounded-xl overflow-hidden">
+                            <div class="px-4 py-3 border-b border-white/5 flex items-center justify-between bg-surface/20">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-5 h-5 rounded bg-amber/20 flex items-center justify-center">
+                                        <i class="fas fa-cube text-amber text-[10px]"></i>
+                                    </div>
+                                    <span class="text-sm font-semibold text-white">道具</span>
+                                    <span class="text-xs text-slate-500" id="propCount">0 个</span>
+                                </div>
+                                <button onclick="toggleDrawer('prop')" class="text-xs text-amber hover:text-white transition-colors flex items-center gap-1">
+                                    <i class="fas fa-plus"></i>从素材库添加
+                                </button>
+                            </div>
+                            <div class="p-3 space-y-3" id="propList"></div>
+                        </div>
+                    </div>
+
+                    <!-- 进入下一步 -->
+                    <div class="pt-2 pb-4">
+                        <button onclick="switchStep(2)" class="generate-btn w-full py-3.5 rounded-xl text-white font-semibold flex items-center justify-center gap-2 shadow-lg shadow-primary/25 text-base">
+                            <span>确认描述，进入生成分镜图</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                        <p class="text-center text-xs text-slate-500 mt-2">进入下一步后，系统将汇总所有资产参考配置进行生成</p>
+                    </div>
+                </div>
+
+                <!-- ========== 第二步：生成分镜图 ========== -->
+                <div id="step2-panel" class="step-panel hidden p-5 space-y-5">
+
+                    <!-- 顶部返回 -->
+                    <div class="flex items-center justify-between">
+                        <button onclick="switchStep(1)" class="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-2">
+                            <i class="fas fa-arrow-left"></i>返回编辑描述
+                        </button>
+                        <span class="text-xs px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                            <i class="fas fa-check mr-1"></i>描述已确认
+                        </span>
+                    </div>
+
+                    <!-- 描述摘要（只读回顾） -->
+                    <div class="bg-surface/30 border border-white/5 rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">当前描述摘要</span>
+                            <button onclick="switchStep(1)" class="text-xs text-primary hover:text-white transition-colors">修改</button>
+                        </div>
+                        <p class="text-sm text-slate-300 line-clamp-3 leading-relaxed" id="summaryPrompt">
+                            浩瀚星空中，一艘银色星际飞船缓缓驶过星云，舷窗内主角林晨凝视着远方的蓝色星球，眼神坚定而忧郁。赛博朋克风格，电影级光影，8K超清，概念艺术
+                        </p>
+                    </div>
+
+                    <!-- 参考图注入配置区 - 重新设计 -->
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-syringe text-primary text-sm"></i>
+                                <span class="text-sm font-semibold text-white">参考图注入配置</span>
+                            </div>
+                            <span class="text-xs text-slate-500" id="refCount">3 个资产已关联</span>
+                        </div>
+
+                        <!-- 已选资产参考列表 -->
+                        <div class="space-y-2" id="step2RefList"></div>
+
+                        <!-- 全局设置 -->
+                        <div class="bg-surface/40 border border-white/5 rounded-xl p-4 space-y-4">
+                            <!-- IP-Adapter 全局权重 -->
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xs text-slate-400">IP-Adapter 全局参考权重</span>
+                                    <span class="text-xs text-primary font-mono font-bold" id="globalWeightValue">0.75</span>
+                                </div>
+                                <input type="range" min="0" max="1" step="0.05" value="0.75" class="weight-slider w-full" oninput="document.getElementById('globalWeightValue').textContent=this.value">
+                                <div class="flex justify-between text-[10px] text-slate-600 mt-1">
+                                    <span>弱参考（仅风格）</span>
+                                    <span>强参考（严格还原）</span>
+                                </div>
+                            </div>
+
+                            <!-- 参考模式选择 -->
+                            <div class="grid grid-cols-3 gap-2">
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="refMode" value="style" class="hidden peer">
+                                    <div class="text-center py-2 rounded-lg border border-white/10 bg-surface/50 text-xs text-slate-400 peer-checked:border-primary/50 peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
+                                        <i class="fas fa-palette block mb-1"></i>仅风格
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="refMode" value="content" class="hidden peer" checked>
+                                    <div class="text-center py-2 rounded-lg border border-white/10 bg-surface/50 text-xs text-slate-400 peer-checked:border-primary/50 peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
+                                        <i class="fas fa-object-group block mb-1"></i>风格+内容
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="refMode" value="face" class="hidden peer">
+                                    <div class="text-center py-2 rounded-lg border border-white/10 bg-surface/50 text-xs text-slate-400 peer-checked:border-primary/50 peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
+                                        <i class="fas fa-face-smile block mb-1"></i>人脸强化
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 生成参数 -->
+                    <div class="space-y-3">
+                        <label class="text-xs font-medium text-slate-400 uppercase tracking-wider block">生成参数</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-surface/30 border border-white/5 rounded-lg p-3">
+                                <div class="text-xs text-slate-500 mb-1.5">模型选择</div>
+                                <select class="w-full bg-transparent text-sm text-white focus:outline-none cursor-pointer">
+                                    <option>SDXL - 动漫风格 v3</option>
+                                    <option selected>SDXL - 写实科幻 v2</option>
+                                    <option>Midjourney V6</option>
+                                </select>
+                            </div>
+                            <div class="bg-surface/30 border border-white/5 rounded-lg p-3">
+                                <div class="text-xs text-slate-500 mb-1.5">分辨率</div>
+                                <select class="w-full bg-transparent text-sm text-white focus:outline-none cursor-pointer">
+                                    <option>512 × 512</option>
+                                    <option selected>1024 × 1024</option>
+                                    <option>1024 × 576 (16:9)</option>
+                                </select>
+                            </div>
+                            <div class="bg-surface/30 border border-white/5 rounded-lg p-3">
+                                <div class="text-xs text-slate-500 mb-1.5">采样步数</div>
+                                <div class="flex items-center gap-2">
+                                    <input type="range" min="20" max="50" value="30" class="weight-slider flex-1">
+                                    <span class="text-sm text-white font-mono w-8">30</span>
+                                </div>
+                            </div>
+                            <div class="bg-surface/30 border border-white/5 rounded-lg p-3">
+                                <div class="text-xs text-slate-500 mb-1.5">CFG Scale</div>
+                                <div class="flex items-center gap-2">
+                                    <input type="range" min="1" max="15" value="7" class="weight-slider flex-1">
+                                    <span class="text-sm text-white font-mono w-8">7</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 生成按钮与预览 -->
+                    <div class="space-y-4">
+                        <button onclick="generateImage()" id="generateBtn" class="generate-btn w-full py-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/25 text-base">
+                            <i class="fas fa-wand-magic-sparkles"></i>
+                            开始生成分镜图
+                        </button>
+
+                        <!-- 生成结果预览区 -->
+                        <div id="resultArea" class="hidden space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">生成结果</span>
+                                <div class="flex items-center gap-2">
+                                    <button class="text-xs text-slate-400 hover:text-white transition-colors"><i class="fas fa-download mr-1"></i>下载</button>
+                                    <button class="text-xs text-slate-400 hover:text-white transition-colors"><i class="fas fa-expand mr-1"></i>全屏</button>
+                                </div>
+                            </div>
+
+                            <div class="relative rounded-xl border border-white/10 overflow-hidden group">
+                                <img id="generatedImage" src="" class="w-full aspect-video object-cover">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div class="flex items-center gap-2">
+                                        <button class="px-3 py-1.5 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 text-xs text-white hover:bg-white/20 transition-all">
+                                            <i class="fas fa-check mr-1"></i>采用
+                                        </button>
+                                        <button onclick="generateImage()" class="px-3 py-1.5 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 text-xs text-white hover:bg-white/20 transition-all">
+                                            <i class="fas fa-rotate mr-1"></i>重抽
+                                        </button>
+                                    </div>
+                                    <button class="w-8 h-8 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-rose-500/80 transition-all">
+                                        <i class="fas fa-trash text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 生成信息 -->
+                            <div class="bg-surface/30 border border-white/5 rounded-lg p-3 space-y-2">
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-slate-500">生成耗时</span>
+                                    <span class="text-slate-300">12.4s</span>
+                                </div>
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-slate-500">种子</span>
+                                    <span class="text-slate-300 font-mono cursor-pointer hover:text-primary">3928471023 <i class="fas fa-copy ml-1"></i></span>
+                                </div>
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-slate-500">参考图影响度</span>
+                                    <span class="text-primary">75% (风格+内容)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 提交进入视频工作台 -->
+                        <div class="mt-4 pt-4 border-t border-white/5">
+                            <button onclick="window.location.href='分镜生视频.html'" class="generate-btn w-full py-3 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all text-sm">
+                                <i class="fas fa-arrow-right"></i>提交并进入视频工作台
+                            </button>
+                            <p class="text-center text-[11px] text-slate-500 mt-2">分镜图生成完成后，点击提交跳转至分镜转视频工作台</p>
+                        </div>
+                    </div>
+
+                    <!-- 历史版本 -->
+                    <div class="pb-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">历史版本</span>
+                            <span class="text-xs text-slate-600">共 3 个版本</span>
+                        </div>
+                        <div class="flex gap-2 overflow-x-auto custom-scroll pb-2">
+                            <div class="flex-shrink-0 w-20 h-20 rounded-lg border-2 border-primary overflow-hidden cursor-pointer relative">
+                                <img src="https://images.unsplash.com/photo-1534447677768-be436bb09401?w=200&auto=format&fit=crop&q=60" class="w-full h-full object-cover">
+                                <div class="absolute bottom-0 left-0 right-0 bg-primary/80 text-[10px] text-white text-center py-0.5">当前</div>
+                            </div>
+                            <div class="flex-shrink-0 w-20 h-20 rounded-lg border border-white/10 overflow-hidden cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
+                                <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=200&auto=format&fit=crop&q=60" class="w-full h-full object-cover">
+                            </div>
+                            <div class="flex-shrink-0 w-20 h-20 rounded-lg border border-white/10 overflow-hidden cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
+                                <img src="https://images.unsplash.com/photo-1446776811953-d23d5233e4d6?w=200&auto=format&fit=crop&q=60" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 素材库抽屉 -->
+        <div id="drawerOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300" onclick="toggleDrawer()"></div>
+        <div id="assetDrawer" class="fixed right-0 top-0 h-full w-[420px] glass-panel-strong border-l border-white/10 z-50 drawer closed flex flex-col shadow-2xl">
+            <div class="h-16 border-b border-white/10 flex items-center justify-between px-6">
+                <div>
+                    <h2 class="text-base font-bold text-white">素材库</h2>
+                    <p class="text-xs text-slate-400 mt-0.5">选择素材关联到当前分镜</p>
+                </div>
+                <button onclick="toggleDrawer()" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="px-6 pt-4 pb-2">
+                <div class="flex gap-2 p-1 bg-surface rounded-lg border border-white/5">
+                    <button onclick="switchTab('character')" id="tab-character" class="flex-1 py-2 rounded-md text-sm font-medium transition-all bg-primary/20 text-primary border border-primary/30">
+                        <i class="fas fa-user mr-1.5"></i>角色
+                    </button>
+                    <button onclick="switchTab('scene')" id="tab-scene" class="flex-1 py-2 rounded-md text-sm font-medium transition-all text-slate-400 hover:text-white">
+                        <i class="fas fa-image mr-1.5"></i>场景
+                    </button>
+                    <button onclick="switchTab('prop')" id="tab-prop" class="flex-1 py-2 rounded-md text-sm font-medium transition-all text-slate-400 hover:text-white">
+                        <i class="fas fa-cube mr-1.5"></i>道具
+                    </button>
+                </div>
+            </div>
+
+            <div class="px-6 py-3">
+                <div class="relative mb-3">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+                    <input type="text" placeholder="搜索素材..." class="w-full pl-9 pr-4 py-2 bg-surface border border-white/10 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary/50 transition-all">
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto custom-scroll px-6 pb-6">
+                <div class="grid grid-cols-2 gap-3" id="assetGrid"></div>
+                <div class="mt-4 drop-zone rounded-xl p-6 text-center cursor-pointer">
+                    <i class="fas fa-cloud-upload-alt text-2xl text-slate-500 mb-2"></i>
+                    <p class="text-sm text-slate-400">拖拽图片到此处上传</p>
+                    <p class="text-xs text-slate-600 mt-1">支持 JPG, PNG, WEBP</p>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-white/10 bg-surface/30">
+                <button onclick="toggleDrawer()" class="w-full py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-all">
+                    完成选择 (<span id="drawerCount">3</span>)
+                </button>
+            </div>
+        </div>
+
+        <!-- 指派用户弹窗 -->
+        <div id="assignModalOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] hidden opacity-0 transition-opacity duration-300" onclick="closeAssignModal()"></div>
+        <div id="assignModal" class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-80 glass-panel-strong border border-white/10 rounded-2xl z-[70] hidden shadow-2xl assignee-popover">
+            <div class="p-4 border-b border-white/5 flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-white">指派负责人</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">选择团队成员负责此分集</p>
+                </div>
+                <button onclick="closeAssignModal()" class="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            </div>
+            <div class="p-3 space-y-1 max-h-72 overflow-y-auto custom-scroll" id="assignMemberList"></div>
+            <div class="p-3 border-t border-white/5">
+                <button onclick="unassignEpisode()" class="w-full py-2 rounded-lg border border-white/10 text-xs text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+                    <i class="fas fa-user-slash mr-1"></i>取消指派
+                </button>
+            </div>
+        </div>
+
+        <!-- 团队管理弹窗 -->
+        <div id="teamModalOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] hidden opacity-0 transition-opacity duration-300" onclick="closeTeamModal()"></div>
+        <div id="teamModal" class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] glass-panel-strong border border-white/10 rounded-2xl z-[70] hidden shadow-2xl assignee-popover">
+            <div class="p-4 border-b border-white/5 flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-white">团队管理</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">管理项目成员与权限</p>
+                </div>
+                <button onclick="closeTeamModal()" class="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            </div>
+            <div class="p-4 space-y-3" id="teamMemberList"></div>
+            <div class="p-4 border-t border-white/5">
+                <button class="w-full py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-all flex items-center justify-center gap-2">
+                    <i class="fas fa-user-plus"></i>邀请成员
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 团队与协作数据 ====================
+        const currentUserId = 'u1';
+
+        const teamMembers = [
+            { id: 'u1', name: '我', role: '项目经理', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60', online: true, color: 'from-primary to-accent' },
+            { id: 'u2', name: '张三', role: '分镜师', avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcabd55?w=100&auto=format&fit=crop&q=60', online: true, color: 'from-cyan to-blue-500' },
+            { id: 'u3', name: '李四', role: '美术指导', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=60', online: true, color: 'from-emerald to-teal-500' },
+            { id: 'u4', name: '王五', role: 'AI训练师', avatar: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=100&auto=format&fit=crop&q=60', online: false, color: 'from-amber to-orange-500' },
+            { id: 'u5', name: '赵六', role: '审核', avatar: 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&auto=format&fit=crop&q=60', online: true, color: 'from-rose to-pink-500' },
+        ];
+
+        const episodes = [
+            { id: 1, title: "初入星海", shots: 8, status: "completed", duration: "4:32", progress: 100, assignee: 'u2', lastEditedBy: 'u2', lastEditedAt: '10分钟前', lockedBy: null },
+            { id: 2, title: "异星遗迹", shots: 12, status: "processing", duration: "6:15", progress: 65, assignee: 'u3', lastEditedBy: 'u3', lastEditedAt: '2分钟前', lockedBy: 'u3' },
+            { id: 3, title: "暗流涌动", shots: 10, status: "pending", duration: "5:48", progress: 0, assignee: 'u1', lastEditedBy: null, lastEditedAt: null, lockedBy: null },
+            { id: 4, title: "真相浮现", shots: 0, status: "draft", duration: "--:--", progress: 0, assignee: null, lastEditedBy: null, lastEditedAt: null, lockedBy: null },
+            { id: 5, title: "决裂时刻", shots: 0, status: "draft", duration: "--:--", progress: 0, assignee: 'u2', lastEditedBy: null, lastEditedAt: null, lockedBy: null },
+            { id: 6, title: "背水一战", shots: 0, status: "draft", duration: "--:--", progress: 0, assignee: null, lastEditedBy: null, lastEditedAt: null, lockedBy: null },
+        ];
+
+        const shots = [
+            { id: "001", title: "星空开场", type: "establishing", status: "generated" },
+            { id: "002", title: "主角特写", type: "closeup", status: "generated" },
+            { id: "003", title: "飞船驾驶舱", type: "medium", status: "generated" },
+            { id: "004", title: "星球逼近", type: "wide", status: "generating" },
+            { id: "005", title: "降落过程", type: "aerial", status: "pending" },
+            { id: "006", title: "舱门开启", type: "low", status: "pending" },
+            { id: "007", title: "第一步", type: "closeup", status: "pending" },
+            { id: "008", title: "远景回望", type: "wide", status: "pending" },
+        ];
+
+        // 资产数据
+        const assets = {
+            character: [
+                { id: 'c1', name: '林晨', type: 'character', subtype: '主角', 
+                  img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=60', selected: true,
+                  prompt: '年轻亚洲男性，短发，穿银色太空服，眼神坚定，赛博朋克风格，电影级光影' },
+                { id: 'c2', name: '林晨 - 侧面', type: 'character', subtype: '主角', 
+                  img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=60', selected: false,
+                  prompt: '年轻亚洲男性侧脸，短发，穿银色太空服，轮廓光，科幻风格' },
+                { id: 'c3', name: '苏雨 - 战斗服', type: 'character', subtype: '女主角', 
+                  img: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=60', selected: false,
+                  prompt: '年轻亚洲女性，长发，穿黑色战斗服，手持光剑，冷酷表情' },
+                { id: 'c4', name: '苏雨 - 日常', type: 'character', subtype: '女主角', 
+                  img: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300&auto=format&fit=crop&q=60', selected: false,
+                  prompt: '年轻亚洲女性，长发，穿白色研究服，温柔微笑，实验室背景' },
+                { id: 'c5', name: '黑曜 - 反派', type: 'character', subtype: '反派', 
+                  img: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&auto=format&fit=crop&q=60', selected: false,
+                  prompt: '中年男性，短发带灰，穿黑色军装，阴沉表情，暗光环境' },
+            ],
+            scene: [
+                { id: 's1', name: '星际飞船内部', type: 'scene', subtype: '室内', 
+                  img: 'https://images.unsplash.com/photo-1446776811953-d23d5233e4d6?w=300&auto=format&fit=crop&q=60', selected: true,
+                  prompt: '未来主义飞船驾驶舱，全息控制台，金属质感，冷色调蓝光，赛博朋克风格' },
+                { id: 's2', name: '蓝色星球表面', type: 'scene', subtype: '外景', 
+                  img: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=300&auto=format&fit=crop&q=60', selected: false,
+                  prompt: '异星地表，蓝色植被，双太阳天空，远处山脉，科幻概念艺术' },
+                { id: 's3', name: '星云背景', type: 'scene', subtype: '太空', 
+                  img: 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=300&auto=format&fit=crop&q=60', selected: true,
+                  prompt: '深空星云，紫色和粉色气体云，遥远星系，星光点点，8K超清' },
+                { id: 's4', name: '异星遗迹', type: 'scene', subtype: '外景', 
+                  img: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=60', selected: false,
+                  prompt: '古老外星遗迹，巨型石柱，发光符文，神秘氛围，黄昏光线' },
+            ],
+            prop: [
+                { id: 'p1', name: '光剑武器', type: 'prop', subtype: '武器', 
+                  img: 'https://images.unsplash.com/photo-1589254065878-42c9da997008?w=300&auto=format&fit=crop&q=60', selected: false,
+                  prompt: '蓝色光剑，能量刃发光，金属握把，科幻武器设计' },
+                { id: 'p2', name: '全息平板', type: 'prop', subtype: '设备', 
+                  img: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=300&auto=format&fit=crop&q=60', selected: false,
+                  prompt: '透明全息显示屏，悬浮界面，蓝色数据流，未来科技设备' },
+                { id: 'p3', name: '星际通讯器', type: 'prop', subtype: '设备', 
+                  img: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=300&auto=format&fit=crop&q=60', selected: false,
+                  prompt: '小型通讯设备，天线展开，绿色指示灯，金属外壳' },
+            ]
+        };
+
+        const assetWeights = {
+            c1: 0.85, c2: 0.70, c3: 0.75, c4: 0.70, c5: 0.80,
+            s1: 0.80, s2: 0.75, s3: 0.70, s4: 0.75,
+            p1: 0.60, p2: 0.55, p3: 0.55
+        };
+
+        let selectedEpisode = 1;
+        let selectedShot = "001";
+        let currentStep = 1;
+        let currentTab = 'character';
+        let selectedAssets = ['c1', 's1', 's3'];
+        let currentFilter = 'all';
+        let assigningEpisodeId = null;
+
+        // ==================== 团队与协作渲染 ====================
+
+        function renderTeamAvatars() {
+            const container = document.getElementById('teamAvatars');
+            const onlineMembers = teamMembers.filter(m => m.online);
+            container.innerHTML = onlineMembers.slice(0, 4).map(m => `
+                <div class="relative w-7 h-7 rounded-full border-2 border-surface overflow-hidden cursor-pointer hover:scale-110 transition-transform" title="${m.name} · ${m.role}">
+                    <img src="${m.avatar}" class="w-full h-full object-cover">
+                    <div class="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 border border-surface"></div>
+                </div>
+            `).join('');
+            if (onlineMembers.length > 4) {
+                container.innerHTML += `
+                    <div class="w-7 h-7 rounded-full bg-white/10 border-2 border-surface flex items-center justify-center text-[10px] text-slate-300 font-medium">
+                        +${onlineMembers.length - 4}
+                    </div>
+                `;
+            }
+        }
+
+        function openTeamModal() {
+            const modal = document.getElementById('teamModal');
+            const overlay = document.getElementById('teamModalOverlay');
+            const list = document.getElementById('teamMemberList');
+
+            list.innerHTML = teamMembers.map(m => `
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-all">
+                    <div class="relative">
+                        <img src="${m.avatar}" class="w-10 h-10 rounded-full object-cover">
+                        <div class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ${m.online ? 'bg-emerald-400' : 'bg-slate-500'} border-2 border-surface"></div>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium text-white">${m.name}</span>
+                            ${m.id === currentUserId ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">我</span>' : ''}
+                        </div>
+                        <div class="text-xs text-slate-400 mt-0.5">${m.role}</div>
+                    </div>
+                    <div class="text-xs text-slate-500">
+                        ${m.online ? '<span class="text-emerald-400">在线</span>' : '离线'}
+                    </div>
+                </div>
+            `).join('');
+
+            modal.classList.remove('hidden');
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+        }
+
+        function closeTeamModal() {
+            const modal = document.getElementById('teamModal');
+            const overlay = document.getElementById('teamModalOverlay');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                overlay.classList.add('hidden');
+            }, 300);
+        }
+
+        // ==================== 分集列表（含协作） ====================
+
+        function getMember(id) {
+            return teamMembers.find(m => m.id === id) || null;
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            ['all', 'mine', 'unassigned'].forEach(f => {
+                const btn = document.getElementById(`filter-${f}`);
+                if (f === filter) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            renderEpisodes();
+        }
+
+        function renderEpisodes() {
+            const container = document.getElementById('episodeList');
+            let filtered = episodes;
+
+            if (currentFilter === 'mine') {
+                filtered = episodes.filter(ep => ep.assignee === currentUserId);
+            } else if (currentFilter === 'unassigned') {
+                filtered = episodes.filter(ep => !ep.assignee);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-10">
+                        <i class="fas fa-inbox text-slate-600 text-2xl mb-2"></i>
+                        <p class="text-xs text-slate-500">暂无符合条件的分集</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(ep => {
+                const assignee = getMember(ep.assignee);
+                const isLocked = ep.lockedBy && ep.lockedBy !== currentUserId;
+                const locker = isLocked ? getMember(ep.lockedBy) : null;
+                const isMine = ep.assignee === currentUserId;
+
+                return `
+                <div class="episode-card cursor-pointer rounded-xl border border-white/5 p-4 ${ep.id === selectedEpisode ? 'active' : 'bg-surface/30 hover:bg-surface/60'} ${isLocked ? 'opacity-60' : ''}" onclick="${isLocked ? '' : `selectEpisode(${ep.id})`}">
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg ${ep.id === selectedEpisode ? 'bg-primary/20 text-primary' : 'bg-white/5 text-slate-400'} flex items-center justify-center text-xs font-bold">${String(ep.id).padStart(2,'0')}</div>
+                            <div>
+                                <div class="text-sm font-semibold text-white">${ep.title}</div>
+                                <div class="text-xs text-slate-500 mt-0.5">${ep.shots} 个分镜 · ${ep.duration}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${isLocked ? `<div class="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 text-[10px] border border-amber-500/30 flex items-center gap-1"><i class="fas fa-lock text-[8px]"></i>编辑中</div>` : ''}
+                            ${getStatusIcon(ep.status)}
+                        </div>
+                    </div>
+
+                    <!-- 负责人与协作信息 -->
+                    <div class="flex items-center justify-between mt-3 mb-3">
+                        <div class="flex items-center gap-2">
+                            ${assignee ? `
+                                <div class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/5 border border-white/5">
+                                    <img src="${assignee.avatar}" class="w-4 h-4 rounded-full object-cover">
+                                    <span class="text-[11px] text-slate-300">${assignee.name}</span>
+                                    ${isMine ? '<span class="text-[9px] text-primary">我</span>' : ''}
+                                </div>
+                            ` : `
+                                <button onclick="event.stopPropagation(); openAssignModal(${ep.id})" class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/5 border border-dashed border-slate-600 hover:border-primary/50 hover:bg-primary/5 transition-all">
+                                    <i class="fas fa-user-plus text-[10px] text-slate-500"></i>
+                                    <span class="text-[11px] text-slate-500">未指派</span>
+                                </button>
+                            `}
+                        </div>
+                        ${ep.lastEditedAt ? `
+                            <span class="text-[10px] text-slate-600">
+                                <i class="fas fa-clock mr-0.5"></i>${ep.lastEditedAt}
+                            </span>
+                        ` : ''}
+                    </div>
+
+                    <!-- 进度条 -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1.5">
+                            <span class="text-slate-500">生成进度</span>
+                            <span class="${ep.progress === 100 ? 'text-emerald-400' : 'text-primary'}">${ep.progress}%</span>
+                        </div>
+                        <div class="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full ${ep.progress === 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-primary to-secondary'} transition-all duration-500" style="width: ${ep.progress}%"></div>
+                        </div>
+                    </div>
+
+                    ${isLocked ? `
+                    <div class="mt-3 flex items-center gap-2 px-2 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                        <div class="w-5 h-5 rounded-full overflow-hidden border border-amber-500/30">
+                            <img src="${locker.avatar}" class="w-full h-full object-cover">
+                        </div>
+                        <span class="text-[11px] text-amber-400">${locker.name} 正在编辑此分集...</span>
+                    </div>
+                    ` : ''}
+                </div>
+            `}).join('');
+        }
+
+        function getStatusIcon(status) {
+            const icons = {
+                completed: '<div class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></div>',
+                processing: '<div class="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24] animate-pulse"></div>',
+                pending: '<div class="w-2 h-2 rounded-full bg-slate-500"></div>',
+                draft: '<div class="w-2 h-2 rounded-full bg-slate-600 border border-slate-500"></div>'
+            };
+            return icons[status] || icons.draft;
+        }
+
+        // ==================== 指派功能 ====================
+
+        function openAssignModal(episodeId) {
+            assigningEpisodeId = episodeId;
+            const modal = document.getElementById('assignModal');
+            const overlay = document.getElementById('assignModalOverlay');
+            const list = document.getElementById('assignMemberList');
+            const ep = episodes.find(e => e.id === episodeId);
+
+            list.innerHTML = teamMembers.map(m => {
+                const isSelected = ep.assignee === m.id;
+                return `
+                <div onclick="assignEpisode('${m.id}')" class="member-option cursor-pointer flex items-center gap-3 p-2.5 rounded-xl border ${isSelected ? 'selected border-primary/40' : 'border-transparent'}">
+                    <div class="relative">
+                        <img src="${m.avatar}" class="w-8 h-8 rounded-full object-cover">
+                        <div class="absolute bottom-0 right-0 w-2 h-2 rounded-full ${m.online ? 'bg-emerald-400' : 'bg-slate-500'} border border-surface"></div>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium text-white">${m.name}</span>
+                            ${m.id === currentUserId ? '<span class="text-[10px] text-slate-500">(我)</span>' : ''}
+                        </div>
+                        <div class="text-xs text-slate-500">${m.role}</div>
+                    </div>
+                    ${isSelected ? '<i class="fas fa-check text-primary text-sm"></i>' : ''}
+                </div>
+            `}).join('');
+
+            modal.classList.remove('hidden');
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+        }
+
+        function closeAssignModal() {
+            const modal = document.getElementById('assignModal');
+            const overlay = document.getElementById('assignModalOverlay');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                overlay.classList.add('hidden');
+            }, 300);
+            assigningEpisodeId = null;
+        }
+
+        function assignEpisode(userId) {
+            if (!assigningEpisodeId) return;
+            const ep = episodes.find(e => e.id === assigningEpisodeId);
+            if (ep) {
+                ep.assignee = userId;
+                renderEpisodes();
+                closeAssignModal();
+            }
+        }
+
+        function unassignEpisode() {
+            if (!assigningEpisodeId) return;
+            const ep = episodes.find(e => e.id === assigningEpisodeId);
+            if (ep) {
+                ep.assignee = null;
+                renderEpisodes();
+                closeAssignModal();
+            }
+        }
+
+        // ==================== 原有功能（保持完整） ====================
+
+        function selectEpisode(id) {
+            selectedEpisode = id;
+            const ep = episodes.find(e => e.id === id);
+            document.getElementById('currentEpisodeTitle').textContent = `第${['一','二','三','四','五','六'][id-1]}集：${ep.title}`;
+
+            // 更新编辑者提示
+            const editorBadge = document.getElementById('editorBadge');
+            const editorName = document.getElementById('editorName');
+            if (ep.lockedBy && ep.lockedBy !== currentUserId) {
+                const locker = getMember(ep.lockedBy);
+                editorBadge.classList.remove('hidden');
+                editorName.textContent = `${locker.name} 正在编辑...`;
+            } else {
+                editorBadge.classList.add('hidden');
+            }
+
+            renderEpisodes();
+            renderEpisodesMobile();
+            renderShots();
+        }
+
+        function renderShots() {
+            const container = document.getElementById('shotList');
+            container.innerHTML = `
+                <div class="relative">
+                    <div class="absolute left-6 top-0 bottom-0 w-0.5 timeline-line rounded-full opacity-30"></div>
+                    <div class="space-y-4">
+                        ${shots.map((shot, index) => `
+                            <div class="shot-item relative flex gap-4 p-4 rounded-xl cursor-pointer ${shot.id === selectedShot ? 'active' : 'hover:bg-white/5'} border border-transparent ${shot.id === selectedShot ? 'border-primary/20' : ''}" onclick="selectShot('${shot.id}')">
+                                <div class="relative z-10 flex-shrink-0">
+                                    <div class="w-12 h-12 rounded-lg ${shot.id === selectedShot ? 'bg-primary/20 border-primary/50' : 'bg-surface border-white/10'} border flex items-center justify-center">
+                                        <span class="text-xs font-bold ${shot.id === selectedShot ? 'text-primary' : 'text-slate-400'}">#${shot.id}</span>
+                                    </div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <h3 class="text-sm font-semibold text-white truncate">${shot.title}</h3>
+                                        ${getShotStatusBadge(shot.status)}
+                                    </div>
+                                    <div class="flex items-center gap-3 mt-2">
+                                        <span class="text-xs px-2 py-0.5 rounded bg-white/5 text-slate-500 border border-white/5">${getShotTypeLabel(shot.type)}</span>
+                                        <span class="text-xs text-slate-600"><i class="far fa-clock mr-1"></i>4.5s</span>
+                                        ${shot.status !== 'pending' ? '<span class="text-xs text-emerald-400"><i class="fas fa-image mr-1"></i>已出图</span>' : '<span class="text-xs text-slate-600"><i class="fas fa-pen mr-1"></i>待描述</span>'}
+                                    </div>
+                                </div>
+                                <div class="flex-shrink-0 w-20 h-14 rounded-lg bg-surface border border-white/5 overflow-hidden">
+                                    ${shot.status !== 'pending' ? 
+                                        `<img src="https://images.unsplash.com/photo-${['1534447677768-be436bb09401','1451187580459-43490279c0fa','1446776811953-d23d5233e4d6','1462331940025-496dfbfc7564','1454789548728-85d1c47db029','1444703686981-a3abbc4d4fe3','1516339901601-2e5b562be3d6','1465101162946-4377e57745c3'][index]}?w=200&auto=format&fit=crop&q=60" class="w-full h-full object-cover opacity-70">` : 
+                                        `<div class="w-full h-full flex items-center justify-center"><i class="fas fa-file-lines text-slate-600 text-xs"></i></div>`
+                                    }
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                <div class="mt-8 flex items-center justify-center">
+                    <button class="px-6 py-3 rounded-xl border border-dashed border-slate-700 text-slate-500 hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all text-sm flex items-center gap-2">
+                        <i class="fas fa-plus-circle"></i>添加分镜
+                    </button>
+                </div>
+            `;
+        }
+
+        function getShotStatusBadge(status) {
+            const badges = {
+                generated: '<span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-xs border border-emerald-500/30"><i class="fas fa-check mr-1"></i>已生成</span>',
+                generating: '<span class="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 text-xs border border-amber-500/30"><i class="fas fa-spinner fa-spin mr-1"></i>生成中</span>',
+                pending: '<span class="px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-400 text-xs border border-slate-500/30">待生成</span>'
+            };
+            return badges[status] || badges.pending;
+        }
+
+        function getShotTypeLabel(type) {
+            const labels = { establishing: '定场镜头', wide: '全景', medium: '中景', closeup: '特写', low: '低角度', aerial: '航拍' };
+            return labels[type] || type;
+        }
+
+        function selectShot(id) {
+            selectedShot = id;
+            document.getElementById('shotTitleStep1').textContent = `分镜 #${id}：${shots.find(s => s.id === id).title}`;
+            renderShots();
+            switchStep(1);
+        }
+
+        function switchStep(step) {
+            currentStep = step;
+            const panel1 = document.getElementById('step1-panel');
+            const panel2 = document.getElementById('step2-panel');
+            const badge1 = document.getElementById('step1-badge');
+            const badge2 = document.getElementById('step2-badge');
+            const title1 = document.getElementById('step1-title');
+            const title2 = document.getElementById('step2-title');
+            const line = document.getElementById('step-line');
+
+            if (step === 1) {
+                panel1.classList.remove('hidden');
+                panel1.classList.add('visible');
+                panel2.classList.remove('visible');
+                panel2.classList.add('hidden');
+
+                badge1.classList.add('active');
+                badge1.classList.remove('completed');
+                badge1.innerHTML = '<i class="fas fa-pen-to-square"></i>';
+                badge1.classList.remove('text-slate-400', 'bg-surface', 'border', 'border-white/10');
+
+                badge2.classList.remove('active', 'completed');
+                badge2.classList.add('text-slate-400', 'bg-surface', 'border', 'border-white/10');
+                badge2.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i>';
+
+                title1.classList.remove('text-slate-400');
+                title1.classList.add('text-white');
+                title2.classList.remove('text-white');
+                title2.classList.add('text-slate-400');
+
+                line.classList.remove('active');
+                line.style.width = '0%';
+            } else {
+                panel1.classList.remove('visible');
+                panel1.classList.add('hidden');
+                panel2.classList.remove('hidden');
+                panel2.classList.add('visible');
+
+                badge1.classList.remove('active');
+                badge1.classList.add('completed');
+                badge1.innerHTML = '<i class="fas fa-check"></i>';
+
+                badge2.classList.add('active');
+                badge2.classList.remove('text-slate-400', 'bg-surface', 'border', 'border-white/10');
+                badge2.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i>';
+
+                title1.classList.remove('text-white');
+                title1.classList.add('text-slate-400');
+                title2.classList.remove('text-slate-400');
+                title2.classList.add('text-white');
+
+                line.classList.add('active');
+                line.style.width = '100%';
+
+                document.getElementById('summaryPrompt').textContent = document.getElementById('promptText').value;
+                renderStep2Refs();
+            }
+        }
+
+        function renderAssetLists() {
+            const allAssets = [...assets.character, ...assets.scene, ...assets.prop];
+
+            const charContainer = document.getElementById('characterList');
+            const charItems = allAssets.filter(a => a.type === 'character' && selectedAssets.includes(a.id));
+            document.getElementById('charCount').textContent = charItems.length + ' 个';
+            charContainer.innerHTML = charItems.length > 0 
+                ? charItems.map(asset => renderAssetCard(asset)).join('')
+                : renderEmptyPlaceholder('character');
+
+            const sceneContainer = document.getElementById('sceneList');
+            const sceneItems = allAssets.filter(a => a.type === 'scene' && selectedAssets.includes(a.id));
+            document.getElementById('sceneCount').textContent = sceneItems.length + ' 个';
+            sceneContainer.innerHTML = sceneItems.length > 0 
+                ? sceneItems.map(asset => renderAssetCard(asset)).join('')
+                : renderEmptyPlaceholder('scene');
+
+            const propContainer = document.getElementById('propList');
+            const propItems = allAssets.filter(a => a.type === 'prop' && selectedAssets.includes(a.id));
+            document.getElementById('propCount').textContent = propItems.length + ' 个';
+            propContainer.innerHTML = propItems.length > 0 
+                ? propItems.map(asset => renderAssetCard(asset)).join('')
+                : renderEmptyPlaceholder('prop');
+        }
+
+        function renderAssetCard(asset) {
+            const weight = assetWeights[asset.id] ?? 0.75;
+            const colorClass = asset.type === 'character' ? 'primary' : asset.type === 'scene' ? 'cyan' : 'amber';
+            const colorHex = asset.type === 'character' ? '#6366f1' : asset.type === 'scene' ? '#06b6d4' : '#f59e0b';
+
+            return `
+                <div class="asset-card bg-surface/50 border border-white/5 rounded-lg p-3 flex gap-3 group" data-id="${asset.id}">
+                    <div class="asset-img-wrap w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-white/5 cursor-pointer" onclick="toggleDrawer('${asset.type}')">
+                        <img src="${asset.img}" class="w-full h-full object-cover">
+                        <div class="img-action">
+                            <div class="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white">
+                                <i class="fas fa-exchange-alt text-[10px]"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-medium text-white">${asset.name}</span>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-${colorClass}/20 text-${colorClass} border border-${colorClass}/30">${asset.subtype}</span>
+                            </div>
+                            <button onclick="removeAsset('${asset.id}')" class="text-slate-600 hover:text-rose-400 transition-colors w-6 h-6 flex items-center justify-center rounded hover:bg-rose-500/10">
+                                <i class="fas fa-times text-xs"></i>
+                            </button>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500 uppercase tracking-wider mb-1 block">资产描述 Prompt</label>
+                            <textarea 
+                                class="w-full h-12 bg-surface/80 border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-${colorClass}/30 resize-none custom-scroll leading-relaxed" 
+                                placeholder="描述该资产在画面中的特征..."
+                                onchange="updateAssetPrompt('${asset.id}', this.value)"
+                            >${asset.prompt}</textarea>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-[10px] text-slate-500">参考权重</span>
+                            <input type="range" min="0" max="1" step="0.05" value="${weight}" 
+                                class="weight-slider flex-1 h-1" 
+                                style="background: linear-gradient(to right, ${colorHex} ${weight*100}%, #334155 ${weight*100}%)"
+                                oninput="updateAssetWeight('${asset.id}', this.value); this.style.background='linear-gradient(to right, ${colorHex} '+(this.value*100)+'%, #334155 '+(this.value*100)+%)'"
+                            >
+                            <span class="text-[10px] text-${colorClass} font-mono w-8 text-right">${weight.toFixed(2)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderEmptyPlaceholder(type) {
+            const colors = { character: 'primary', scene: 'cyan', prop: 'amber' };
+            const labels = { character: '角色', scene: '场景', prop: '道具' };
+            const c = colors[type];
+            return `
+                <div class="text-center py-6 border border-dashed border-slate-700 rounded-lg">
+                    <i class="fas fa-${type === 'character' ? 'user' : type === 'scene' ? 'image' : 'cube'} text-slate-600 text-lg mb-2"></i>
+                    <p class="text-xs text-slate-500">暂无关联${labels[type]}</p>
+                    <button onclick="toggleDrawer('${type}')" class="mt-2 text-xs text-${c} hover:text-white transition-colors">
+                        <i class="fas fa-plus mr-1"></i>从素材库添加
+                    </button>
+                </div>
+            `;
+        }
+
+        function updateAssetPrompt(id, value) {
+            const allAssets = [...assets.character, ...assets.scene, ...assets.prop];
+            const asset = allAssets.find(a => a.id === id);
+            if (asset) asset.prompt = value;
+        }
+
+        function updateAssetWeight(id, value) {
+            assetWeights[id] = parseFloat(value);
+            renderAssetLists();
+        }
+
+        function renderStep2Refs() {
+            const container = document.getElementById('step2RefList');
+            const allAssets = [...assets.character, ...assets.scene, ...assets.prop];
+            const injected = allAssets.filter(a => selectedAssets.includes(a.id));
+
+            document.getElementById('refCount').textContent = injected.length + ' 个资产已关联';
+
+            container.innerHTML = injected.map(asset => {
+                const weight = assetWeights[asset.id] ?? 0.75;
+                const colorClass = asset.type === 'character' ? 'primary' : asset.type === 'scene' ? 'cyan' : 'amber';
+                return `
+                    <div class="bg-surface/50 border border-white/5 rounded-lg p-3 flex gap-3">
+                        <div class="w-14 h-14 rounded-lg overflow-hidden border border-white/5 flex-shrink-0">
+                            <img src="${asset.img}" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-sm font-medium text-white">${asset.name}</span>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-${colorClass}/20 text-${colorClass}">${asset.type === 'character' ? '角色' : asset.type === 'scene' ? '场景' : '道具'}</span>
+                            </div>
+                            <p class="text-xs text-slate-500 line-clamp-1 mb-2">${asset.prompt}</p>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] text-slate-500">参考权重</span>
+                                <div class="flex-1 h-1 bg-surface-light rounded-full overflow-hidden">
+                                    <div class="h-full bg-${colorClass} rounded-full transition-all" style="width: ${weight*100}%"></div>
+                                </div>
+                                <span class="text-[10px] text-${colorClass} font-mono">${weight.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function generateImage() {
+            const btn = document.getElementById('generateBtn');
+            const result = document.getElementById('resultArea');
+
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> 生成中...';
+            btn.disabled = true;
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fas fa-check"></i> 生成完成';
+                btn.classList.remove('generate-btn');
+                btn.classList.add('bg-emerald-600');
+
+                result.classList.remove('hidden');
+                document.getElementById('generatedImage').src = 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&auto=format&fit=crop&q=80';
+
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> 重新生成';
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-75', 'cursor-not-allowed', 'bg-emerald-600');
+                    btn.classList.add('generate-btn');
+                }, 2000);
+            }, 2000);
+        }
+
+        function toggleDrawer(preselectTab) {
+            const drawer = document.getElementById('assetDrawer');
+            const overlay = document.getElementById('drawerOverlay');
+            const isClosed = drawer.classList.contains('closed');
+
+            if (preselectTab && isClosed) {
+                switchTab(preselectTab);
+            }
+
+            if (isClosed) {
+                drawer.classList.remove('closed');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+                renderAssetGrid();
+            } else {
+                drawer.classList.add('closed');
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            ['character', 'scene', 'prop'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === tab) {
+                    btn.className = 'flex-1 py-2 rounded-md text-sm font-medium transition-all bg-primary/20 text-primary border border-primary/30';
+                } else {
+                    btn.className = 'flex-1 py-2 rounded-md text-sm font-medium transition-all text-slate-400 hover:text-white';
+                }
+            });
+            renderAssetGrid();
+        }
+
+        function renderAssetGrid() {
+            const grid = document.getElementById('assetGrid');
+            const items = assets[currentTab];
+
+            grid.innerHTML = items.map(asset => {
+                const isSelected = selectedAssets.includes(asset.id);
+                return `
+                <div class="ref-card rounded-xl border ${isSelected ? 'border-primary ring-2 ring-primary/30' : 'border-white/10'} bg-surface overflow-hidden" onclick="toggleAsset('${asset.id}')">
+                    <div class="aspect-square relative">
+                        <img src="${asset.img}" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-black/50 flex items-center justify-center ${isSelected ? 'opacity-100' : 'opacity-0'} transition-opacity ref-overlay">
+                            <div class="w-8 h-8 rounded-full ${isSelected ? 'bg-primary' : 'bg-white/20'} flex items-center justify-center text-white">
+                                <i class="fas fa-${isSelected ? 'check' : 'plus'}"></i>
+                            </div>
+                        </div>
+                        <div class="absolute top-2 left-2">
+                            <span class="px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-sm text-[10px] text-white border border-white/10">${asset.subtype}</span>
+                        </div>
+                        ${isSelected ? '<div class="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white text-xs shadow-lg"><i class="fas fa-check"></i></div>' : ''}
+                    </div>
+                    <div class="p-2.5">
+                        <div class="text-xs font-medium text-white truncate">${asset.name}</div>
+                        <div class="flex items-center justify-between mt-1.5">
+                            <span class="text-[10px] text-slate-500">${currentTab === 'character' ? '角色' : currentTab === 'scene' ? '场景' : '道具'}</span>
+                            ${isSelected ? '<span class="text-[10px] text-primary">已关联</span>' : ''}
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+
+            document.getElementById('drawerCount').textContent = selectedAssets.length;
+        }
+
+        function toggleAsset(id) {
+            if (selectedAssets.includes(id)) {
+                selectedAssets = selectedAssets.filter(aid => aid !== id);
+            } else {
+                selectedAssets.push(id);
+            }
+            renderAssetGrid();
+            renderAssetLists();
+            if (currentStep === 2) renderStep2Refs();
+        }
+
+        function removeAsset(id) {
+            selectedAssets = selectedAssets.filter(aid => aid !== id);
+            renderAssetLists();
+            if (currentStep === 2) renderStep2Refs();
+        }
+
+        // 切换操作菜单
+        function toggleActionsMenu() {
+            const menu = document.getElementById('actionsMenu');
+            menu.classList.toggle('hidden');
+            // 点击外部关闭菜单
+            if (!menu.classList.contains('hidden')) {
+                document.addEventListener('click', closeActionsMenuOnClickOutside);
+            }
+        }
+
+        function closeActionsMenuOnClickOutside(e) {
+            const menu = document.getElementById('actionsMenu');
+            const button = document.querySelector('.lg\\:hidden > button');
+            if (!menu.contains(e.target) && !button.contains(e.target)) {
+                menu.classList.add('hidden');
+                document.removeEventListener('click', closeActionsMenuOnClickOutside);
+            }
+        }
+
+        // AI自动拆分功能
+        function autoSplit() {
+            const menu = document.getElementById('actionsMenu');
+            if (menu) menu.classList.add('hidden');
+            alert('AI自动拆分功能正在开发中...');
+        }
+
+        // 批量生成功能
+        function batchGenerate() {
+            const menu = document.getElementById('actionsMenu');
+            if (menu) menu.classList.add('hidden');
+            alert('批量生成功能正在开发中...');
+        }
+
+        // 关闭右侧面板（移动端）
+        function closeRightPanel() {
+            const panel = document.getElementById('rightPanel');
+            panel.classList.add('translate-x-full');
+            panel.classList.remove('translate-x-0');
+        }
+
+        // 打开右侧面板（移动端）
+        function openRightPanel() {
+            const panel = document.getElementById('rightPanel');
+            panel.classList.remove('translate-x-full');
+            panel.classList.add('translate-x-0');
+        }
+
+        // 切换左侧栏（移动端）
+        function toggleLeftSidebar() {
+            const overlay = document.getElementById('leftSidebarMobile');
+            const panel = document.getElementById('leftSidebarPanel');
+            const toggleBtn = document.getElementById('toggleLeftBtn');
+
+            if (overlay.classList.contains('hidden')) {
+                // 打开
+                overlay.classList.remove('hidden');
+                setTimeout(() => {
+                    panel.classList.remove('-translate-x-full');
+                    panel.classList.add('translate-x-0');
+                }, 10);
+                toggleBtn.querySelector('i').classList.remove('fa-chevron-right');
+                toggleBtn.querySelector('i').classList.add('fa-chevron-left');
+            } else {
+                // 关闭
+                panel.classList.remove('translate-x-0');
+                panel.classList.add('-translate-x-full');
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                }, 300);
+                toggleBtn.querySelector('i').classList.remove('fa-chevron-left');
+                toggleBtn.querySelector('i').classList.add('fa-chevron-right');
+            }
+        }
+
+        // 同步移动端筛选状态
+        function setFilter(filter) {
+            currentFilter = filter;
+            ['all', 'mine', 'unassigned'].forEach(f => {
+                const btn = document.getElementById(`filter-${f}`);
+                const btnMobile = document.getElementById(`filter-${f}-mobile`);
+                if (btn) {
+                    if (f === filter) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                }
+                if (btnMobile) {
+                    if (f === filter) {
+                        btnMobile.classList.add('active');
+                    } else {
+                        btnMobile.classList.remove('active');
+                    }
+                }
+            });
+            renderEpisodes();
+            renderEpisodesMobile();
+        }
+
+        // 渲染移动端分集列表
+        function renderEpisodesMobile() {
+            const container = document.getElementById('episodeListMobile');
+            if (!container) return;
+
+            let filtered = episodes;
+
+            if (currentFilter === 'mine') {
+                filtered = episodes.filter(ep => ep.assignee === currentUserId);
+            } else if (currentFilter === 'unassigned') {
+                filtered = episodes.filter(ep => !ep.assignee);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-10">
+                        <i class="fas fa-inbox text-slate-600 text-2xl mb-2"></i>
+                        <p class="text-xs text-slate-500">暂无符合条件的分集</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(ep => {
+                const assignee = getMember(ep.assignee);
+                const isLocked = ep.lockedBy && ep.lockedBy !== currentUserId;
+                const locker = isLocked ? getMember(ep.lockedBy) : null;
+                const isMine = ep.assignee === currentUserId;
+
+                return `
+                <div class="episode-card cursor-pointer rounded-xl border border-white/5 p-4 ${ep.id === selectedEpisode ? 'active' : 'bg-surface/30 hover:bg-surface/60'} ${isLocked ? 'opacity-60' : ''}" onclick="${isLocked ? '' : `selectEpisode(${ep.id}); toggleLeftSidebar();`}">
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg ${ep.id === selectedEpisode ? 'bg-primary/20 text-primary' : 'bg-white/5 text-slate-400'} flex items-center justify-center text-xs font-bold">${String(ep.id).padStart(2,'0')}</div>
+                            <div>
+                                <div class="text-sm font-semibold text-white">${ep.title}</div>
+                                <div class="text-xs text-slate-500 mt-0.5">${ep.shots} 个分镜 · ${ep.duration}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${isLocked ? `<div class="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 text-[10px] border border-amber-500/30 flex items-center gap-1"><i class="fas fa-lock text-[8px]"></i>编辑中</div>` : ''}
+                            ${getStatusIcon(ep.status)}
+                        </div>
+                    </div>
+
+                    <!-- 负责人与协作信息 -->
+                    <div class="flex items-center justify-between mt-3 mb-3">
+                        <div class="flex items-center gap-2">
+                            ${assignee ? `
+                                <div class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/5 border border-white/5">
+                                    <img src="${assignee.avatar}" class="w-4 h-4 rounded-full object-cover">
+                                    <span class="text-[11px] text-slate-300">${assignee.name}</span>
+                                    ${isMine ? '<span class="text-[9px] text-primary">我</span>' : ''}
+                                </div>
+                            ` : `
+                                <button onclick="event.stopPropagation(); openAssignModal(${ep.id})" class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/5 border border-dashed border-slate-600 hover:border-primary/50 hover:bg-primary/5 transition-all">
+                                    <i class="fas fa-user-plus text-[10px] text-slate-500"></i>
+                                    <span class="text-[11px] text-slate-500">未指派</span>
+                                </button>
+                            `}
+                        </div>
+                        ${ep.lastEditedAt ? `
+                            <span class="text-[10px] text-slate-600">
+                                <i class="fas fa-clock mr-0.5"></i>${ep.lastEditedAt}
+                            </span>
+                        ` : ''}
+                    </div>
+
+                    <!-- 进度条 -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1.5">
+                            <span class="text-slate-500">生成进度</span>
+                            <span class="${ep.progress === 100 ? 'text-emerald-400' : 'text-primary'}">${ep.progress}%</span>
+                        </div>
+                        <div class="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full ${ep.progress === 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-primary to-secondary'} transition-all duration-500" style="width: ${ep.progress}%"></div>
+                        </div>
+                    </div>
+
+                    ${isLocked ? `
+                    <div class="mt-3 flex items-center gap-2 px-2 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                        <div class="w-5 h-5 rounded-full overflow-hidden border border-amber-500/30">
+                            <img src="${locker.avatar}" class="w-full h-full object-cover">
+                        </div>
+                        <span class="text-[11px] text-amber-400">${locker.name} 正在编辑此分集...</span>
+                    </div>
+                    ` : ''}
+                </div>
+            `}).join('');
+        }
+
+        // 项目状态检查：确保已选择项目才能使用工作台
+        function checkProjectAccess() {
+            const projectData = sessionStorage.getItem('currentProject');
+            const projectId = sessionStorage.getItem('currentProjectId');
+            
+            if (!projectData || !projectId) {
+                document.body.innerHTML = `
+                    <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#020617;color:#e2e8f0;font-family:Inter,sans-serif;text-align:center;">
+                        <div>
+                            <h2 style="font-size:24px;margin-bottom:16px;">请先选择项目</h2>
+                            <p style="color:#94a3b8;margin-bottom:24px;">分集工作台需要先选择一个项目才能使用</p>
+                            <button onclick="window.location.href='项目列表.html'" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;padding:12px 24px;border-radius:8px;border:none;cursor:pointer;font-size:14px;">前往项目列表</button>
+                        </div>
+                    </div>
+                `;
+                return false;
+            }
+            return true;
+        }
+
+        function getCurrentProject() {
+            const projectData = sessionStorage.getItem('currentProject');
+            if (!projectData) return null;
+            return JSON.parse(projectData);
+        }
+
+// ==================== 初始化 ====================
+        // 检查项目访问权限
+        if (!checkProjectAccess()) {
+            // 显示错误页面，不执行后续初始化
+        } else {
+            renderTeamAvatars();
+            renderEpisodes();
+            renderEpisodesMobile();
+            renderShots();
+            renderAssetLists();
+        }
+    </script>
+</body>
+</html>

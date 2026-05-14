@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模型配置中心 - AI漫剧工厂</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'Noto Sans SC', 'sans-serif'] },
+                    colors: {
+                        primary: '#6366f1', secondary: '#8b5cf6', accent: '#ec4899',
+                        cyan: '#06b6d4', emerald: '#10b981', amber: '#f59e0b',
+                        dark: '#0f172a', darker: '#020617', surface: '#1e293b',
+                        surface2: '#0f172a', surface3: '#334155'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', 'Noto Sans SC', sans-serif; background: #020617; color: #e2e8f0; height: 100vh; overflow: hidden; }
+        .glass-panel { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
+        .glass-panel-strong { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.1); }
+        .input-field { transition: all 0.3s ease; background: rgba(30,41,59,0.5); }
+        .input-field:focus { border-color: rgba(99,102,241,0.6); box-shadow: 0 0 0 3px rgba(99,102,241,0.15), 0 0 20px rgba(99,102,241,0.1); background: rgba(30,41,59,0.8); }
+        .btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); transition: all 0.3s ease; position: relative; overflow: hidden; }
+        .btn-primary::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent); transition: left 0.5s; }
+        .btn-primary:hover::before { left: 100%; }
+        .btn-primary:hover { box-shadow: 0 0 40px rgba(99,102,241,0.4); transform: translateY(-1px); }
+        .btn-secondary { background: rgba(30,41,59,0.6); border: 1px solid rgba(255,255,255,0.1); transition: all 0.3s ease; }
+        .btn-secondary:hover { background: rgba(30,41,59,0.8); border-color: rgba(99,102,241,0.3); }
+        .tab-btn { transition: all 0.3s ease; position: relative; }
+        .tab-btn.active { color: white; background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.1)); border-color: rgba(99,102,241,0.4); }
+        .model-item { transition: all 0.2s ease; cursor: pointer; }
+        .model-item:hover { background: rgba(255,255,255,0.03); }
+        .model-item.active { background: rgba(99,102,241,0.1); border-left: 3px solid #6366f1; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .status-online { background: #10b981; box-shadow: 0 0 8px #10b981; }
+        .status-offline { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+        .status-testing { background: #f59e0b; box-shadow: 0 0 8px #f59e0b; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .fade-in { animation: fadeIn 0.4s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .slide-in { animation: slideIn 0.4s ease forwards; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        .divider { display: flex; align-items: center; gap: 12px; }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); }
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #334155; transition: .3s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+        input:checked + .slider:before { transform: translateX(20px); }
+        .badge { font-size: 10px; padding: 2px 8px; border-radius: 12px; font-weight: 600; }
+        .badge-llm { background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.2); }
+        .badge-t2i { background: rgba(6,182,212,0.15); color: #22d3ee; border: 1px solid rgba(6,182,212,0.2); }
+        .badge-i2v { background: rgba(236,72,153,0.15); color: #f472b6; border: 1px solid rgba(236,72,153,0.2); }
+        .section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; margin-bottom: 12px; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; font-size: 13px; font-weight: 500; color: #94a3b8; margin-bottom: 6px; }
+        .form-input { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(30,41,59,0.5); color: #e2e8f0; font-size: 13px; transition: all 0.3s; }
+        .form-input:focus { outline: none; border-color: rgba(99,102,241,0.5); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); background: rgba(30,41,59,0.7); }
+        .form-input::placeholder { color: #475569; }
+        .form-select { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(30,41,59,0.5); color: #e2e8f0; font-size: 13px; transition: all 0.3s; appearance: none; cursor: pointer; }
+        .form-select:focus { outline: none; border-color: rgba(99,102,241,0.5); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+        .form-select option { background: #0f172a; color: #e2e8f0; }
+        .form-textarea { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: rgba(30,41,59,0.5); color: #e2e8f0; font-size: 13px; transition: all 0.3s; resize: vertical; min-height: 80px; font-family: 'JetBrains Mono', monospace; }
+        .form-textarea:focus { outline: none; border-color: rgba(99,102,241,0.5); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+        .form-textarea::placeholder { color: #475569; }
+        .test-result { padding: 12px 16px; border-radius: 10px; font-size: 13px; display: none; }
+        .test-result.success { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #34d399; display: block; }
+        .test-result.error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: #f87171; display: block; }
+        .test-result.info { background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2); color: #818cf8; display: block; }
+        .empty-state { text-align: center; padding: 60px 20px; }
+        .empty-state i { font-size: 48px; color: #334155; margin-bottom: 16px; }
+        .empty-state p { color: #64748b; font-size: 14px; }
+        .scroll-hidden::-webkit-scrollbar { width: 4px; }
+        .scroll-hidden::-webkit-scrollbar-track { background: transparent; }
+        .scroll-hidden::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+        .scroll-hidden::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        .confetti { position: absolute; width: 6px; height: 6px; border-radius: 50%; animation: confetti-fall 1s ease-out forwards; }
+        @keyframes confetti-fall { 0% { opacity: 1; transform: translateY(0) rotate(0deg); } 100% { opacity: 0; transform: translateY(40px) rotate(360deg); } }
+        .provider-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content { background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px; width: 480px; max-width: 90vw; transform: scale(0.95); transition: transform 0.3s; }
+        .modal-overlay.active .modal-content { transform: scale(1); }
+        .env-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 500; }
+        .env-prod { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+        .env-test { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+        .env-dev { background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.2); }
+        .endpoint-card { background: rgba(30,41,59,0.4); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 16px; margin-bottom: 12px; transition: all 0.2s; }
+        .endpoint-card:hover { border-color: rgba(99,102,241,0.2); }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- 顶部导航栏 -->
+    <header class="h-14 flex items-center justify-between px-6 border-b border-white/5 bg-[#0a0f1e]/80 backdrop-blur-lg z-20">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/30">
+                <i class="fas fa-film text-white text-xs"></i>
+            </div>
+            <span class="text-sm font-bold text-white">AI漫剧工厂</span>
+            <span class="text-xs text-slate-500">/</span>
+            <span class="text-sm font-medium text-slate-300">模型配置中心</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 text-xs text-slate-500">
+                <i class="fas fa-server text-slate-600"></i>
+                <span>API 状态: <span class="text-emerald-400">正常</span></span>
+            </div>
+            <div class="w-px h-4 bg-white/10"></div>
+            <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center text-xs font-bold text-primary border border-primary/20">
+                    A
+                </div>
+                <span class="text-xs text-slate-400">Admin</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <div class="flex-1 flex overflow-hidden">
+
+        <!-- 左侧边栏 -->
+        <aside class="w-64 border-r border-white/5 bg-[#0a0f1e]/50 flex flex-col">
+            <!-- Tab 切换 -->
+            <div class="p-4 space-y-2">
+                <button onclick="switchCategory('llm')" id="tab-llm" class="tab-btn active w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-transparent text-sm font-medium text-white">
+                    <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <i class="fas fa-brain text-primary text-sm"></i>
+                    </div>
+                    <div class="text-left flex-1">
+                        <div class="text-sm font-medium">LLM 大模型</div>
+                        <div class="text-[11px] text-slate-500">文本生成 / 对话</div>
+                    </div>
+                    <span id="count-llm" class="text-xs text-slate-500 font-mono">0</span>
+                </button>
+                <button onclick="switchCategory('t2i')" id="tab-t2i" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-transparent text-sm font-medium text-slate-400 hover:text-slate-200">
+                    <div class="w-8 h-8 rounded-lg bg-cyan/10 flex items-center justify-center">
+                        <i class="fas fa-image text-cyan text-sm"></i>
+                    </div>
+                    <div class="text-left flex-1">
+                        <div class="text-sm font-medium">文生图模型</div>
+                        <div class="text-[11px] text-slate-500">Text-to-Image</div>
+                    </div>
+                    <span id="count-t2i" class="text-xs text-slate-500 font-mono">0</span>
+                </button>
+                <button onclick="switchCategory('i2v')" id="tab-i2v" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-transparent text-sm font-medium text-slate-400 hover:text-slate-200">
+                    <div class="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                        <i class="fas fa-video text-accent text-sm"></i>
+                    </div>
+                    <div class="text-left flex-1">
+                        <div class="text-sm font-medium">图生视频模型</div>
+                        <div class="text-[11px] text-slate-500">Image-to-Video</div>
+                    </div>
+                    <span id="count-i2v" class="text-xs text-slate-500 font-mono">0</span>
+                </button>
+            </div>
+
+            <div class="mx-4 border-t border-white/5"></div>
+
+            <!-- 模型列表 -->
+            <div class="flex-1 overflow-y-auto scroll-hidden p-3">
+                <div class="flex items-center justify-between px-2 mb-3">
+                    <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">模型列表</span>
+                    <button onclick="openAddModal()" class="text-xs text-primary hover:text-white transition-colors flex items-center gap-1">
+                        <i class="fas fa-plus"></i> 添加
+                    </button>
+                </div>
+                <div id="model-list" class="space-y-1">
+                    <!-- 动态填充 -->
+                </div>
+            </div>
+
+            <!-- 底部统计 -->
+            <div class="p-4 border-t border-white/5">
+                <div class="flex items-center justify-between text-[11px] text-slate-500">
+                    <span>在线模型</span>
+                    <span id="online-count" class="text-emerald-400 font-mono">0</span>
+                </div>
+                <div class="flex items-center justify-between text-[11px] text-slate-500 mt-1">
+                    <span>离线模型</span>
+                    <span id="offline-count" class="text-red-400 font-mono">0</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 右侧详情区 -->
+        <main class="flex-1 flex flex-col bg-[#020617]">
+            <!-- 详情内容 -->
+            <div id="detail-panel" class="flex-1 overflow-y-auto scroll-hidden p-8">
+                <!-- 动态填充 -->
+            </div>
+        </main>
+    </div>
+
+    <!-- 添加模型弹窗 -->
+    <div id="add-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold text-white">添加新模型</h3>
+                <button onclick="closeAddModal()" class="w-8 h-8 rounded-lg hover:bg-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="form-label">模型名称</label>
+                    <input type="text" id="new-model-name" class="form-input" placeholder="例如：GPT-4o">
+                </div>
+                <div>
+                    <label class="form-label">提供商</label>
+                    <select id="new-model-provider" class="form-select">
+                        <option value="openai">OpenAI</option>
+                        <option value="anthropic">Anthropic</option>
+                        <option value="google">Google</option>
+                        <option value="deepseek">DeepSeek</option>
+                        <option value="aliyun">阿里云</option>
+                        <option value="siliconflow">硅基流动</option>
+                        <option value="custom">自定义</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">模型类型</label>
+                    <select id="new-model-type" class="form-select">
+                        <option value="llm">LLM 大模型</option>
+                        <option value="t2i">文生图模型</option>
+                        <option value="i2v">图生视频模型</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">API 端点</label>
+                    <input type="text" id="new-model-endpoint" class="form-input" placeholder="https://api.openai.com/v1/chat/completions">
+                </div>
+                <div>
+                    <label class="form-label">API 密钥</label>
+                    <input type="password" id="new-model-key" class="form-input" placeholder="sk-...">
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeAddModal()" class="flex-1 py-2.5 rounded-xl border border-white/10 text-sm text-slate-400 hover:text-white hover:border-white/20 transition-all">取消</button>
+                <button onclick="confirmAddModel()" class="flex-1 py-2.5 rounded-xl btn-primary text-white text-sm font-semibold">添加模型</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认弹窗 -->
+    <div id="delete-modal" class="modal-overlay">
+        <div class="modal-content" style="width: 360px;">
+            <div class="text-center">
+                <div class="w-14 h-14 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-400 text-xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2">确认删除</h3>
+                <p class="text-sm text-slate-400 mb-6">确定要删除模型 <span id="delete-model-name" class="text-white font-medium"></span> 吗？此操作不可撤销。</p>
+                <div class="flex gap-3">
+                    <button onclick="closeDeleteModal()" class="flex-1 py-2.5 rounded-xl border border-white/10 text-sm text-slate-400 hover:text-white transition-all">取消</button>
+                    <button onclick="confirmDelete()" class="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-colors">确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== 数据层 ==========
+        let currentCategory = 'llm';
+        let selectedModelId = null;
+        let deleteTargetId = null;
+
+        // 模拟后端数据
+        let models = [
+            {
+                id: 'llm-1',
+                name: 'GPT-4o',
+                provider: 'openai',
+                type: 'llm',
+                endpoint: 'https://api.openai.com/v1/chat/completions',
+                key: 'sk-proj-xxxxxxxxxxxxxxxx',
+                status: 'online',
+                env: 'prod',
+                description: 'OpenAI 最新旗舰模型，支持多模态',
+                maxTokens: 128000,
+                temperature: 0.7,
+                timeout: 30,
+                retry: 3,
+                createdAt: '2024-01-15'
+            },
+            {
+                id: 'llm-2',
+                name: 'Claude 3.5 Sonnet',
+                provider: 'anthropic',
+                type: 'llm',
+                endpoint: 'https://api.anthropic.com/v1/messages',
+                key: 'sk-ant-xxxxxxxxxxxxxxxx',
+                status: 'online',
+                env: 'prod',
+                description: 'Anthropic 最强推理模型',
+                maxTokens: 200000,
+                temperature: 0.5,
+                timeout: 45,
+                retry: 3,
+                createdAt: '2024-02-20'
+            },
+            {
+                id: 'llm-3',
+                name: 'DeepSeek-V3',
+                provider: 'deepseek',
+                type: 'llm',
+                endpoint: 'https://api.deepseek.com/v1/chat/completions',
+                key: 'sk-xxxxxxxxxxxxxxxx',
+                status: 'offline',
+                env: 'test',
+                description: '国产大模型，性价比极高',
+                maxTokens: 64000,
+                temperature: 0.7,
+                timeout: 60,
+                retry: 3,
+                createdAt: '2024-03-10'
+            },
+            {
+                id: 't2i-1',
+                name: 'DALL-E 3',
+                provider: 'openai',
+                type: 't2i',
+                endpoint: 'https://api.openai.com/v1/images/generations',
+                key: 'sk-proj-xxxxxxxxxxxxxxxx',
+                status: 'online',
+                env: 'prod',
+                description: 'OpenAI 图像生成模型',
+                resolution: '1024x1024',
+                quality: 'hd',
+                timeout: 60,
+                retry: 2,
+                createdAt: '2024-01-20'
+            },
+            {
+                id: 't2i-2',
+                name: 'Midjourney API',
+                provider: 'custom',
+                type: 't2i',
+                endpoint: 'https://api.midjourney.com/v1/imagine',
+                key: 'mj-xxxxxxxxxxxxxxxx',
+                status: 'online',
+                env: 'prod',
+                description: 'Midjourney 风格图像生成',
+                resolution: '1024x1792',
+                quality: 'standard',
+                timeout: 120,
+                retry: 2,
+                createdAt: '2024-02-01'
+            },
+            {
+                id: 'i2v-1',
+                name: 'Runway Gen-3',
+                provider: 'custom',
+                type: 'i2v',
+                endpoint: 'https://api.runwayml.com/v1/generations',
+                key: 'rw-xxxxxxxxxxxxxxxx',
+                status: 'online',
+                env: 'prod',
+                description: 'Runway 视频生成模型',
+                duration: 5,
+                fps: 24,
+                timeout: 300,
+                retry: 1,
+                createdAt: '2024-03-01'
+            },
+            {
+                id: 'i2v-2',
+                name: '可灵 Kling',
+                provider: 'custom',
+                type: 'i2v',
+                endpoint: 'https://api.klingai.com/v1/videos',
+                key: 'kl-xxxxxxxxxxxxxxxx',
+                status: 'testing',
+                env: 'dev',
+                description: '快手可灵视频生成',
+                duration: 10,
+                fps: 30,
+                timeout: 300,
+                retry: 2,
+                createdAt: '2024-04-10'
+            }
+        ];
+
+        const providerInfo = {
+            openai: { name: 'OpenAI', icon: 'fa-circle', color: '#10a37f' },
+            anthropic: { name: 'Anthropic', icon: 'fa-diamond', color: '#d4a574' },
+            google: { name: 'Google', icon: 'fa-google', color: '#4285f4' },
+            deepseek: { name: 'DeepSeek', icon: 'fa-searchengin', color: '#4d6bfa' },
+            aliyun: { name: '阿里云', icon: 'fa-cloud', color: '#ff6a00' },
+            siliconflow: { name: '硅基流动', icon: 'fa-microchip', color: '#6366f1' },
+            custom: { name: '自定义', icon: 'fa-cog', color: '#64748b' }
+        };
+
+        // ========== 工具函数 ==========
+        function showToast(message, type = 'info') {
+            const colors = {
+                success: 'bg-emerald-500',
+                error: 'bg-red-500',
+                info: 'bg-primary',
+                warning: 'bg-amber-500'
+            };
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-times-circle',
+                info: 'fa-info-circle',
+                warning: 'fa-exclamation-triangle'
+            };
+            const toast = document.createElement('div');
+            toast.className = `fixed top-6 right-6 ${colors[type]} text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-sm font-medium z-50 fade-in`;
+            toast.innerHTML = `<i class="fas ${icons[type]}"></i><span>${message}</span>`;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(20px)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function maskKey(key) {
+            if (!key || key.length < 12) return '未配置';
+            return key.substring(0, 8) + '••••••••' + key.substring(key.length - 4);
+        }
+
+        function getStatusText(status) {
+            const map = { online: '在线', offline: '离线', testing: '检测中' };
+            return map[status] || status;
+        }
+
+        function getEnvTag(env) {
+            const classes = { prod: 'env-prod', test: 'env-test', dev: 'env-dev' };
+            const labels = { prod: '生产', test: '测试', dev: '开发' };
+            return `<span class="env-tag ${classes[env] || 'env-dev'}"><i class="fas fa-circle text-[6px]"></i> ${labels[env] || env}</span>`;
+        }
+
+        function getProviderColor(provider) {
+            return providerInfo[provider]?.color || '#64748b';
+        }
+
+        // ========== 渲染函数 ==========
+        function renderModelList() {
+            const list = document.getElementById('model-list');
+            const filtered = models.filter(m => m.type === currentCategory);
+
+            document.getElementById('count-llm').textContent = models.filter(m => m.type === 'llm').length;
+            document.getElementById('count-t2i').textContent = models.filter(m => m.type === 't2i').length;
+            document.getElementById('count-i2v').textContent = models.filter(m => m.type === 'i2v').length;
+
+            const online = models.filter(m => m.status === 'online').length;
+            const offline = models.filter(m => m.status === 'offline').length;
+            document.getElementById('online-count').textContent = online;
+            document.getElementById('offline-count').textContent = offline;
+
+            if (filtered.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-cube text-slate-600"></i>
+                        <p class="text-xs text-slate-500 mt-2">暂无${getCategoryName(currentCategory)}模型</p>
+                        <button onclick="openAddModal()" class="mt-3 text-xs text-primary hover:text-white transition-colors">点击添加</button>
+                    </div>
+                `;
+                document.getElementById('detail-panel').innerHTML = `
+                    <div class="empty-state mt-20">
+                        <i class="fas fa-sliders-h text-slate-700"></i>
+                        <p class="text-sm text-slate-500 mt-4">请从左侧选择一个模型进行配置</p>
+                    </div>
+                `;
+                selectedModelId = null;
+                return;
+            }
+
+            list.innerHTML = filtered.map(model => `
+                <div onclick="selectModel('${model.id}')" 
+                     class="model-item flex items-center gap-3 px-3 py-3 rounded-lg ${selectedModelId === model.id ? 'active' : ''}">
+                    <div class="provider-icon" style="background: ${getProviderColor(model.provider)}15; color: ${getProviderColor(model.provider)};">
+                        <i class="fas ${providerInfo[model.provider]?.icon || 'fa-cog'}"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium text-white truncate">${model.name}</span>
+                            ${getEnvTag(model.env)}
+                        </div>
+                        <div class="text-[11px] text-slate-500 mt-0.5 truncate">${providerInfo[model.provider]?.name || model.provider}</div>
+                    </div>
+                    <div class="status-dot ${model.status === 'online' ? 'status-online' : model.status === 'offline' ? 'status-offline' : 'status-testing'}"></div>
+                </div>
+            `).join('');
+
+            if (!selectedModelId || !filtered.find(m => m.id === selectedModelId)) {
+                selectModel(filtered[0].id);
+            } else {
+                renderDetail();
+            }
+        }
+
+        function getCategoryName(type) {
+            const map = { llm: 'LLM 大模型', t2i: '文生图模型', i2v: '图生视频模型' };
+            return map[type] || type;
+        }
+
+        function renderDetail() {
+            const model = models.find(m => m.id === selectedModelId);
+            if (!model) return;
+
+            const panel = document.getElementById('detail-panel');
+            const isLLM = model.type === 'llm';
+            const isT2I = model.type === 't2i';
+            const isI2V = model.type === 'i2v';
+
+            panel.innerHTML = `
+                <div class="slide-in max-w-3xl mx-auto">
+                    <!-- 头部信息 -->
+                    <div class="flex items-start justify-between mb-8">
+                        <div class="flex items-center gap-4">
+                            <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-xl" 
+                                 style="background: ${getProviderColor(model.provider)}15; color: ${getProviderColor(model.provider)}; border: 1px solid ${getProviderColor(model.provider)}20;">
+                                <i class="fas ${providerInfo[model.provider]?.icon || 'fa-cog'}"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-3">
+                                    <h2 class="text-xl font-bold text-white">${model.name}</h2>
+                                    <span class="badge badge-${model.type}">${getCategoryName(model.type)}</span>
+                                    ${getEnvTag(model.env)}
+                                </div>
+                                <p class="text-sm text-slate-500 mt-1">${model.description || '暂无描述'}</p>
+                                <div class="flex items-center gap-4 mt-2 text-xs text-slate-500">
+                                    <span><i class="fas fa-building mr-1"></i>${providerInfo[model.provider]?.name || model.provider}</span>
+                                    <span><i class="fas fa-calendar mr-1"></i>${model.createdAt}</span>
+                                    <span class="flex items-center gap-1">
+                                        <span class="status-dot ${model.status === 'online' ? 'status-online' : model.status === 'offline' ? 'status-offline' : 'status-testing'}"></span>
+                                        ${getStatusText(model.status)}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="switch" title="启用/禁用">
+                                <input type="checkbox" ${model.status !== 'offline' ? 'checked' : ''} onchange="toggleModelStatus('${model.id}')">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 测试连接 -->
+                    <div class="mb-6">
+                        <div class="flex items-center gap-3 mb-3">
+                            <button onclick="testConnection('${model.id}')" id="test-btn-${model.id}" class="btn-secondary px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+                                <i class="fas fa-bolt text-amber-400"></i>
+                                <span>测试连接</span>
+                            </button>
+                            <button onclick="saveModel('${model.id}')" class="btn-primary px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
+                                <i class="fas fa-save"></i>
+                                <span>保存配置</span>
+                            </button>
+                            <button onclick="openDeleteModal('${model.id}')" class="btn-secondary px-4 py-2 rounded-lg text-sm text-red-400 hover:text-red-300 flex items-center gap-2 ml-auto">
+                                <i class="fas fa-trash-alt"></i>
+                                <span>删除</span>
+                            </button>
+                        </div>
+                        <div id="test-result-${model.id}" class="test-result"></div>
+                    </div>
+
+                    <!-- 基本信息 -->
+                    <div class="mb-8">
+                        <div class="section-title">基本信息</div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-group mb-0">
+                                <label class="form-label">模型名称</label>
+                                <input type="text" class="form-input" value="${model.name}" id="edit-name-${model.id}">
+                            </div>
+                            <div class="form-group mb-0">
+                                <label class="form-label">提供商</label>
+                                <select class="form-select" id="edit-provider-${model.id}">
+                                    <option value="openai" ${model.provider === 'openai' ? 'selected' : ''}>OpenAI</option>
+                                    <option value="anthropic" ${model.provider === 'anthropic' ? 'selected' : ''}>Anthropic</option>
+                                    <option value="google" ${model.provider === 'google' ? 'selected' : ''}>Google</option>
+                                    <option value="deepseek" ${model.provider === 'deepseek' ? 'selected' : ''}>DeepSeek</option>
+                                    <option value="aliyun" ${model.provider === 'aliyun' ? 'selected' : ''}>阿里云</option>
+                                    <option value="siliconflow" ${model.provider === 'siliconflow' ? 'selected' : ''}>硅基流动</option>
+                                    <option value="custom" ${model.provider === 'custom' ? 'selected' : ''}>自定义</option>
+                                </select>
+                            </div>
+                            <div class="form-group mb-0 col-span-2">
+                                <label class="form-label">描述</label>
+                                <input type="text" class="form-input" value="${model.description || ''}" id="edit-desc-${model.id}" placeholder="模型用途描述">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 端点配置 -->
+                    <div class="mb-8">
+                        <div class="section-title">端点配置</div>
+                        <div class="endpoint-card">
+                            <div class="form-group">
+                                <label class="form-label">API 端点 URL</label>
+                                <div class="flex gap-2">
+                                    <input type="text" class="form-input flex-1" value="${model.endpoint}" id="edit-endpoint-${model.id}" placeholder="https://api.example.com/v1/chat/completions">
+                                    <select class="form-select w-28 flex-shrink-0" id="edit-env-${model.id}">
+                                        <option value="prod" ${model.env === 'prod' ? 'selected' : ''}>生产环境</option>
+                                        <option value="test" ${model.env === 'test' ? 'selected' : ''}>测试环境</option>
+                                        <option value="dev" ${model.env === 'dev' ? 'selected' : ''}>开发环境</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 mt-4">
+                                <div class="form-group mb-0">
+                                    <label class="form-label">超时时间 (秒)</label>
+                                    <input type="number" class="form-input" value="${model.timeout}" id="edit-timeout-${model.id}">
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label class="form-label">重试次数</label>
+                                    <input type="number" class="form-input" value="${model.retry}" id="edit-retry-${model.id}" min="0" max="5">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 密钥配置 -->
+                    <div class="mb-8">
+                        <div class="section-title">密钥配置</div>
+                        <div class="endpoint-card">
+                            <div class="form-group mb-0">
+                                <label class="form-label">API 密钥</label>
+                                <div class="relative">
+                                    <input type="password" class="form-input pr-24" value="${model.key}" id="edit-key-${model.id}" placeholder="输入 API 密钥">
+                                    <button onclick="toggleKeyVisibility('${model.id}')" class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 hover:text-white transition-colors flex items-center gap-1">
+                                        <i class="fas fa-eye" id="eye-icon-${model.id}"></i> 显示
+                                    </button>
+                                </div>
+                                <p class="text-[11px] text-slate-600 mt-2">密钥将加密存储，仅用于 API 调用</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${isLLM ? `
+                    <!-- LLM 专属配置 -->
+                    <div class="mb-8">
+                        <div class="section-title">模型参数</div>
+                        <div class="endpoint-card">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="form-group mb-0">
+                                    <label class="form-label">最大 Token 数</label>
+                                    <input type="number" class="form-input" value="${model.maxTokens}" id="edit-maxtokens-${model.id}">
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label class="form-label">Temperature</label>
+                                    <input type="number" class="form-input" value="${model.temperature}" id="edit-temp-${model.id}" step="0.1" min="0" max="2">
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <label class="form-label">系统提示词 (System Prompt)</label>
+                                <textarea class="form-textarea" id="edit-system-${model.id}" placeholder="输入系统提示词，用于定义模型行为...">${model.systemPrompt || ''}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    ${isT2I ? `
+                    <!-- T2I 专属配置 -->
+                    <div class="mb-8">
+                        <div class="section-title">图像生成参数</div>
+                        <div class="endpoint-card">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="form-group mb-0">
+                                    <label class="form-label">默认分辨率</label>
+                                    <select class="form-select" id="edit-resolution-${model.id}">
+                                        <option value="512x512" ${model.resolution === '512x512' ? 'selected' : ''}>512 x 512</option>
+                                        <option value="768x768" ${model.resolution === '768x768' ? 'selected' : ''}>768 x 768</option>
+                                        <option value="1024x1024" ${model.resolution === '1024x1024' ? 'selected' : ''}>1024 x 1024</option>
+                                        <option value="1024x1792" ${model.resolution === '1024x1792' ? 'selected' : ''}>1024 x 1792</option>
+                                        <option value="1792x1024" ${model.resolution === '1792x1024' ? 'selected' : ''}>1792 x 1024</option>
+                                    </select>
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label class="form-label">图像质量</label>
+                                    <select class="form-select" id="edit-quality-${model.id}">
+                                        <option value="standard" ${model.quality === 'standard' ? 'selected' : ''}>标准</option>
+                                        <option value="hd" ${model.quality === 'hd' ? 'selected' : ''}>高清 (HD)</option>
+                                        <option value="ultra" ${model.quality === 'ultra' ? 'selected' : ''}>超清</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <label class="form-label">默认风格提示词</label>
+                                <textarea class="form-textarea" id="edit-style-${model.id}" placeholder="输入默认风格提示词...">${model.stylePrompt || ''}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    ${isI2V ? `
+                    <!-- I2V 专属配置 -->
+                    <div class="mb-8">
+                        <div class="section-title">视频生成参数</div>
+                        <div class="endpoint-card">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="form-group mb-0">
+                                    <label class="form-label">默认时长 (秒)</label>
+                                    <select class="form-select" id="edit-duration-${model.id}">
+                                        <option value="3" ${model.duration == 3 ? 'selected' : ''}>3 秒</option>
+                                        <option value="5" ${model.duration == 5 ? 'selected' : ''}>5 秒</option>
+                                        <option value="10" ${model.duration == 10 ? 'selected' : ''}>10 秒</option>
+                                        <option value="15" ${model.duration == 15 ? 'selected' : ''}>15 秒</option>
+                                    </select>
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label class="form-label">帧率 (FPS)</label>
+                                    <select class="form-select" id="edit-fps-${model.id}">
+                                        <option value="24" ${model.fps == 24 ? 'selected' : ''}>24 FPS</option>
+                                        <option value="30" ${model.fps == 30 ? 'selected' : ''}>30 FPS</option>
+                                        <option value="60" ${model.fps == 60 ? 'selected' : ''}>60 FPS</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <label class="form-label">默认运动提示词</label>
+                                <textarea class="form-textarea" id="edit-motion-${model.id}" placeholder="输入默认运动提示词...">${model.motionPrompt || ''}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <!-- 高级配置 -->
+                    <div class="mb-8">
+                        <div class="section-title">高级配置</div>
+                        <div class="endpoint-card">
+                            <div class="form-group mb-0">
+                                <label class="form-label">自定义请求头 (JSON)</label>
+                                <textarea class="form-textarea" id="edit-headers-${model.id}" placeholder='{"X-Custom-Header": "value"}'>${model.customHeaders ? JSON.stringify(model.customHeaders, null, 2) : ''}</textarea>
+                            </div>
+                            <div class="mt-4 form-group mb-0">
+                                <label class="form-label">代理设置</label>
+                                <input type="text" class="form-input" value="${model.proxy || ''}" id="edit-proxy-${model.id}" placeholder="http://proxy.example.com:8080">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="h-8"></div>
+                </div>
+            `;
+        }
+
+        // ========== 交互逻辑 ==========
+        function switchCategory(category) {
+            currentCategory = category;
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('text-slate-400');
+                btn.classList.remove('text-white');
+            });
+            const activeBtn = document.getElementById(`tab-${category}`);
+            activeBtn.classList.add('active');
+            activeBtn.classList.remove('text-slate-400');
+            activeBtn.classList.add('text-white');
+
+            renderModelList();
+        }
+
+        function selectModel(id) {
+            selectedModelId = id;
+            renderModelList();
+            renderDetail();
+        }
+
+        function toggleModelStatus(id) {
+            const model = models.find(m => m.id === id);
+            if (model) {
+                model.status = model.status === 'offline' ? 'online' : 'offline';
+                renderModelList();
+                showToast(`模型已${model.status === 'online' ? '启用' : '禁用'}`, 'info');
+            }
+        }
+
+        function toggleKeyVisibility(id) {
+            const input = document.getElementById(`edit-key-${id}`);
+            const icon = document.getElementById(`eye-icon-${id}`);
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
+        function testConnection(id) {
+            const btn = document.getElementById(`test-btn-${id}`);
+            const result = document.getElementById(`test-result-${id}`);
+            const model = models.find(m => m.id === id);
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin text-amber-400"></i><span>检测中...</span>';
+            result.className = 'test-result info';
+            result.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i>正在测试 API 连接...';
+            result.style.display = 'block';
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-bolt text-amber-400"></i><span>测试连接</span>';
+
+                if (model.status === 'offline') {
+                    result.className = 'test-result error';
+                    result.innerHTML = '<i class="fas fa-times-circle mr-2"></i>连接失败：API 端点无法访问，请检查网络或端点配置';
+                } else {
+                    result.className = 'test-result success';
+                    result.innerHTML = '<i class="fas fa-check-circle mr-2"></i>连接成功！延迟 234ms，API 响应正常';
+
+                    // 成功动画
+                    for (let i = 0; i < 8; i++) {
+                        const confetti = document.createElement('div');
+                        confetti.className = 'confetti';
+                        confetti.style.left = (Math.random() * 100) + '%';
+                        confetti.style.background = ['#6366f1', '#8b5cf6', '#10b981', '#f59e0b'][Math.floor(Math.random() * 4)];
+                        result.appendChild(confetti);
+                        setTimeout(() => confetti.remove(), 1000);
+                    }
+                }
+            }, 2000);
+        }
+
+        function saveModel(id) {
+            const model = models.find(m => m.id === id);
+            if (!model) return;
+
+            model.name = document.getElementById(`edit-name-${id}`).value;
+            model.provider = document.getElementById(`edit-provider-${id}`).value;
+            model.description = document.getElementById(`edit-desc-${id}`).value;
+            model.endpoint = document.getElementById(`edit-endpoint-${id}`).value;
+            model.env = document.getElementById(`edit-env-${id}`).value;
+            model.timeout = parseInt(document.getElementById(`edit-timeout-${id}`).value);
+            model.retry = parseInt(document.getElementById(`edit-retry-${id}`).value);
+            model.key = document.getElementById(`edit-key-${id}`).value;
+            model.proxy = document.getElementById(`edit-proxy-${id}`)?.value || '';
+
+            // LLM 专属
+            if (model.type === 'llm') {
+                model.maxTokens = parseInt(document.getElementById(`edit-maxtokens-${id}`)?.value);
+                model.temperature = parseFloat(document.getElementById(`edit-temp-${id}`)?.value);
+                model.systemPrompt = document.getElementById(`edit-system-${id}`)?.value || '';
+            }
+
+            // T2I 专属
+            if (model.type === 't2i') {
+                model.resolution = document.getElementById(`edit-resolution-${id}`)?.value;
+                model.quality = document.getElementById(`edit-quality-${id}`)?.value;
+                model.stylePrompt = document.getElementById(`edit-style-${id}`)?.value || '';
+            }
+
+            // I2V 专属
+            if (model.type === 'i2v') {
+                model.duration = parseInt(document.getElementById(`edit-duration-${id}`)?.value);
+                model.fps = parseInt(document.getElementById(`edit-fps-${id}`)?.value);
+                model.motionPrompt = document.getElementById(`edit-motion-${id}`)?.value || '';
+            }
+
+            // 高级配置
+            const headersText = document.getElementById(`edit-headers-${id}`)?.value;
+            if (headersText) {
+                try { model.customHeaders = JSON.parse(headersText); } catch(e) {}
+            }
+
+            renderModelList();
+            showToast('配置已保存', 'success');
+        }
+
+        // ========== 弹窗逻辑 ==========
+        function openAddModal() {
+            document.getElementById('add-modal').classList.add('active');
+            document.getElementById('new-model-type').value = currentCategory;
+        }
+
+        function closeAddModal() {
+            document.getElementById('add-modal').classList.remove('active');
+            document.getElementById('new-model-name').value = '';
+            document.getElementById('new-model-endpoint').value = '';
+            document.getElementById('new-model-key').value = '';
+        }
+
+        function confirmAddModel() {
+            const name = document.getElementById('new-model-name').value.trim();
+            const provider = document.getElementById('new-model-provider').value;
+            const type = document.getElementById('new-model-type').value;
+            const endpoint = document.getElementById('new-model-endpoint').value.trim();
+            const key = document.getElementById('new-model-key').value.trim();
+
+            if (!name) { showToast('请输入模型名称', 'warning'); return; }
+            if (!endpoint) { showToast('请输入 API 端点', 'warning'); return; }
+            if (!key) { showToast('请输入 API 密钥', 'warning'); return; }
+
+            const newModel = {
+                id: `${type}-${Date.now()}`,
+                name,
+                provider,
+                type,
+                endpoint,
+                key,
+                status: 'offline',
+                env: 'dev',
+                description: '',
+                timeout: 30,
+                retry: 3,
+                createdAt: new Date().toISOString().split('T')[0]
+            };
+
+            if (type === 'llm') {
+                newModel.maxTokens = 4096;
+                newModel.temperature = 0.7;
+            } else if (type === 't2i') {
+                newModel.resolution = '1024x1024';
+                newModel.quality = 'standard';
+            } else if (type === 'i2v') {
+                newModel.duration = 5;
+                newModel.fps = 24;
+            }
+
+            models.push(newModel);
+            currentCategory = type;
+            selectedModelId = newModel.id;
+
+            closeAddModal();
+            switchCategory(type);
+            showToast('模型添加成功', 'success');
+        }
+
+        function openDeleteModal(id) {
+            deleteTargetId = id;
+            const model = models.find(m => m.id === id);
+            document.getElementById('delete-model-name').textContent = model?.name || '';
+            document.getElementById('delete-modal').classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').classList.remove('active');
+            deleteTargetId = null;
+        }
+
+        function confirmDelete() {
+            if (!deleteTargetId) return;
+            models = models.filter(m => m.id !== deleteTargetId);
+            selectedModelId = null;
+            closeDeleteModal();
+            renderModelList();
+            showToast('模型已删除', 'info');
+        }
+
+        // ========== 初始化 ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            renderModelList();
+
+            // 点击弹窗外部关闭
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        if (modal.id === 'add-modal') closeAddModal();
+                        if (modal.id === 'delete-modal') closeDeleteModal();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

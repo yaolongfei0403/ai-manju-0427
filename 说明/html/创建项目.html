@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI漫剧工厂 - 创建项目</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'Noto Sans SC', 'sans-serif'] },
+                    colors: {
+                        primary: '#6366f1', secondary: '#8b5cf6', accent: '#ec4899',
+                        cyan: '#06b6d4', emerald: '#10b981', amber: '#f59e0b', rose: '#f43f5e',
+                        dark: '#0f172a', darker: '#020617', surface: '#1e293b', 'surface-light': '#334155',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', 'Noto Sans SC', sans-serif; background: #020617; color: #e2e8f0; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+        .generate-btn { background: linear-gradient(135deg, #6366f1, #8b5cf6); transition: all 0.3s ease; }
+        .generate-btn:hover { box-shadow: 0 0 30px rgba(99,102,241,0.5); transform: translateY(-1px); }
+        .generate-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .style-card { transition: all 0.25s cubic-bezier(0.4,0,0.2,1); cursor: pointer; position: relative; overflow: hidden; }
+        .style-card:hover { transform: translateY(-3px); border-color: rgba(99,102,241,0.4); box-shadow: 0 12px 32px rgba(0,0,0,0.4); }
+        .style-card.active { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.3), 0 8px 24px rgba(99,102,241,0.15); }
+        .style-card.active::before { content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; border-radius: 50%; background: #6366f1; color: white; font-size: 10px; z-index: 10; display: flex; align-items: center; justify-content: center; }
+        .ratio-card { transition: all 0.2s ease; cursor: pointer; }
+        .ratio-card:hover { border-color: rgba(99,102,241,0.4); background: rgba(99,102,241,0.05); }
+        .ratio-card.active { border-color: #6366f1; background: rgba(99,102,241,0.08); box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
+        .input-field { transition: all 0.2s ease; }
+        .input-field:focus { border-color: rgba(99,102,241,0.5); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+        .tag-pill { transition: all 0.2s ease; cursor: pointer; }
+        .tag-pill:hover { background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.3); }
+        .tag-pill.active { background: rgba(99,102,241,0.2); border-color: #6366f1; color: #a5b4fc; }
+        .fade-in { animation: fadeIn 0.5s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        .slide-up { animation: slideUp 0.4s ease forwards; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .preview-frame { position: relative; background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid rgba(255,255,255,0.08); }
+        .model-card { transition: all 0.2s ease; cursor: pointer; }
+        .model-card:hover { border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.03); }
+        .model-card.active { border-color: #6366f1; background: rgba(99,102,241,0.06); box-shadow: 0 0 0 2px rgba(99,102,241,0.15); }
+        .model-card.active .model-check { opacity: 1; transform: scale(1); }
+        .model-check { opacity: 0; transform: scale(0); transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1); }
+        .section-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 500; }
+        .tooltip { position: relative; }
+        .tooltip:hover .tooltip-text { opacity: 1; visibility: visible; transform: translateY(0); }
+        .tooltip-text { position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%) translateY(4px); padding: 5px 10px; background: rgba(15,23,42,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-size: 11px; color: #cbd5e1; white-space: nowrap; opacity: 0; visibility: hidden; transition: all 0.2s; z-index: 50; }
+        .tooltip-text::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 4px solid transparent; border-top-color: rgba(15,23,42,0.95); }
+    </style>
+</head>
+<body class="h-screen overflow-hidden bg-darker">
+
+    <!-- 顶部导航 -->
+    <header class="h-16 glass-panel border-b border-white/5 flex items-center justify-between px-6 z-40 relative">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/30">
+                <i class="fas fa-film text-white text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-white tracking-tight">AI漫剧工厂</h1>
+                <p class="text-xs text-slate-400">创建新项目</p>
+            </div>
+        </div>
+        <!-- 导航链接 -->
+        <nav class="hidden md:flex items-center gap-1">
+            <a href="项目列表.html" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-xs font-medium transition-all">
+                <i class="fas fa-folder mr-1.5"></i>项目列表
+            </a>
+            <a href="创建项目.html" class="px-3 py-1.5 rounded-lg bg-primary/15 text-primary border border-primary/25 text-xs font-medium">
+                <i class="fas fa-plus mr-1.5"></i>创建项目
+            </a>
+            <a href="小说上传-分集与资产提取.html" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-xs font-medium transition-all">
+                <i class="fas fa-upload mr-1.5"></i>小说上传
+            </a>
+            <a href="分集.html" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-xs font-medium transition-all">
+                <i class="fas fa-list mr-1.5"></i>分集工作台
+            </a>
+            <a href="分镜生视频.html" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-xs font-medium transition-all">
+                <i class="fas fa-video mr-1.5"></i>视频工作台
+            </a>
+            <a href="用户中心.html" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-xs font-medium transition-all">
+                <i class="fas fa-user mr-1.5"></i>用户中心
+            </a>
+        </nav>
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface border border-white/5">
+                <div class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></div>
+                <span class="text-xs text-slate-400">模型就绪</span>
+            </div>
+            <button class="w-9 h-9 rounded-lg bg-surface border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-all">
+                <i class="fas fa-cog"></i>
+            </button>
+            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-sm">A</div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="h-[calc(100vh-64px)] overflow-y-auto custom-scroll">
+        <div class="max-w-5xl mx-auto p-8">
+
+            <!-- 页面标题 -->
+            <div class="mb-8 fade-in">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-8 h-8 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center">
+                        <i class="fas fa-plus text-primary text-sm"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white">创建新项目</h2>
+                </div>
+                <p class="text-sm text-slate-400 ml-11">配置项目基本信息、视觉风格与 AI 模型，项目内的资产将被所有分集共享使用</p>
+            </div>
+
+            <div class="grid grid-cols-12 gap-8">
+                <!-- 左侧：表单主区域 -->
+                <div class="col-span-8 space-y-6">
+
+                    <!-- 项目基本信息 -->
+                    <div class="glass-panel rounded-2xl p-6 slide-up" style="animation-delay: 0.05s">
+                        <div class="flex items-center gap-2 mb-5">
+                            <div class="section-badge bg-primary/10 text-primary border border-primary/20">
+                                <i class="fas fa-circle-info text-[10px]"></i>
+                                <span>项目基本信息</span>
+                            </div>
+                        </div>
+
+                        <div class="space-y-5">
+                            <div>
+                                <label class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 block">
+                                    项目名称 <span class="text-rose-400">*</span>
+                                </label>
+                                <input type="text" id="projectName" placeholder="输入项目名称，如：星辰大海" 
+                                    class="input-field w-full px-4 py-3 bg-surface border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none"
+                                    oninput="validateForm()">
+                            </div>
+
+                            <div>
+                                <label class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 block">项目简介</label>
+                                <textarea id="projectDesc" placeholder="简要描述项目内容，帮助AI理解故事背景与风格方向..." 
+                                    class="input-field w-full h-24 px-4 py-3 bg-surface border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none resize-none custom-scroll leading-relaxed"></textarea>
+                                <div class="flex justify-between mt-1.5">
+                                    <span class="text-[10px] text-slate-600">建议 50-200 字</span>
+                                    <span class="text-[10px] text-slate-600" id="descCount">0 / 200</span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 block">题材类型</label>
+                                    <select id="projectGenre" class="input-field w-full px-4 py-3 bg-surface border border-white/10 rounded-xl text-sm text-white focus:outline-none cursor-pointer appearance-none"
+                                        style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke-width=%221.5%22 stroke=%2264748b%22%3E%3Cpath stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19.5 8.25l-7.5 7.5-7.5-7.5%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center; background-size: 16px;">
+                                        <option value="">选择题材</option>
+                                        <option value="scifi">科幻</option>
+                                        <option value="fantasy">玄幻</option>
+                                        <option value="urban">都市</option>
+                                        <option value="ancient">古言</option>
+                                        <option value="mystery">悬疑</option>
+                                        <option value="romance">言情</option>
+                                        <option value="xianxia">仙侠</option>
+                                        <option value="horror">恐怖</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 block">目标受众</label>
+                                    <select class="input-field w-full px-4 py-3 bg-surface border border-white/10 rounded-xl text-sm text-white focus:outline-none cursor-pointer appearance-none"
+                                        style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke-width=%221.5%22 stroke=%2264748b%22%3E%3Cpath stroke-linecap=%22round%22 stroke-linejoin=%22round%22 d=%22M19.5 8.25l-7.5 7.5-7.5-7.5%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 12px center; background-size: 16px;">
+                                        <option>全年龄</option>
+                                        <option>青少年</option>
+                                        <option>成人</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 视觉风格选择 -->
+                    <div class="glass-panel rounded-2xl p-6 slide-up" style="animation-delay: 0.1s">
+                        <div class="flex items-center justify-between mb-5">
+                            <div class="flex items-center gap-2">
+                                <div class="section-badge bg-secondary/10 text-secondary border border-secondary/20">
+                                    <i class="fas fa-palette text-[10px]"></i>
+                                    <span>视觉风格</span>
+                                </div>
+                            </div>
+                            <span class="text-xs text-slate-500">选择后将作为项目默认风格，各分集可单独调整</span>
+                        </div>
+
+                        <div class="grid grid-cols-4 gap-4" id="styleGrid">
+                            <div class="style-card rounded-xl border border-white/10 bg-surface/50 overflow-hidden active" data-style="scifi-real" onclick="selectStyle(this)">
+                                <div class="aspect-[4/3] relative">
+                                    <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&auto=format&fit=crop&q=60" class="w-full h-full object-cover">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                                    <div class="absolute bottom-3 left-3 right-3">
+                                        <div class="text-sm font-bold text-white">写实科幻</div>
+                                        <div class="text-[10px] text-slate-300 mt-0.5">电影级质感，真实光影</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="style-card rounded-xl border border-white/10 bg-surface/50 overflow-hidden" data-style="anime" onclick="selectStyle(this)">
+                                <div class="aspect-[4/3] relative">
+                                    <img src="https://images.unsplash.com/photo-1578632767115-351597cf2477?w=400&auto=format&fit=crop&q=60" class="w-full h-full object-cover">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                                    <div class="absolute bottom-3 left-3 right-3">
+                                        <div class="text-sm font-bold text-white">二次元动漫</div>
+                                        <div class="text-[10px] text-slate-300 mt-0.5">日系画风，鲜明色彩</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="style-card rounded-xl border border-white/10 bg-surface/50 overflow-hidden" data-style="ink" onclick="selectStyle(this)">
+                                <div class="aspect-[4/3] relative">
+                                    <img src="https://images.unsplash.com/photo-1515405295579-ba7b45403062?w=400&auto=format&fit=crop&q=60" class="w-full h-full object-cover">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                                    <div class="absolute bottom-3 left-3 right-3">
+                                        <div class="text-sm font-bold text-white">国风水墨</div>
+                                        <div class="text-[10px] text-slate-300 mt-0.5">水墨意境，东方美学</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="style-card rounded-xl border border-white/10 bg-surface/50 overflow-hidden" data-style="comic" onclick="selectStyle(this)">
+                                <div class="aspect-[4/3] relative">
+                                    <img src="https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=400&auto=format&fit=crop&q=60" class="w-full h-full object-cover">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                                    <div class="absolute bottom-3 left-3 right-3">
+                                        <div class="text-sm font-bold text-white">欧美漫画</div>
+                                        <div class="text-[10px] text-slate-300 mt-0.5">美漫风格，强烈对比</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="style-card rounded-xl border border-white/10 bg-surface/50 overflow-hidden" data-style="pixel" onclick="selectStyle(this)">
+                                <div class="aspect-[4/3] relative">
+                                    <img src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&auto=format&fit=crop&q=60" class="w-full h-full object-cover">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                                    <div class="absolute bottom-3 left-3 right-3">
+                                        <div class="text-sm font-bold text-white">像素风格</div>
+                                        <div class="text-[10px] text-slate-300 mt-0.5">复古像素，游戏质感</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="style-card rounded-xl border border-white/10 bg-surface/50 overflow-hidden" data-style="3d" onclick="selectStyle(this)">
+                                <div class="aspect-[4/3] relative">
+                                    <img src="https://images.unsplash.com/photo-1633218388467-539651dcf81a?w=400&auto=format&fit=crop&q=60" class="w-full h-full object-cover">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                                    <div class="absolute bottom-3 left-3 right-3">
+                                        <div class="text-sm font-bold text-white">3D渲染</div>
+                                        <div class="text-[10px] text-slate-300 mt-0.5">C4D质感，立体光影</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="style-card rounded-xl border border-white/10 bg-surface/50 overflow-hidden" data-style="sketch" onclick="selectStyle(this)">
+                                <div class="aspect-[4/3] relative">
+                                    <img src="https://images.unsplash.com/photo-1544531585-9847b68c8c86?w=400&auto=format&fit=crop&q=60" class="w-full h-full object-cover">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                                    <div class="absolute bottom-3 left-3 right-3">
+                                        <div class="text-sm font-bold text-white">手绘素描</div>
+                                        <div class="text-[10px] text-slate-300 mt-0.5">铅笔质感，艺术线条</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="style-card rounded-xl border border-white/10 bg-surface/50 overflow-hidden" data-style="custom" onclick="selectStyle(this)">
+                                <div class="aspect-[4/3] relative flex items-center justify-center bg-surface">
+                                    <div class="text-center">
+                                        <div class="w-12 h-12 rounded-full border-2 border-dashed border-slate-600 flex items-center justify-center mx-auto mb-2">
+                                            <i class="fas fa-plus text-slate-500"></i>
+                                        </div>
+                                        <div class="text-sm font-bold text-slate-400">自定义风格</div>
+                                        <div class="text-[10px] text-slate-600 mt-0.5">上传参考图定义</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 风格标签 -->
+                        <div class="mt-5">
+                            <label class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 block">风格关键词（多选）</label>
+                            <div class="flex flex-wrap gap-2" id="styleTags">
+                                <span class="tag-pill active px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-300" onclick="toggleTag(this)">赛博朋克</span>
+                                <span class="tag-pill px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-300" onclick="toggleTag(this)">太空歌剧</span>
+                                <span class="tag-pill px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-300" onclick="toggleTag(this)">未来都市</span>
+                                <span class="tag-pill px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-300" onclick="toggleTag(this)">机甲</span>
+                                <span class="tag-pill px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-300" onclick="toggleTag(this)">异星文明</span>
+                                <span class="tag-pill px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-300" onclick="toggleTag(this)">时间旅行</span>
+                                <span class="tag-pill px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-300" onclick="toggleTag(this)">人工智能</span>
+                                <span class="tag-pill px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-300" onclick="toggleTag(this)">末日废土</span>
+                                <span class="tag-pill px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-300" onclick="toggleTag(this)">基因改造</span>
+                                <span class="tag-pill px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-300" onclick="toggleTag(this)">量子科技</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 画面尺寸 -->
+                    <div class="glass-panel rounded-2xl p-6 slide-up" style="animation-delay: 0.15s">
+                        <div class="flex items-center justify-between mb-5">
+                            <div class="flex items-center gap-2">
+                                <div class="section-badge bg-cyan/10 text-cyan border border-cyan/20">
+                                    <i class="fas fa-crop-simple text-[10px]"></i>
+                                    <span>画面尺寸</span>
+                                </div>
+                            </div>
+                            <span class="text-xs text-slate-500">决定分镜图的分辨率与宽高比</span>
+                        </div>
+
+                        <div class="grid grid-cols-4 gap-4 mb-6">
+                            <div class="ratio-card active rounded-xl border border-white/10 bg-surface/30 p-4 text-center" data-ratio="16:9" data-w="1024" data-h="576" onclick="selectRatio(this)">
+                                <div class="w-full aspect-video bg-surface border border-white/10 rounded-lg mb-3 mx-auto flex items-center justify-center">
+                                    <span class="text-[10px] text-slate-500">16:9</span>
+                                </div>
+                                <div class="text-sm font-medium text-white">横屏宽画幅</div>
+                                <div class="text-[10px] text-slate-500 mt-0.5">1024 × 576</div>
+                                <div class="text-[10px] text-emerald-400 mt-1"><i class="fas fa-check mr-1"></i>推荐</div>
+                            </div>
+                            <div class="ratio-card rounded-xl border border-white/10 bg-surface/30 p-4 text-center" data-ratio="9:16" data-w="576" data-h="1024" onclick="selectRatio(this)">
+                                <div class="w-10 aspect-[9/16] bg-surface border border-white/10 rounded-lg mb-3 mx-auto flex items-center justify-center">
+                                    <span class="text-[10px] text-slate-500" style="writing-mode:vertical-rl">9:16</span>
+                                </div>
+                                <div class="text-sm font-medium text-white">竖屏短视频</div>
+                                <div class="text-[10px] text-slate-500 mt-0.5">576 × 1024</div>
+                            </div>
+                            <div class="ratio-card rounded-xl border border-white/10 bg-surface/30 p-4 text-center" data-ratio="1:1" data-w="1024" data-h="1024" onclick="selectRatio(this)">
+                                <div class="w-12 aspect-square bg-surface border border-white/10 rounded-lg mb-3 mx-auto flex items-center justify-center">
+                                    <span class="text-[10px] text-slate-500">1:1</span>
+                                </div>
+                                <div class="text-sm font-medium text-white">方形构图</div>
+                                <div class="text-[10px] text-slate-500 mt-0.5">1024 × 1024</div>
+                            </div>
+                            <div class="ratio-card rounded-xl border border-white/10 bg-surface/30 p-4 text-center" data-ratio="4:3" data-w="1024" data-h="768" onclick="selectRatio(this)">
+                                <div class="w-14 aspect-[4/3] bg-surface border border-white/10 rounded-lg mb-3 mx-auto flex items-center justify-center">
+                                    <span class="text-[10px] text-slate-500">4:3</span>
+                                </div>
+                                <div class="text-sm font-medium text-white">标准画幅</div>
+                                <div class="text-[10px] text-slate-500 mt-0.5">1024 × 768</div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 block">自定义宽度</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="number" id="customW" value="1024" 
+                                        class="input-field w-full px-4 py-2.5 bg-surface border border-white/10 rounded-xl text-sm text-white focus:outline-none text-center font-mono"
+                                        onchange="updatePreview()">
+                                    <span class="text-slate-500 text-sm">px</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 block">自定义高度</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="number" id="customH" value="576" 
+                                        class="input-field w-full px-4 py-2.5 bg-surface border border-white/10 rounded-xl text-sm text-white focus:outline-none text-center font-mono"
+                                        onchange="updatePreview()">
+                                    <span class="text-slate-500 text-sm">px</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI 模型配置（核心新增） -->
+                    <div class="glass-panel rounded-2xl p-6 slide-up" style="animation-delay: 0.18s">
+                        <div class="flex items-center justify-between mb-5">
+                            <div class="flex items-center gap-2">
+                                <div class="section-badge bg-emerald/10 text-emerald border border-emerald/20">
+                                    <i class="fas fa-microchip text-[10px]"></i>
+                                    <span>AI 模型配置</span>
+                                </div>
+                            </div>
+                            <span class="text-xs text-slate-500">项目默认模型，后续各环节可单独调整</span>
+                        </div>
+
+                        <div class="space-y-5">
+                            <!-- LLM 模型 -->
+                            <div>
+                                <div class="flex items-center gap-2 mb-3">
+                                    <div class="w-6 h-6 rounded-md bg-primary/15 flex items-center justify-center">
+                                        <i class="fas fa-brain text-primary text-[10px]"></i>
+                                    </div>
+                                    <label class="text-sm font-medium text-white">LLM 大语言模型</label>
+                                    <span class="text-[10px] text-slate-500">用于小说分析、分镜拆分、Prompt 生成</span>
+                                </div>
+                                <div class="grid grid-cols-3 gap-3" id="llmModels">
+                                    <div class="model-card active rounded-xl border border-white/10 bg-surface/30 p-4" data-model="gpt4o" onclick="selectModel(this, 'llm')">
+                                        <div class="flex items-start justify-between mb-2">
+                                            <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                                <i class="fas fa-robot text-primary text-sm"></i>
+                                            </div>
+                                            <div class="model-check w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                                <i class="fas fa-check text-white text-[10px]"></i>
+                                            </div>
+                                        </div>
+                                        <div class="text-sm font-medium text-white">GPT-4o</div>
+                                        <div class="text-[10px] text-slate-500 mt-0.5">OpenAI · 最强推理</div>
+                                    </div>
+                                    <div class="model-card rounded-xl border border-white/10 bg-surface/30 p-4" data-model="claude" onclick="selectModel(this, 'llm')">
+                                        <div class="flex items-start justify-between mb-2">
+                                            <div class="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center">
+                                                <i class="fas fa-feather text-secondary text-sm"></i>
+                                            </div>
+                                            <div class="model-check w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                                <i class="fas fa-check text-white text-[10px]"></i>
+                                            </div>
+                                        </div>
+                                        <div class="text-sm font-medium text-white">Claude 3.5</div>
+                                        <div class="text-[10px] text-slate-500 mt-0.5">Anthropic · 长文本</div>
+                                    </div>
+                                    <div class="model-card rounded-xl border border-white/10 bg-surface/30 p-4" data-model="deepseek" onclick="selectModel(this, 'llm')">
+                                        <div class="flex items-start justify-between mb-2">
+                                            <div class="w-8 h-8 rounded-lg bg-cyan/10 flex items-center justify-center">
+                                                <i class="fas fa-bolt text-cyan text-sm"></i>
+                                            </div>
+                                            <div class="model-check w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                                <i class="fas fa-check text-white text-[10px]"></i>
+                                            </div>
+                                        </div>
+                                        <div class="text-sm font-medium text-white">DeepSeek-V3</div>
+                                        <div class="text-[10px] text-slate-500 mt-0.5">DeepSeek · 高性价比</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 文生图模型 -->
+                            <div>
+                                <div class="flex items-center gap-2 mb-3">
+                                    <div class="w-6 h-6 rounded-md bg-cyan/15 flex items-center justify-center">
+                                        <i class="fas fa-image text-cyan text-[10px]"></i>
+                                    </div>
+                                    <label class="text-sm font-medium text-white">文生图模型</label>
+                                    <span class="text-[10px] text-slate-500">用于分镜画面生成</span>
+                                </div>
+                                <div class="grid grid-cols-3 gap-3" id="t2iModels">
+                                    <div class="model-card active rounded-xl border border-white/10 bg-surface/30 p-4" data-model="sdxl" onclick="selectModel(this, 't2i')">
+                                        <div class="flex items-start justify-between mb-2">
+                                            <div class="w-8 h-8 rounded-lg bg-cyan/10 flex items-center justify-center">
+                                                <i class="fas fa-paint-brush text-cyan text-sm"></i>
+                                            </div>
+                                            <div class="model-check w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                                <i class="fas fa-check text-white text-[10px]"></i>
+                                            </div>
+                                        </div>
+                                        <div class="text-sm font-medium text-white">SDXL</div>
+                                        <div class="text-[10px] text-slate-500 mt-0.5">Stability AI · 开源可控</div>
+                                    </div>
+                                    <div class="model-card rounded-xl border border-white/10 bg-surface/30 p-4" data-model="midjourney" onclick="selectModel(this, 't2i')">
+                                        <div class="flex items-start justify-between mb-2">
+                                            <div class="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                                                <i class="fas fa-wand-magic-sparkles text-accent text-sm"></i>
+                                            </div>
+                                            <div class="model-check w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                                <i class="fas fa-check text-white text-[10px]"></i>
+                                            </div>
+                                        </div>
+                                        <div class="text-sm font-medium text-white">Midjourney V6</div>
+                                        <div class="text-[10px] text-slate-500 mt-0.5">Midjourney · 艺术品质</div>
+                                    </div>
+                                    <div class="model-card rounded-xl border border-white/10 bg-surface/30 p-4" data-model="dalle3" onclick="selectModel(this, 't2i')">
+                                        <div class="flex items-start justify-between mb-2">
+                                            <div class="w-8 h-8 rounded-lg bg-emerald/10 flex items-center justify-center">
+                                                <i class="fas fa-palette text-emerald text-sm"></i>
+                                            </div>
+                                            <div class="model-check w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                                <i class="fas fa-check text-white text-[10px]"></i>
+                                            </div>
+                                        </div>
+                                        <div class="text-sm font-medium text-white">DALL·E 3</div>
+                                        <div class="text-[10px] text-slate-500 mt-0.5">OpenAI · 语义理解强</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 图生视频模型 -->
+                            <div>
+                                <div class="flex items-center gap-2 mb-3">
+                                    <div class="w-6 h-6 rounded-md bg-amber/15 flex items-center justify-center">
+                                        <i class="fas fa-video text-amber text-[10px]"></i>
+                                    </div>
+                                    <label class="text-sm font-medium text-white">图生视频模型</label>
+                                    <span class="text-[10px] text-slate-500">用于分镜图转动态视频</span>
+                                </div>
+                                <div class="grid grid-cols-3 gap-3" id="i2vModels">
+                                    <div class="model-card active rounded-xl border border-white/10 bg-surface/30 p-4" data-model="runway" onclick="selectModel(this, 'i2v')">
+                                        <div class="flex items-start justify-between mb-2">
+                                            <div class="w-8 h-8 rounded-lg bg-amber/10 flex items-center justify-center">
+                                                <i class="fas fa-film text-amber text-sm"></i>
+                                            </div>
+                                            <div class="model-check w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                                <i class="fas fa-check text-white text-[10px]"></i>
+                                            </div>
+                                        </div>
+                                        <div class="text-sm font-medium text-white">Runway Gen-3</div>
+                                        <div class="text-[10px] text-slate-500 mt-0.5">Runway · 电影级运动</div>
+                                    </div>
+                                    <div class="model-card rounded-xl border border-white/10 bg-surface/30 p-4" data-model="pika" onclick="selectModel(this, 'i2v')">
+                                        <div class="flex items-start justify-between mb-2">
+                                            <div class="w-8 h-8 rounded-lg bg-rose/10 flex items-center justify-center">
+                                                <i class="fas fa-clapperboard text-rose text-sm"></i>
+                                            </div>
+                                            <div class="model-check w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                                <i class="fas fa-check text-white text-[10px]"></i>
+                                            </div>
+                                        </div>
+                                        <div class="text-sm font-medium text-white">Pika 1.5</div>
+                                        <div class="text-[10px] text-slate-500 mt-0.5">Pika Labs · 创意特效</div>
+                                    </div>
+                                    <div class="model-card rounded-xl border border-white/10 bg-surface/30 p-4" data-model="luma" onclick="selectModel(this, 'i2v')">
+                                        <div class="flex items-start justify-between mb-2">
+                                            <div class="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                                                <i class="fas fa-wand-magic text-purple-400 text-sm"></i>
+                                            </div>
+                                            <div class="model-check w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                                <i class="fas fa-check text-white text-[10px]"></i>
+                                            </div>
+                                        </div>
+                                        <div class="text-sm font-medium text-white">Luma Dream Machine</div>
+                                        <div class="text-[10px] text-slate-500 mt-0.5">Luma AI · 物理真实</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 高级设置 -->
+                    <div class="glass-panel rounded-2xl p-6 slide-up" style="animation-delay: 0.2s">
+                        <div class="flex items-center gap-2 mb-5">
+                            <div class="section-badge bg-surface border border-white/10 text-slate-400">
+                                <i class="fas fa-sliders text-[10px]"></i>
+                                <span>高级设置</span>
+                            </div>
+                            <span class="text-[10px] px-2 py-0.5 rounded bg-surface border border-white/10 text-slate-500">可选</span>
+                        </div>
+
+                        <div class="space-y-5">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 block">采样步数</label>
+                                    <div class="flex items-center gap-3">
+                                        <input type="range" min="20" max="50" value="30" class="flex-1 h-1 bg-surface-light rounded-full appearance-none cursor-pointer"
+                                            style="background: linear-gradient(to right, #6366f1 30%, #334155 30%);"
+                                            oninput="this.style.background='linear-gradient(to right, #6366f1 '+this.value+'%, #334155 '+this.value+'%)'">
+                                        <span class="text-sm text-white font-mono w-8 text-right">30</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 block">CFG Scale</label>
+                                    <div class="flex items-center gap-3">
+                                        <input type="range" min="1" max="15" value="7" class="flex-1 h-1 bg-surface-light rounded-full appearance-none cursor-pointer"
+                                            style="background: linear-gradient(to right, #6366f1 43%, #334155 43%);"
+                                            oninput="this.style.background='linear-gradient(to right, #6366f1 '+(this.value/15*100)+'%, #334155 '+(this.value/15*100)+'%)'">
+                                        <span class="text-sm text-white font-mono w-8 text-right">7</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start gap-3 p-4 rounded-xl bg-surface/30 border border-white/5">
+                                <input type="checkbox" id="shareAssets" checked class="w-4 h-4 rounded border-white/20 bg-transparent text-primary focus:ring-primary focus:ring-offset-0 mt-0.5 cursor-pointer">
+                                <div>
+                                    <label for="shareAssets" class="text-sm text-white font-medium cursor-pointer">项目内资产共享</label>
+                                    <p class="text-xs text-slate-400 mt-1">开启后，从小说中提取的角色、场景、道具等资产将在项目内所有分集中共享使用。建议保持开启。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 底部操作 -->
+                    <div class="flex gap-3 pt-2 pb-8">
+                        <button onclick="window.location.href='项目列表.html'" class="flex-1 py-3.5 rounded-xl bg-surface border border-white/10 text-slate-300 font-medium hover:text-white hover:border-white/20 transition-all">
+                            <i class="fas fa-arrow-left mr-2"></i>返回项目列表
+                        </button>
+                        <button onclick="createProject()" id="btnCreate" disabled class="flex-[2] generate-btn py-3.5 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/25 disabled:opacity-40">
+                            <i class="fas fa-rocket"></i>
+                            <span>创建项目</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 右侧：预览与信息 -->
+                <div class="col-span-4">
+                    <div class="sticky top-8 space-y-6">
+
+                        <!-- 预览卡片 -->
+                        <div class="glass-panel rounded-2xl p-5 slide-up" style="animation-delay: 0.1s">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-sm font-semibold text-white">画面预览</h3>
+                                <span class="text-[10px] text-slate-500" id="previewRatio">16:9</span>
+                            </div>
+                            <div class="preview-frame rounded-xl overflow-hidden mx-auto" id="previewBox" style="width: 100%; aspect-ratio: 16/9;">
+                                <div class="relative w-full h-full flex items-center justify-center">
+                                    <div class="text-center z-10">
+                                        <div class="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-2">
+                                            <i class="fas fa-image text-primary text-lg"></i>
+                                        </div>
+                                        <p class="text-xs text-slate-500">画面比例预览</p>
+                                        <p class="text-[10px] text-slate-600 mt-0.5" id="previewSize">1024 × 576</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4 space-y-2">
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-slate-500">风格</span>
+                                    <span class="text-slate-300" id="previewStyle">写实科幻</span>
+                                </div>
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-slate-500">题材</span>
+                                    <span class="text-slate-300" id="previewGenre">未选择</span>
+                                </div>
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-slate-500">分辨率</span>
+                                    <span class="text-slate-300 font-mono" id="previewRes">1024 × 576</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 模型配置预览 -->
+                        <div class="glass-panel rounded-2xl p-5 slide-up" style="animation-delay: 0.12s">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-sm font-semibold text-white">模型配置</h3>
+                                <span class="text-[10px] text-slate-500">默认</span>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                        <i class="fas fa-brain text-primary text-[10px]"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-xs text-slate-400">LLM</div>
+                                        <div class="text-xs text-white font-medium truncate" id="previewLLM">GPT-4o</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-7 h-7 rounded-lg bg-cyan/10 flex items-center justify-center flex-shrink-0">
+                                        <i class="fas fa-image text-cyan text-[10px]"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-xs text-slate-400">文生图</div>
+                                        <div class="text-xs text-white font-medium truncate" id="previewT2I">SDXL</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-7 h-7 rounded-lg bg-amber/10 flex items-center justify-center flex-shrink-0">
+                                        <i class="fas fa-video text-amber text-[10px]"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-xs text-slate-400">图生视频</div>
+                                        <div class="text-xs text-white font-medium truncate" id="previewI2V">Runway Gen-3</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 项目提示 -->
+                        <div class="glass-panel rounded-2xl p-5 slide-up" style="animation-delay: 0.15s">
+                            <div class="flex items-center gap-2 mb-3">
+                                <i class="fas fa-lightbulb text-amber-400 text-xs"></i>
+                                <h3 class="text-sm font-semibold text-white">创建提示</h3>
+                            </div>
+                            <div class="space-y-3 text-xs text-slate-400 leading-relaxed">
+                                <div class="flex gap-2">
+                                    <span class="text-primary mt-0.5">•</span>
+                                    <span>项目名称创建后不可修改，请谨慎命名</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <span class="text-primary mt-0.5">•</span>
+                                    <span>风格与尺寸可在项目创建后随时调整</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <span class="text-primary mt-0.5">•</span>
+                                    <span>模型配置作为项目默认值，各环节可单独覆盖</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <span class="text-primary mt-0.5">•</span>
+                                    <span>项目内的资产（角色、场景、道具）将被所有分集共享</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 快捷模板 -->
+                        <div class="glass-panel rounded-2xl p-5 slide-up" style="animation-delay: 0.2s">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-sm font-semibold text-white">快捷模板</h3>
+                                <span class="text-[10px] text-slate-500">一键套用</span>
+                            </div>
+                            <div class="space-y-2">
+                                <button onclick="applyTemplate('scifi')" class="w-full p-3 rounded-xl bg-surface/50 border border-white/5 hover:border-primary/30 hover:bg-primary/5 transition-all text-left group">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                            <i class="fas fa-rocket text-primary text-xs"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-medium text-white group-hover:text-primary transition-colors">科幻太空</div>
+                                            <div class="text-[10px] text-slate-500">写实科幻 / 16:9 / 太空歌剧</div>
+                                        </div>
+                                    </div>
+                                </button>
+                                <button onclick="applyTemplate('anime')" class="w-full p-3 rounded-xl bg-surface/50 border border-white/5 hover:border-primary/30 hover:bg-primary/5 transition-all text-left group">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+                                            <i class="fas fa-wand-magic-sparkles text-accent text-xs"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-medium text-white group-hover:text-primary transition-colors">二次元奇幻</div>
+                                            <div class="text-[10px] text-slate-500">动漫风格 / 9:16 / 魔法世界</div>
+                                        </div>
+                                    </div>
+                                </button>
+                                <button onclick="applyTemplate('ink')" class="w-full p-3 rounded-xl bg-surface/50 border border-white/5 hover:border-primary/30 hover:bg-primary/5 transition-all text-left group">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-cyan/10 flex items-center justify-center flex-shrink-0">
+                                            <i class="fas fa-mountain text-cyan text-xs"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-xs font-medium text-white group-hover:text-primary transition-colors">国风仙侠</div>
+                                            <div class="text-[10px] text-slate-500">水墨风格 / 16:9 / 仙侠修真</div>
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let selectedStyle = 'scifi-real';
+        let selectedRatio = '16:9';
+        let selectedModels = { llm: 'gpt4o', t2i: 'sdxl', i2v: 'runway' };
+
+        const modelNames = {
+            llm: { gpt4o: 'GPT-4o', claude: 'Claude 3.5', deepseek: 'DeepSeek-V3' },
+            t2i: { sdxl: 'SDXL', midjourney: 'Midjourney V6', dalle3: 'DALL·E 3' },
+            i2v: { runway: 'Runway Gen-3', pika: 'Pika 1.5', luma: 'Luma Dream Machine' }
+        };
+
+        function selectStyle(el) {
+            document.querySelectorAll('.style-card').forEach(card => card.classList.remove('active'));
+            el.classList.add('active');
+            selectedStyle = el.dataset.style;
+            const styleNames = {
+                'scifi-real': '写实科幻', 'anime': '二次元动漫', 'ink': '国风水墨',
+                'comic': '欧美漫画', 'pixel': '像素风格', '3d': '3D渲染',
+                'sketch': '手绘素描', 'custom': '自定义风格'
+            };
+            document.getElementById('previewStyle').textContent = styleNames[selectedStyle] || '未选择';
+            if (selectedStyle === 'custom') alert('自定义风格：请上传参考图以定义项目风格（功能演示）');
+        }
+
+        function toggleTag(el) { el.classList.toggle('active'); }
+
+        function selectRatio(el) {
+            document.querySelectorAll('.ratio-card').forEach(card => card.classList.remove('active'));
+            el.classList.add('active');
+            selectedRatio = el.dataset.ratio;
+            document.getElementById('customW').value = el.dataset.w;
+            document.getElementById('customH').value = el.dataset.h;
+            updatePreview();
+        }
+
+        function selectModel(el, type) {
+            const container = el.parentElement;
+            container.querySelectorAll('.model-card').forEach(card => card.classList.remove('active'));
+            el.classList.add('active');
+            selectedModels[type] = el.dataset.model;
+
+            // 更新右侧预览
+            const previewMap = { llm: 'previewLLM', t2i: 'previewT2I', i2v: 'previewI2V' };
+            document.getElementById(previewMap[type]).textContent = modelNames[type][el.dataset.model];
+        }
+
+        function updatePreview() {
+            const w = document.getElementById('customW').value;
+            const h = document.getElementById('customH').value;
+            const box = document.getElementById('previewBox');
+            const maxW = 280;
+            const scale = Math.min(maxW / w, 180 / h);
+            box.style.width = Math.round(w * scale) + 'px';
+            box.style.height = Math.round(h * scale) + 'px';
+            box.style.aspectRatio = 'auto';
+            const gcd = (a, b) => b ? gcd(b, a % b) : a;
+            const g = gcd(w, h);
+            document.getElementById('previewRatio').textContent = `${w/g}:${h/g}`;
+            document.getElementById('previewSize').textContent = `${w} × ${h}`;
+            document.getElementById('previewRes').textContent = `${w} × ${h}`;
+        }
+
+        function validateForm() {
+            const name = document.getElementById('projectName').value.trim();
+            document.getElementById('btnCreate').disabled = !name;
+        }
+
+        document.getElementById('projectDesc').addEventListener('input', function() {
+            const len = this.value.length;
+            document.getElementById('descCount').textContent = `${len} / 200`;
+            document.getElementById('descCount').classList.toggle('text-rose-400', len > 200);
+        });
+
+        document.getElementById('projectGenre').addEventListener('change', function() {
+            const genres = { scifi: '科幻', fantasy: '玄幻', urban: '都市', ancient: '古言', mystery: '悬疑', romance: '言情', xianxia: '仙侠', horror: '恐怖' };
+            document.getElementById('previewGenre').textContent = genres[this.value] || '未选择';
+        });
+
+        function applyTemplate(type) {
+            const templates = {
+                scifi: { style: 'scifi-real', ratio: '16:9', w: 1024, h: 576, genre: 'scifi', tags: ['太空歌剧','未来都市','机甲'], llm: 'gpt4o', t2i: 'sdxl', i2v: 'runway' },
+                anime: { style: 'anime', ratio: '9:16', w: 576, h: 1024, genre: 'fantasy', tags: ['魔法','异世界','冒险'], llm: 'claude', t2i: 'midjourney', i2v: 'pika' },
+                ink: { style: 'ink', ratio: '16:9', w: 1024, h: 576, genre: 'xianxia', tags: ['修仙','古风','神兽'], llm: 'deepseek', t2i: 'dalle3', i2v: 'luma' }
+            };
+            const t = templates[type];
+            if (!t) return;
+
+            document.querySelectorAll('.style-card').forEach(card => card.classList.toggle('active', card.dataset.style === t.style));
+            selectedStyle = t.style;
+
+            document.querySelectorAll('.ratio-card').forEach(card => {
+                if (card.dataset.ratio === t.ratio) { card.classList.add('active'); document.getElementById('customW').value = t.w; document.getElementById('customH').value = t.h; }
+                else card.classList.remove('active');
+            });
+            selectedRatio = t.ratio;
+
+            document.getElementById('projectGenre').value = t.genre;
+            document.querySelectorAll('#styleTags .tag-pill').forEach(tag => {
+                tag.classList.remove('active');
+                if (t.tags.some(tg => tag.textContent.includes(tg))) tag.classList.add('active');
+            });
+
+            // 应用模型
+            ['llm','t2i','i2v'].forEach(mtype => {
+                const container = document.getElementById(mtype === 'llm' ? 'llmModels' : mtype === 't2i' ? 't2iModels' : 'i2vModels');
+                container.querySelectorAll('.model-card').forEach(card => {
+                    card.classList.toggle('active', card.dataset.model === t[mtype]);
+                });
+                selectedModels[mtype] = t[mtype];
+                document.getElementById(mtype === 'llm' ? 'previewLLM' : mtype === 't2i' ? 'previewT2I' : 'previewI2V').textContent = modelNames[mtype][t[mtype]];
+            });
+
+            updatePreview();
+            const styleNames = { 'scifi-real': '写实科幻', 'anime': '二次元动漫', 'ink': '国风水墨' };
+            document.getElementById('previewStyle').textContent = styleNames[t.style];
+            const genres = { scifi: '科幻', fantasy: '玄幻', xianxia: '仙侠' };
+            document.getElementById('previewGenre').textContent = genres[t.genre];
+        }
+
+        function createProject() {
+            const name = document.getElementById('projectName').value.trim();
+            if (!name) return;
+            const btn = document.getElementById('btnCreate');
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> 创建中...';
+            btn.disabled = true;
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fas fa-check"></i> 创建成功';
+                btn.classList.remove('generate-btn');
+                btn.classList.add('bg-emerald-600');
+                setTimeout(() => {
+                    window.location.href = '小说上传-分集与资产提取.html';
+                }, 800);
+            }, 1500);
+        }
+
+        validateForm();
+    </script>
+</body>
+</html>
