@@ -1,23 +1,49 @@
-// Model Single Item API - GET/PUT/DELETE
+// Proxy to FastAPI backend: /api/v1/admin/models/:id
+// Also handles sub-routes like /config, /capabilities (matched as id)
 
 import { NextRequest, NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
-import { query, execute, queryOne } from "@/lib/db";
 
-const JWT_SECRET = process.env.JWT_SECRET || "ai-manhua-dev-secret-key-2026";
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-function getUserFromRequest(request: NextRequest): { id: string; role: string } | null {
-  const authHeader = request.headers.get("Authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return null;
-  }
-
-  const token = authHeader.substring(7);
+async function proxy(request: NextRequest, method: string) {
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as { sub: string; role?: string };
-    return { id: payload.sub, role: payload.role || "user" };
-  } catch {
-    return null;
+    const url = new URL(request.url);
+    const pathSegments = url.pathname.replace("/api/v1/admin/models/", "");
+
+    // Build target URL
+    let targetUrl: string;
+    if (method === "DELETE") {
+      // DELETE goes to /api/v1/admin/models?model_type=...
+      targetUrl = `${BACKEND_URL}/api/v1/admin/models${url.search}`;
+    } else if (pathSegments) {
+      // Other methods go to /api/v1/admin/models/{pathSegments}
+      targetUrl = `${BACKEND_URL}/api/v1/admin/models/${pathSegments}${url.search}`;
+    } else {
+      targetUrl = `${BACKEND_URL}/api/v1/admin/models${url.search}`;
+    }
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      host: new URL(BACKEND_URL).host,
+    };
+    // Forward auth header
+    const auth = request.headers.get("Authorization");
+    if (auth) headers["Authorization"] = auth;
+
+    const fetchOptions: RequestInit = { method, headers };
+    if (method !== "GET" && method !== "DELETE") {
+      fetchOptions.body = await request.text();
+    }
+
+    const resp = await fetch(targetUrl, fetchOptions);
+    const data = await resp.json();
+    return NextResponse.json(data, { status: resp.status });
+  } catch (error) {
+    console.error(`Proxy ${method} /admin/models/:id error:`, error);
+    return NextResponse.json(
+      { error: { code: "INTERNAL_ERROR", message: "后端连接失败" } },
+      { status: 502 }
+    );
   }
 }
 
@@ -25,201 +51,31 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const user = getUserFromRequest(request);
-    if (!user || user.role !== "admin") {
-      return NextResponse.json(
-        { error: { code: "UNAUTHORIZED", message: "需要管理员权限" } },
-        { status: 401 }
-      );
-    }
+  // Await params to satisfy Next.js, then proxy
+  await params;
+  return proxy(request, "GET");
+}
 
-    const { id } = await params;
-
-    const model = await queryOne<Record<string, unknown>>(
-      `SELECT id, type, code, name, provider, description, endpoint, "apiKey",
-              "modelName", "modelId", status, env, "maxTokens", temperature, "systemPrompt",
-              resolution, quality, duration, fps, timeout, retry, proxy,
-              "customHeaders", "createdAt", "updatedAt"
-       FROM "AIModel" WHERE id = $1`,
-      [id]
-    );
-
-    if (!model) {
-      return NextResponse.json(
-        { error: { code: "NOT_FOUND", message: "模型不存在" } },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ data: model });
-  } catch (error) {
-    console.error("Get model error:", error);
-    return NextResponse.json(
-      { error: { code: "INTERNAL_ERROR", message: "服务器内部错误" } },
-      { status: 500 }
-    );
-  }
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  await params;
+  return proxy(request, "POST");
 }
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const user = getUserFromRequest(request);
-    if (!user || user.role !== "admin") {
-      return NextResponse.json(
-        { error: { code: "UNAUTHORIZED", message: "需要管理员权限" } },
-        { status: 401 }
-      );
-    }
-
-    const { id } = await params;
-    const body = await request.json();
-
-    // Check if model exists
-    const existing = await queryOne<{ id: string }>(
-      `SELECT id FROM "AIModel" WHERE id = $1`,
-      [id]
-    );
-
-    if (!existing) {
-      return NextResponse.json(
-        { error: { code: "NOT_FOUND", message: "模型不存在" } },
-        { status: 404 }
-      );
-    }
-
-    const {
-      name,
-      provider,
-      description,
-      endpoint,
-      apiKey,
-      modelName,
-      modelId,
-      status,
-      env,
-      maxTokens,
-      temperature,
-      systemPrompt,
-      resolution,
-      quality,
-      duration,
-      fps,
-      timeout,
-      retry,
-      proxy,
-      customHeaders,
-    } = body;
-
-    const now = new Date().toISOString();
-
-    await execute(
-      `UPDATE "AIModel" SET
-        name = COALESCE($1, name),
-        provider = COALESCE($2, provider),
-        description = COALESCE($3, description),
-        endpoint = COALESCE($4, endpoint),
-        "apiKey" = COALESCE($5, "apiKey"),
-        "modelName" = COALESCE($6, "modelName"),
-        "modelId" = COALESCE($7, "modelId"),
-        status = COALESCE($8, status),
-        env = COALESCE($9, env),
-        "maxTokens" = COALESCE($10, "maxTokens"),
-        temperature = COALESCE($11, temperature),
-        "systemPrompt" = COALESCE($12, "systemPrompt"),
-        resolution = COALESCE($13, resolution),
-        quality = COALESCE($14, quality),
-        duration = COALESCE($15, duration),
-        fps = COALESCE($16, fps),
-        timeout = COALESCE($17, timeout),
-        retry = COALESCE($18, retry),
-        proxy = COALESCE($19, proxy),
-        "customHeaders" = COALESCE($20, "customHeaders"),
-        "updatedAt" = $21
-       WHERE id = $22`,
-      [
-        name?.trim() || null,
-        provider || null,
-        description?.trim() || null,
-        endpoint?.trim() || null,
-        apiKey?.trim() || null,
-        modelName?.trim() || null,
-        modelId?.trim() || null,
-        status || null,
-        env || null,
-        maxTokens || null,
-        temperature || null,
-        systemPrompt?.trim() || null,
-        resolution || null,
-        quality || null,
-        duration || null,
-        fps || null,
-        timeout || null,
-        retry || null,
-        proxy?.trim() || null,
-        customHeaders ? JSON.stringify(customHeaders) : null,
-        now,
-        id,
-      ]
-    );
-
-    const models = await query<Record<string, unknown>>(
-      `SELECT id, type, code, name, provider, description, endpoint, "apiKey",
-              "modelName", "modelId", status, env, "maxTokens", temperature, "systemPrompt",
-              resolution, quality, duration, fps, timeout, retry, proxy,
-              "customHeaders", "createdAt", "updatedAt"
-       FROM "AIModel" WHERE id = $1`,
-      [id]
-    );
-
-    return NextResponse.json({ data: models[0] });
-  } catch (error) {
-    console.error("Update model error:", error);
-    return NextResponse.json(
-      { error: { code: "INTERNAL_ERROR", message: "服务器内部错误" } },
-      { status: 500 }
-    );
-  }
+  await params;
+  return proxy(request, "PUT");
 }
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const user = getUserFromRequest(request);
-    if (!user || user.role !== "admin") {
-      return NextResponse.json(
-        { error: { code: "UNAUTHORIZED", message: "需要管理员权限" } },
-        { status: 401 }
-      );
-    }
-
-    const { id } = await params;
-
-    const existing = await queryOne<{ id: string }>(
-      `SELECT id FROM "AIModel" WHERE id = $1`,
-      [id]
-    );
-
-    if (!existing) {
-      return NextResponse.json(
-        { error: { code: "NOT_FOUND", message: "模型不存在" } },
-        { status: 404 }
-      );
-    }
-
-    await execute(`DELETE FROM "AIModel" WHERE id = $1`, [id]);
-
-    return NextResponse.json({ data: { id, deleted: true } });
-  } catch (error) {
-    console.error("Delete model error:", error);
-    return NextResponse.json(
-      { error: { code: "INTERNAL_ERROR", message: "服务器内部错误" } },
-      { status: 500 }
-    );
-  }
+  await params;
+  return proxy(request, "DELETE");
 }

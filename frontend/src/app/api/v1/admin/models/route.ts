@@ -1,207 +1,84 @@
-// Models Admin API - CRUD operations
+// Proxy to FastAPI backend: /api/v1/admin/models
 
 import { NextRequest, NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
-import { query, execute, queryOne } from "@/lib/db";
 
-const JWT_SECRET = process.env.JWT_SECRET || "ai-manhua-dev-secret-key-2026";
-
-function getUserFromRequest(request: NextRequest): { id: string; role: string } | null {
-  const authHeader = request.headers.get("Authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return null;
-  }
-
-  const token = authHeader.substring(7);
-  try {
-    const payload = jwt.verify(token, JWT_SECRET) as { sub: string; role?: string };
-    return { id: payload.sub, role: payload.role || "user" };
-  } catch {
-    return null;
-  }
-}
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export async function GET(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json(
-        { error: { code: "UNAUTHORIZED", message: "请先登录" } },
-        { status: 401 }
-      );
-    }
-
-    // Only admin can access
-    if (user.role !== "admin") {
-      return NextResponse.json(
-        { error: { code: "FORBIDDEN", message: "需要管理员权限" } },
-        { status: 403 }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get("type"); // llm, t2i, i2v
+    const type = searchParams.get("type");
+    const url = `${BACKEND_URL}/api/v1/admin/models${type ? `?type=${type}` : ""}`;
 
-    let sql = `SELECT id, type, code, name, provider, description, endpoint, "apiKey",
-                      "modelName", "modelId", status, env, "maxTokens", temperature, "systemPrompt",
-                      resolution, quality, duration, fps, timeout, retry, proxy,
-                      "customHeaders", "createdAt", "updatedAt"
-               FROM "AIModel"`;
+    const resp = await fetch(url, {
+      headers: {
+        ...Object.fromEntries(request.headers.entries()),
+        host: new URL(BACKEND_URL).host,
+      },
+    });
 
-    const params: unknown[] = [];
-    if (type) {
-      sql += ` WHERE type = $1`;
-      params.push(type);
-    }
-    sql += ` ORDER BY type, name`;
-
-    const models = await query<Record<string, unknown>>(sql, params);
-    return NextResponse.json({ data: models });
+    const data = await resp.json();
+    return NextResponse.json(data, { status: resp.status });
   } catch (error) {
-    console.error("Get models error:", error);
+    console.error("Proxy GET /admin/models error:", error);
     return NextResponse.json(
-      { error: { code: "INTERNAL_ERROR", message: "服务器内部错误" } },
-      { status: 500 }
+      { error: { code: "INTERNAL_ERROR", message: "后端连接失败" } },
+      { status: 502 }
     );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json(
-        { error: { code: "UNAUTHORIZED", message: "请先登录" } },
-        { status: 401 }
-      );
-    }
-
-    if (user.role !== "admin") {
-      return NextResponse.json(
-        { error: { code: "FORBIDDEN", message: "需要管理员权限" } },
-        { status: 403 }
-      );
-    }
-
+    const url = `${BACKEND_URL}/api/v1/admin/models`;
     const body = await request.json();
-    const {
-      type,
-      code,
-      name,
-      provider,
-      description,
-      endpoint,
-      apiKey,
-      modelName,
-      modelId,
-      maxTokens,
-      temperature,
-      systemPrompt,
-      resolution,
-      quality,
-      duration,
-      fps,
-      timeout = 30,
-      retry = 3,
-      proxy,
-      customHeaders,
-    } = body;
 
-    // Validation
-    if (!type || !["llm", "t2i", "i2v"].includes(type)) {
-      return NextResponse.json(
-        { error: { code: "VALIDATION_ERROR", message: "请选择有效的模型类型" } },
-        { status: 400 }
-      );
-    }
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...Object.fromEntries(request.headers.entries()),
+        host: new URL(BACKEND_URL).host,
+      },
+      body: JSON.stringify(body),
+    });
 
-    if (!code || code.trim().length === 0) {
-      return NextResponse.json(
-        { error: { code: "VALIDATION_ERROR", message: "模型代码不能为空" } },
-        { status: 400 }
-      );
-    }
-
-    if (!name || name.trim().length === 0) {
-      return NextResponse.json(
-        { error: { code: "VALIDATION_ERROR", message: "模型名称不能为空" } },
-        { status: 400 }
-      );
-    }
-
-    if (!endpoint || endpoint.trim().length === 0) {
-      return NextResponse.json(
-        { error: { code: "VALIDATION_ERROR", message: "API端点不能为空" } },
-        { status: 400 }
-      );
-    }
-
-    // Check if code already exists
-    const existing = await queryOne<{ id: string }>(
-      `SELECT id FROM "AIModel" WHERE code = $1`,
-      [code.trim()]
-    );
-
-    if (existing) {
-      return NextResponse.json(
-        { error: { code: "VALIDATION_ERROR", message: "模型代码已存在" } },
-        { status: 400 }
-      );
-    }
-
-    const id = `model_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const now = new Date().toISOString();
-
-    await execute(
-      `INSERT INTO "AIModel" (id, type, code, name, provider, description, endpoint,
-        "apiKey", "modelName", "modelId", status, env, "maxTokens", temperature, "systemPrompt",
-        resolution, quality, duration, fps, timeout, retry, proxy, "customHeaders",
-        "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)`,
-      [
-        id,
-        type,
-        code.trim(),
-        name.trim(),
-        provider || "custom",
-        description?.trim() || null,
-        endpoint.trim(),
-        apiKey?.trim() || null,
-        modelName?.trim() || null,
-        modelId?.trim() || null,
-        "offline",
-        "prod",
-        maxTokens || null,
-        temperature || null,
-        systemPrompt?.trim() || null,
-        resolution || null,
-        quality || null,
-        duration || null,
-        fps || null,
-        timeout,
-        retry,
-        proxy?.trim() || null,
-        customHeaders ? JSON.stringify(customHeaders) : null,
-        now,
-        now,
-      ]
-    );
-
-    const models = await query<Record<string, unknown>>(
-      `SELECT id, type, code, name, provider, description, endpoint, "apiKey",
-              "modelName", "modelId", status, env, "maxTokens", temperature, "systemPrompt",
-              resolution, quality, duration, fps, timeout, retry, proxy,
-              "customHeaders", "createdAt", "updatedAt"
-       FROM "AIModel" WHERE id = $1`,
-      [id]
-    );
-
-    return NextResponse.json({ data: models[0] }, { status: 201 });
+    const data = await resp.json();
+    return NextResponse.json(data, { status: resp.status });
   } catch (error) {
-    console.error("Create model error:", error);
+    console.error("Proxy POST /admin/models error:", error);
     return NextResponse.json(
-      { error: { code: "INTERNAL_ERROR", message: "服务器内部错误" } },
-      { status: 500 }
+      { error: { code: "INTERNAL_ERROR", message: "后端连接失败" } },
+      { status: 502 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const url = new URL(request.url);
+    const modelType = url.searchParams.get("model_type");
+    const model = url.searchParams.get("model");
+    const params = new URLSearchParams();
+    if (modelType) params.set("model_type", modelType);
+    if (model) params.set("model", model);
+    const targetUrl = `${BACKEND_URL}/api/v1/admin/models${params.toString() ? `?${params.toString()}` : ""}`;
+
+    const resp = await fetch(targetUrl, {
+      method: "DELETE",
+      headers: {
+        ...Object.fromEntries(request.headers.entries()),
+        host: new URL(BACKEND_URL).host,
+      },
+    });
+
+    const data = await resp.json();
+    return NextResponse.json(data, { status: resp.status });
+  } catch (error) {
+    console.error("Proxy DELETE /admin/models error:", error);
+    return NextResponse.json(
+      { error: { code: "INTERNAL_ERROR", message: "后端连接失败" } },
+      { status: 502 }
     );
   }
 }

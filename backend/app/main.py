@@ -7,6 +7,12 @@ from app.api.v1.novel.split import router as novel_split_router
 from app.api.v1.assets.extract import router as assets_extract_router
 from app.api.v1.assets.generate import router as assets_generate_router
 from app.api.v1.models import router as models_router
+from app.api.v1.videos import router as videos_router
+from app.api.v1.chat import router as chat_router
+from app.api.v1.images import router as images_router
+from app.api.v1.audio import router as audio_router
+from app.api.v1.comfyui import router as comfyui_router
+from app.api.v1.tasks import router as tasks_router
 from app.core.config import settings
 from app.core.db import init_db
 
@@ -30,6 +36,12 @@ app.include_router(novel_split_router)
 app.include_router(assets_extract_router)
 app.include_router(assets_generate_router)
 app.include_router(models_router)
+app.include_router(videos_router)
+app.include_router(chat_router)
+app.include_router(images_router)
+app.include_router(audio_router)
+app.include_router(comfyui_router)
+app.include_router(tasks_router)
 
 
 @app.get("/")

@@ -3,10 +3,23 @@
 import axios from "axios";
 import { useAuthStore } from "@/stores/auth";
 
+export type AIModelType =
+  | "llm"           // 大语言模型
+  | "t2i"           // 文生图
+  | "t2v"           // 文生视频
+  | "i2v_ff"        // 图生视频-首帧
+  | "i2v_fflf"      // 图生视频-首尾帧
+  | "video_edit"    // 视频编辑
+  | "video_extend"  // 视频续写
+  | "r2v"           // 参考生视频
+  | "a2v"           // 音频驱动
+  | "tts"           // 语音合成
+  | "comfyui";      // ComfyUI 工作流
+
 export interface AIModel {
   id: string;
-  type: "llm" | "t2i" | "i2v";
-  code: string;
+  type: AIModelType;
+  code: string;         // modelId 唯一标识
   name: string;
   provider: string;
   description: string | null;
@@ -16,17 +29,15 @@ export interface AIModel {
   modelId: string | null;  // API调用时实际使用的模型ID
   status: "online" | "offline" | "testing";
   env: "prod" | "test" | "dev";
-  maxTokens: number | null;
-  temperature: number | null;
-  systemPrompt: string | null;
-  resolution: string | null;
-  quality: string | null;
-  duration: number | null;
-  fps: number | null;
+  protocol: string;     // dashscope, volcengine_ark, comfyui, openai, custom
   timeout: number;
   retry: number;
   proxy: string | null;
   customHeaders: string | null;
+  tags: string[];       // ["video", "realtime"]
+  paramsSchema: Record<string, unknown>; // Jinja2 参数映射模板
+  grayRatio: number;    // 灰度流量比例 0-100
+  version: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -83,7 +94,7 @@ export async function getModel(id: string): Promise<AIModel> {
 }
 
 export interface CreateModelData {
-  type: "llm" | "t2i" | "i2v";
+  type: AIModelType;
   code: string;
   name: string;
   provider: string;
@@ -92,17 +103,16 @@ export interface CreateModelData {
   apiKey?: string;
   modelName?: string;
   modelId?: string;
-  maxTokens?: number;
-  temperature?: number;
-  systemPrompt?: string;
-  resolution?: string;
-  quality?: string;
-  duration?: number;
-  fps?: number;
+  protocol?: string;
   timeout?: number;
   retry?: number;
   proxy?: string;
   customHeaders?: Record<string, string>;
+  tags?: string[];
+  paramsSchema?: Record<string, unknown>;
+  grayRatio?: number;
+  env?: "prod" | "test" | "dev";
+  status?: "online" | "offline" | "testing";
 }
 
 export async function createModel(data: CreateModelData): Promise<AIModel> {
@@ -127,19 +137,17 @@ export interface UpdateModelData {
   apiKey?: string;
   modelName?: string;
   modelId?: string;
+  protocol?: string;
   status?: "online" | "offline" | "testing";
   env?: "prod" | "test" | "dev";
-  maxTokens?: number;
-  temperature?: number;
-  systemPrompt?: string;
-  resolution?: string;
-  quality?: string;
-  duration?: number;
-  fps?: number;
   timeout?: number;
   retry?: number;
   proxy?: string;
   customHeaders?: Record<string, string>;
+  tags?: string[];
+  paramsSchema?: Record<string, unknown>;
+  grayRatio?: number;
+  grayVersion?: number;
 }
 
 export async function updateModel(

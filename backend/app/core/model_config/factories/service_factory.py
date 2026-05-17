@@ -30,9 +30,17 @@ class ModelServiceFactory:
             ConfigurationError: if no entry is configured for that type,
                                or if no service exists for the provider.
         """
-        entry = self.registry.get(model_type)
-        if entry is None:
-            raise ConfigurationError(f"No config entry for model type '{model_type.value}'")
+        entries = self.registry.get(model_type)
+        # Handle list format (multiple entries)
+        if isinstance(entries, list):
+            if len(entries) == 0:
+                raise ConfigurationError(f"No config entry for model type '{model_type.value}'")
+            # Use the first entry for service creation
+            entry = entries[0]
+        else:
+            entry = entries
+            if entry is None:
+                raise ConfigurationError(f"No config entry for model type '{model_type.value}'")
 
         provider = entry.provider.lower()
 
