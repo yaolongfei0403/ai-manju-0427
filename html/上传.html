@@ -1,0 +1,2514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI漫剧 - 智能资产工作台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'Noto Sans SC', 'sans-serif'] },
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6',
+                        accent: '#ec4899',
+                        cyan: '#06b6d4',
+                        emerald: '#10b981',
+                        amber: '#f59e0b',
+                        rose: '#f43f5e',
+                        dark: '#0f172a',
+                        darker: '#020617',
+                        surface: '#1e293b',
+                        'surface-light': '#334155',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #8b5cf6;
+            --accent: #ec4899;
+            --emerald: #10b981;
+            --amber: #f59e0b;
+            --cyan: #06b6d4;
+            --rose: #f43f5e;
+            --dark: #0f172a;
+            --darker: #020617;
+            --surface: #1e293b;
+            --surface-light: #334155;
+        }
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            background: #020617;
+            color: #e2e8f0;
+            -webkit-font-smoothing: antialiased;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-panel-strong {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .step-badge {
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            flex-shrink: 0;
+        }
+        .step-badge.active {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            box-shadow: 0 0 22px rgba(99, 102, 241, 0.45), 0 0 0 4px rgba(99, 102, 241, 0.12);
+        }
+        .step-badge.completed {
+            background: #10b981;
+            box-shadow: 0 0 14px rgba(16, 185, 129, 0.35);
+        }
+        .step-badge.pending {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
+            color: #64748b;
+        }
+        .step-line-dot {
+            transition: all 0.5s ease;
+            flex-shrink: 0;
+        }
+        .step-line-dot.active { background: linear-gradient(to right, #6366f1, #8b5cf6); }
+        .step-line-dot.completed { background: #10b981; }
+        .generate-btn {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .generate-btn:hover:not(:disabled) {
+            box-shadow: 0 0 35px rgba(99, 102, 241, 0.55);
+            transform: translateY(-2px);
+        }
+        .generate-btn:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+        }
+        .generate-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            filter: grayscale(15%);
+        }
+        .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .drop-zone {
+            border: 2px dashed rgba(99, 102, 241, 0.3);
+            background: rgba(99, 102, 241, 0.03);
+            transition: all 0.25s ease;
+        }
+        .drop-zone.dragover {
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.1);
+            box-shadow: 0 0 40px rgba(99, 102, 241, 0.15);
+        }
+        .drop-zone.has-file {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.05);
+            border-style: solid;
+        }
+        .asset-card {
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+        .asset-card:hover {
+            border-color: rgba(255, 255, 255, 0.18);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        .asset-card.selected {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2), 0 8px 25px rgba(0, 0, 0, 0.35);
+        }
+        .tag-primary { background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.25); color: #a5b4fc; }
+        .tag-cyan { background: rgba(6, 182, 212, 0.12); border: 1px solid rgba(6, 182, 212, 0.25); color: #22d3ee; }
+        .tag-amber { background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.25); color: #fbbf24; }
+        .tag-emerald { background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); color: #34d399; }
+        .tag-rose { background: rgba(244, 63, 94, 0.12); border: 1px solid rgba(244, 63, 94, 0.25); color: #fb7185; }
+        .progress-bar { transition: width 0.35s ease; border-radius: 999px; }
+        .episode-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .episode-card:hover {
+            border-color: rgba(99, 102, 241, 0.35);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+        }
+        .episode-card.active {
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.06);
+            box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+        }
+        .episode-card.selected-for-merge {
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.06);
+            box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.3);
+        }
+        .episode-card.dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+        .episode-card.drag-over {
+            border-top: 2px solid #6366f1;
+        }
+        .shimmer {
+            position: relative;
+            overflow: hidden;
+        }
+        .shimmer::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+            animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer { 100% { left: 100%; } }
+        .fade-in { animation: fadeIn 0.45s ease forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .slide-up { animation: slideUp 0.4s ease forwards; }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .slide-in-right { animation: slideInRight 0.35s ease forwards; }
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .pulse-dot { animation: pulseDot 2s infinite; }
+        @keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+        .checkbox-custom {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 19px;
+            height: 19px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .checkbox-custom:checked {
+            background: #6366f1;
+            border-color: #6366f1;
+        }
+        .checkbox-custom:checked::after {
+            content: '\f00c';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 10px;
+            color: white;
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .glow-ring { box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3), 0 0 30px rgba(99, 102, 241, 0.1); }
+        .glow-ring-emerald { box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.3), 0 0 30px rgba(16, 185, 129, 0.1); }
+
+        /* 策略卡片 */
+        .strategy-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .strategy-card:hover {
+            border-color: rgba(99, 102, 241, 0.35);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+        }
+        .strategy-card.selected {
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.08);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25), 0 8px 30px rgba(99, 102, 241, 0.15);
+        }
+        .strategy-card.selected::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+        }
+        .strategy-card .check-icon {
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.3s ease;
+        }
+        .strategy-card.selected .check-icon {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* 范围滑块 */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #6366f1;
+            cursor: pointer;
+            margin-top: -7px;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+            border: 2px solid #fff;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 2px;
+        }
+
+        /* 开关 */
+        .toggle-switch {
+            appearance: none;
+            width: 40px;
+            height: 22px;
+            background: #334155;
+            border-radius: 11px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+            outline: none;
+        }
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: #fff;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s;
+        }
+        .toggle-switch:checked { background: #6366f1; }
+        .toggle-switch:checked::after { left: 20px; }
+
+        /* 分镜项 */
+        .shot-item {
+            transition: all 0.2s ease;
+        }
+        .shot-item:hover {
+            background: rgba(99, 102, 241, 0.05);
+            border-color: rgba(99, 102, 241, 0.2);
+        }
+
+        /* 密度条 */
+        .density-bar {
+            transition: all 0.3s ease;
+        }
+
+        /* 抽屉 */
+        .drawer-overlay {
+            transition: opacity 0.3s ease;
+        }
+        .drawer-panel {
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 角色分布条 */
+        .char-bar-segment {
+            transition: all 0.3s ease;
+        }
+        .char-bar-segment:hover {
+            filter: brightness(1.2);
+        }
+
+        /* ===== 新增：提示词智能系统样式 ===== */
+        .prompt-chip {
+            transition: all 0.2s ease;
+            cursor: pointer;
+            user-select: none;
+        }
+        .prompt-chip:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .prompt-chip.active {
+            background: rgba(99, 102, 241, 0.25) !important;
+            border-color: rgba(99, 102, 241, 0.6) !important;
+            color: #a5b4fc !important;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+        .prompt-score-ring {
+            transition: stroke-dashoffset 0.6s ease;
+        }
+        .inspiration-card {
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+        .inspiration-card:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateX(4px);
+            background: rgba(99, 102, 241, 0.06);
+        }
+        .template-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .template-card:hover {
+            border-color: rgba(16, 185, 129, 0.4);
+            background: rgba(16, 185, 129, 0.06);
+        }
+        .typing-cursor::after {
+            content: '|';
+            animation: blink 1s infinite;
+            color: #6366f1;
+            margin-left: 2px;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        .prompt-builder-category {
+            transition: all 0.3s ease;
+        }
+        .prompt-builder-category:hover {
+            background: rgba(255,255,255,0.03);
+        }
+
+        .style-preview-box {
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .style-preview-box::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .style-preview-box:hover::before {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .step-text-short { display: none; }
+            .step-badge { width: 32px !important; height: 32px !important; font-size: 10px !important; }
+            .step-line-dot { width: 12px !important; }
+        }
+    </style>
+<base target="_blank">
+</head>
+<body class="h-screen overflow-hidden bg-darker flex flex-col">
+
+    <!-- 顶部导航 -->
+    <header class="h-16 glass-panel-strong border-b border-white/5 flex items-center justify-between px-5 md:px-6 z-50 relative flex-shrink-0">
+        <div class="flex items-center gap-3 md:gap-4">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/30 flex-shrink-0">
+                <i class="fas fa-film text-white text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-base md:text-lg font-bold text-white tracking-tight">AI漫剧生成工作台</h1>
+                <p class="text-xs text-slate-400 hidden sm:block">小说上传与资产提取 · 七步流程</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 md:gap-3">
+            <button class="w-9 h-9 rounded-lg bg-surface border border-white/5 flex items-center justify-center text-slate-400 hover:text-white hover:border-white/15 transition-all flex-shrink-0">
+                <i class="fas fa-cog"></i>
+            </button>
+            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-lg shadow-primary/25">A</div>
+        </div>
+    </header>
+
+    <!-- 导航链接 -->
+    <nav class="hidden md:flex items-center gap-1 px-5 md:px-6 py-2 border-b border-white/5 bg-surface/30">
+        <a href="#" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-[11px] font-medium transition-all">
+            <i class="fas fa-folder mr-1"></i>项目
+        </a>
+        <a href="#" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-[11px] font-medium transition-all">
+            <i class="fas fa-plus mr-1"></i>创建
+        </a>
+        <a href="#" class="px-2.5 py-1 rounded-lg bg-primary/15 text-primary border border-primary/25 text-[11px] font-medium">
+            <i class="fas fa-upload mr-1"></i>小说上传
+        </a>
+        <a href="#" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-[11px] font-medium transition-all">
+            <i class="fas fa-list mr-1"></i>分集
+        </a>
+        <a href="#" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-[11px] font-medium transition-all">
+            <i class="fas fa-video mr-1"></i>视频
+        </a>
+        <a href="#" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 text-[11px] font-medium transition-all">
+            <i class="fas fa-user mr-1"></i>用户
+        </a>
+    </nav>
+
+    <!-- 步骤导航 - 7步 -->
+    <div class="h-[72px] md:h-20 glass-panel-strong border-b border-white/5 flex items-center z-40 relative flex-shrink-0 overflow-x-auto custom-scroll">
+        <div class="flex items-center max-w-5xl w-full px-3 md:px-6 mx-auto gap-1 md:gap-2" id="stepNav">
+            <!-- Step 1 -->
+            <div class="flex items-center gap-2 flex-shrink-0 cursor-pointer px-1.5 py-1.5 rounded-xl hover:bg-white/[0.03] transition-all" onclick="if(currentPhase>=1)goToPhase(1)">
+                <div id="nav-badge-1" class="step-badge active w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                    <i class="fas fa-upload"></i>
+                </div>
+                <div class="step-text-short hidden lg:block">
+                    <div class="text-xs md:text-sm font-semibold text-white whitespace-nowrap">上传小说</div>
+                    <div class="text-[10px] text-slate-400 whitespace-nowrap">TXT/DOCX</div>
+                </div>
+            </div>
+            <div class="w-5 md:w-8 h-0.5 mx-0.5 bg-surface-light rounded-full overflow-hidden flex-shrink-0 step-line-dot" id="nav-line-1">
+                <div class="h-full w-full" style="background:linear-gradient(to right,#6366f1,#8b5cf6)"></div>
+            </div>
+            <!-- Step 2 -->
+            <div class="flex items-center gap-2 flex-shrink-0 cursor-pointer px-1.5 py-1.5 rounded-xl hover:bg-white/[0.03] transition-all" onclick="if(currentPhase>=2)goToPhase(2)">
+                <div id="nav-badge-2" class="step-badge pending w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-xs">
+                    <i class="fas fa-file-shield"></i>
+                </div>
+                <div class="step-text-short hidden lg:block">
+                    <div id="nav-title-2" class="text-xs md:text-sm font-semibold text-slate-500 whitespace-nowrap">免责确认</div>
+                    <div class="text-[10px] text-slate-600 whitespace-nowrap">版权授权</div>
+                </div>
+            </div>
+            <div class="w-5 md:w-8 h-0.5 mx-0.5 bg-surface-light rounded-full overflow-hidden flex-shrink-0 step-line-dot" id="nav-line-2">
+                <div class="h-full w-0" style="transition:width 0.5s ease"></div>
+            </div>
+            <!-- Step 3 -->
+            <div class="flex items-center gap-2 flex-shrink-0 cursor-pointer px-1.5 py-1.5 rounded-xl hover:bg-white/[0.03] transition-all" onclick="if(currentPhase>=3)goToPhase(3)">
+                <div id="nav-badge-3" class="step-badge pending w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-xs">
+                    <i class="fas fa-scissors"></i>
+                </div>
+                <div class="step-text-short hidden lg:block">
+                    <div id="nav-title-3" class="text-xs md:text-sm font-semibold text-slate-500 whitespace-nowrap">拆解分集</div>
+                    <div class="text-[10px] text-slate-600 whitespace-nowrap">智能拆分</div>
+                </div>
+            </div>
+            <div class="w-5 md:w-8 h-0.5 mx-0.5 bg-surface-light rounded-full overflow-hidden flex-shrink-0 step-line-dot" id="nav-line-3">
+                <div class="h-full w-0" style="transition:width 0.5s ease"></div>
+            </div>
+            <!-- Step 4 -->
+            <div class="flex items-center gap-2 flex-shrink-0 cursor-pointer px-1.5 py-1.5 rounded-xl hover:bg-white/[0.03] transition-all" onclick="if(currentPhase>=4)goToPhase(4)">
+                <div id="nav-badge-4" class="step-badge pending w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-xs">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="step-text-short hidden lg:block">
+                    <div id="nav-title-4" class="text-xs md:text-sm font-semibold text-slate-500 whitespace-nowrap">提取资产</div>
+                    <div class="text-[10px] text-slate-600 whitespace-nowrap">角色场景道具</div>
+                </div>
+            </div>
+            <div class="w-5 md:w-8 h-0.5 mx-0.5 bg-surface-light rounded-full overflow-hidden flex-shrink-0 step-line-dot" id="nav-line-4">
+                <div class="h-full w-0" style="transition:width 0.5s ease"></div>
+            </div>
+            <!-- Step 5 -->
+            <div class="flex items-center gap-2 flex-shrink-0 cursor-pointer px-1.5 py-1.5 rounded-xl hover:bg-white/[0.03] transition-all" onclick="if(currentPhase>=5)goToPhase(5)">
+                <div id="nav-badge-5" class="step-badge pending w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-xs">
+                    <i class="fas fa-list-check"></i>
+                </div>
+                <div class="step-text-short hidden lg:block">
+                    <div id="nav-title-5" class="text-xs md:text-sm font-semibold text-slate-500 whitespace-nowrap">确认资产</div>
+                    <div class="text-[10px] text-slate-600 whitespace-nowrap">编辑筛选</div>
+                </div>
+            </div>
+            <div class="w-5 md:w-8 h-0.5 mx-0.5 bg-surface-light rounded-full overflow-hidden flex-shrink-0 step-line-dot" id="nav-line-5">
+                <div class="h-full w-0" style="transition:width 0.5s ease"></div>
+            </div>
+            <!-- Step 6 -->
+            <div class="flex items-center gap-2 flex-shrink-0 cursor-pointer px-1.5 py-1.5 rounded-xl hover:bg-white/[0.03] transition-all" onclick="if(currentPhase>=6)goToPhase(6)">
+                <div id="nav-badge-6" class="step-badge pending w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-xs">
+                    <i class="fas fa-wand-magic-sparkles"></i>
+                </div>
+                <div class="step-text-short hidden lg:block">
+                    <div id="nav-title-6" class="text-xs md:text-sm font-semibold text-slate-500 whitespace-nowrap">批量生产</div>
+                    <div class="text-[10px] text-slate-600 whitespace-nowrap">生成参考图</div>
+                </div>
+            </div>
+            <div class="w-5 md:w-8 h-0.5 mx-0.5 bg-surface-light rounded-full overflow-hidden flex-shrink-0 step-line-dot" id="nav-line-6">
+                <div class="h-full w-0" style="transition:width 0.5s ease"></div>
+            </div>
+            <!-- Step 7 -->
+            <div class="flex items-center gap-2 flex-shrink-0 cursor-pointer px-1.5 py-1.5 rounded-xl hover:bg-white/[0.03] transition-all" onclick="if(currentPhase>=7)goToPhase(7)">
+                <div id="nav-badge-7" class="step-badge pending w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-xs">
+                    <i class="fas fa-check-double"></i>
+                </div>
+                <div class="step-text-short hidden lg:block">
+                    <div id="nav-title-7" class="text-xs md:text-sm font-semibold text-slate-500 whitespace-nowrap">入资产库</div>
+                    <div class="text-[10px] text-slate-600 whitespace-nowrap">完成入库</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <main class="flex-1 overflow-y-auto custom-scroll relative" id="mainContent">
+
+        <!-- ========== Phase 1: 上传小说（增强：智能题材识别） ========== -->
+        <div id="phase-1" class="max-w-3xl mx-auto p-6 md:p-8 fade-in">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-primary/20 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/5">
+                    <i class="fas fa-cloud-upload-alt text-primary text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-2">上传小说文件</h2>
+                <p class="text-sm text-slate-400">支持 TXT、DOCX、PDF 格式，AI 将自动分析题材并推荐视觉风格</p>
+            </div>
+            <div class="glass-panel rounded-2xl p-6 md:p-8 mb-6 shadow-2xl shadow-black/20">
+                <div id="uploadZone" class="drop-zone rounded-xl p-6 md:p-14 text-center cursor-pointer transition-all min-h-[180px] flex flex-col items-center justify-center" onclick="document.getElementById('fileInput').click()">
+                    <input type="file" id="fileInput" class="hidden" accept=".txt,.docx,.pdf" onchange="handleFileSelect(event)">
+                    <div id="uploadIcon">
+                        <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-surface/60 border border-white/5 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                            <i class="fas fa-file-lines text-2xl sm:text-3xl text-slate-500"></i>
+                        </div>
+                        <p class="text-sm sm:text-base text-slate-300 font-medium mb-1">点击或拖拽文件到此处</p>
+                        <p class="text-xs text-slate-500">支持 TXT / DOCX / PDF，最大 50MB</p>
+                    </div>
+                    <div id="fileInfo" class="hidden">
+                        <div class="w-14 h-14 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mx-auto mb-3 glow-ring-emerald">
+                            <i class="fas fa-file-text text-emerald-400 text-xl"></i>
+                        </div>
+                        <p class="text-base text-white font-medium" id="fileName">星辰大海.txt</p>
+                        <p class="text-xs text-slate-400 mt-1" id="fileSize">2.4 MB · 约 38 万字</p>
+                        <button onclick="event.stopPropagation(); clearFile()" class="mt-3 text-xs text-rose-400 hover:text-rose-300 transition-colors px-3 py-1 rounded-lg hover:bg-rose-500/10">
+                            <i class="fas fa-trash mr-1"></i>移除文件
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 智能题材识别结果（上传后显示） -->
+                <div id="genreDetection" class="hidden mt-5 p-4 rounded-xl bg-primary/5 border border-primary/15">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center">
+                            <i class="fas fa-wand-magic-sparkles text-primary text-sm"></i>
+                        </div>
+                        <div>
+                            <div class="text-sm font-semibold text-white">AI 题材识别完成</div>
+                            <div class="text-xs text-slate-400">已自动分析文本内容并推荐配置</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="p-3 rounded-lg bg-surface/40 border border-white/5">
+                            <div class="text-[10px] text-slate-500 mb-1">识别题材</div>
+                            <div class="text-sm font-medium text-primary flex items-center gap-2">
+                                <i class="fas fa-rocket text-xs"></i>硬科幻 / 星际冒险
+                            </div>
+                        </div>
+                        <div class="p-3 rounded-lg bg-surface/40 border border-white/5">
+                            <div class="text-[10px] text-slate-500 mb-1">推荐风格</div>
+                            <div class="text-sm font-medium text-cyan flex items-center gap-2">
+                                <i class="fas fa-palette text-xs"></i>写实科幻 / 电影级
+                            </div>
+                        </div>
+                        <div class="p-3 rounded-lg bg-surface/40 border border-white/5">
+                            <div class="text-[10px] text-slate-500 mb-1">核心元素</div>
+                            <div class="text-xs text-slate-300">太空飞船、异星文明、能量核心</div>
+                        </div>
+                        <div class="p-3 rounded-lg bg-surface/40 border border-white/5">
+                            <div class="text-[10px] text-slate-500 mb-1">预估资产</div>
+                            <div class="text-xs text-slate-300">5 角色 · 8 场景 · 6 道具</div>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center gap-2 p-2 rounded-lg bg-amber-500/5 border border-amber-500/10">
+                        <i class="fas fa-lightbulb text-amber text-xs"></i>
+                        <span class="text-xs text-amber-300">检测到太空题材，已预置「银色太空服」「全息投影」「星云背景」等提示词模板</span>
+                    </div>
+                </div>
+
+                <div class="mt-6 space-y-4">
+                    <div>
+                        <label class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 block">作品名称</label>
+                        <input type="text" id="novelTitle" placeholder="输入作品名称..." class="w-full px-4 py-3 bg-surface border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all">
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 block">作者</label>
+                        <input type="text" placeholder="输入作者名称..." class="w-full px-4 py-3 bg-surface border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 block">题材类型</label>
+                            <select id="genreSelect" class="w-full px-4 py-3 bg-surface border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-primary/50 transition-all cursor-pointer">
+                                <option>科幻</option><option>玄幻</option><option>都市</option><option>古言</option><option>悬疑</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 block">风格偏好</label>
+                            <select id="styleSelect" class="w-full px-4 py-3 bg-surface border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-primary/50 transition-all cursor-pointer">
+                                <option>写实科幻</option><option>二次元动漫</option><option>国风水墨</option><option>欧美漫画</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button onclick="goToPhase(2)" id="btn-phase-1" disabled class="generate-btn w-full py-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/25 text-base disabled:opacity-40 disabled:cursor-not-allowed">
+                <span>下一步：确认免责书</span>
+                <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+
+        <!-- ========== Phase 2: 免责确认 ========== -->
+        <div id="phase-2" class="max-w-3xl mx-auto p-6 md:p-8 hidden">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-primary/20 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/5">
+                    <i class="fas fa-file-shield text-primary text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-2">版权与使用授权确认</h2>
+                <p class="text-sm text-slate-400">请仔细阅读以下条款，确认您拥有该作品的合法使用权</p>
+            </div>
+
+            <div class="flex items-center justify-center gap-2 mb-6">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-xs text-slate-500">已确认</span>
+                    <span class="text-lg font-bold text-primary" id="agreeCount">0</span>
+                    <span class="text-xs text-slate-500">/ 4 项</span>
+                </div>
+                <div class="w-24 h-1.5 bg-surface rounded-full overflow-hidden ml-3">
+                    <div class="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all duration-500" id="agreeProgress" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-4 sm:p-5 mb-6 shadow-2xl shadow-black/20 space-y-3">
+                <div class="agreement-item group flex items-start gap-3 p-3 sm:p-4 rounded-xl bg-surface/40 border border-white/[0.06] hover:border-primary/30 hover:bg-surface/60 transition-all duration-300 cursor-pointer" onclick="toggleAgreement('agree1')">
+                    <div class="agree-icon w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-emerald/15 to-emerald/5 border border-emerald/20 flex items-center justify-center flex-shrink-0 transition-all group-hover:scale-110">
+                        <i class="fas fa-pen-fancy text-emerald text-xs"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-white font-semibold text-xs sm:text-sm">原创声明</span>
+                            <span class="px-1 py-0.5 rounded bg-emerald/15 text-emerald text-[9px] sm:text-[10px] font-medium">必填</span>
+                        </div>
+                        <p class="text-slate-400 text-xs sm:text-sm leading-relaxed line-clamp-3">我确认上传的作品为本人原创，或我已获得原作者的完整授权，有权使用该作品进行 AI 漫剧改编与生成。</p>
+                    </div>
+                    <input type="checkbox" id="agree1" class="checkbox-custom mt-0.5 sm:mt-1 flex-shrink-0" onchange="checkAgreements()">
+                </div>
+                <div class="agreement-item group flex items-start gap-3 p-3 sm:p-4 rounded-xl bg-surface/40 border border-white/[0.06] hover:border-primary/30 hover:bg-surface/60 transition-all duration-300 cursor-pointer" onclick="toggleAgreement('agree2')">
+                    <div class="agree-icon w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/20 flex items-center justify-center flex-shrink-0 transition-all group-hover:scale-110">
+                        <i class="fas fa-robot text-primary text-xs"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-white font-semibold text-xs sm:text-sm">AI 生成内容授权</span>
+                            <span class="px-1 py-0.5 rounded bg-primary/15 text-primary text-[9px] sm:text-[10px] font-medium">必填</span>
+                        </div>
+                        <p class="text-slate-400 text-xs sm:text-sm leading-relaxed line-clamp-3">我同意平台使用 AI 技术对上传内容进行分析和处理，包括但不限于角色提取、场景识别、分镜拆分等自动化处理流程。</p>
+                    </div>
+                    <input type="checkbox" id="agree2" class="checkbox-custom mt-0.5 sm:mt-1 flex-shrink-0" onchange="checkAgreements()">
+                </div>
+                <div class="agreement-item group flex items-start gap-3 p-3 sm:p-4 rounded-xl bg-surface/40 border border-white/[0.06] hover:border-primary/30 hover:bg-surface/60 transition-all duration-300 cursor-pointer" onclick="toggleAgreement('agree3')">
+                    <div class="agree-icon w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-cyan/15 to-cyan/5 border border-cyan/20 flex items-center justify-center flex-shrink-0 transition-all group-hover:scale-110">
+                        <i class="fas fa-images text-cyan text-xs"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-white font-semibold text-xs sm:text-sm">资产使用授权</span>
+                            <span class="px-1 py-0.5 rounded bg-cyan/15 text-cyan text-[9px] sm:text-[10px] font-medium">必填</span>
+                        </div>
+                        <p class="text-slate-400 text-xs sm:text-sm leading-relaxed line-clamp-3">我同意将提取出的角色、场景、道具等资产存入平台资产库，用于后续分镜生成和参考图注入。这些资产仅用于本作品的漫剧生成，不会用于其他用途。</p>
+                    </div>
+                    <input type="checkbox" id="agree3" class="checkbox-custom mt-0.5 sm:mt-1 flex-shrink-0" onchange="checkAgreements()">
+                </div>
+                <div class="agreement-item group flex items-start gap-3 p-3 sm:p-4 rounded-xl bg-surface/40 border border-white/[0.06] hover:border-primary/30 hover:bg-surface/60 transition-all duration-300 cursor-pointer" onclick="toggleAgreement('agree4')">
+                    <div class="agree-icon w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-amber/15 to-amber/5 border border-amber/20 flex items-center justify-center flex-shrink-0 transition-all group-hover:scale-110">
+                        <i class="fas fa-shield-halved text-amber text-xs"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-white font-semibold text-xs sm:text-sm">责任免除</span>
+                            <span class="px-1 py-0.5 rounded bg-amber/15 text-amber text-[9px] sm:text-[10px] font-medium">必填</span>
+                        </div>
+                        <p class="text-slate-400 text-xs sm:text-sm leading-relaxed line-clamp-3">我了解 AI 生成内容可能存在偏差，平台不对生成内容的准确性、完整性或艺术质量承担责任。最终成品需由本人审核确认。</p>
+                    </div>
+                    <input type="checkbox" id="agree4" class="checkbox-custom mt-0.5 sm:mt-1 flex-shrink-0" onchange="checkAgreements()">
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between px-2 mb-4">
+                <label class="flex items-center gap-2 cursor-pointer group">
+                    <input type="checkbox" id="agreeAll" class="checkbox-custom" onchange="toggleAllAgreements(this.checked)">
+                    <span class="text-sm text-slate-400 group-hover:text-white transition-colors">全选全部条款</span>
+                </label>
+                <span class="text-xs text-slate-500">点击条款卡片或复选框即可勾选</span>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="goToPhase(1)" class="flex-1 py-3.5 rounded-xl bg-surface border border-white/10 text-slate-300 font-medium hover:text-white hover:border-white/20 transition-all">
+                    <i class="fas fa-arrow-left mr-2"></i>返回上一步
+                </button>
+                <button onclick="goToPhase(3)" id="btn-phase-2" disabled class="flex-[2] generate-btn py-3.5 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/25 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <span>同意并继续</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- ========== Phase 3: 拆解分集 ========== -->
+        <div id="phase-3" class="max-w-6xl mx-auto p-4 md:p-6 hidden">
+            <div id="phase-3-config" class="fade-in">
+                <div class="text-center mb-6">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald/20 to-cyan/20 border border-emerald/20 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald/5">
+                        <i class="fas fa-sliders text-emerald text-xl"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-white mb-1">配置分集策略</h2>
+                    <p class="text-sm text-slate-400">选择拆分模式并调整参数，AI 将基于您的策略定制分集方案</p>
+                </div>
+                <div class="glass-panel rounded-2xl p-5 md:p-6 mb-5 shadow-2xl shadow-black/20">
+                    <div class="mb-6">
+                        <label class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3 block">选择拆分策略</label>
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3" id="strategyGrid">
+                            <div class="strategy-card rounded-xl border border-white/10 bg-surface/40 p-4 selected" onclick="selectStrategy('balanced')" id="strategy-balanced">
+                                <div class="flex items-start justify-between mb-2">
+                                    <div class="w-9 h-9 rounded-lg bg-emerald/10 border border-emerald/20 flex items-center justify-center">
+                                        <i class="fas fa-scale-balanced text-emerald text-xs"></i>
+                                    </div>
+                                    <div class="check-icon w-5 h-5 rounded-full bg-emerald flex items-center justify-center">
+                                        <i class="fas fa-check text-white text-[9px]"></i>
+                                    </div>
+                                </div>
+                                <h3 class="text-sm font-bold text-white mb-1">智能均衡</h3>
+                                <p class="text-xs text-slate-400 leading-relaxed">自动平衡章节完整性与情节节奏，适合大多数小说。</p>
+                            </div>
+                            <div class="strategy-card rounded-xl border border-white/10 bg-surface/40 p-4" onclick="selectStrategy('plot')" id="strategy-plot">
+                                <div class="flex items-start justify-between mb-2">
+                                    <div class="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                                        <i class="fas fa-mountain text-primary text-xs"></i>
+                                    </div>
+                                    <div class="check-icon w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                        <i class="fas fa-check text-white text-[9px]"></i>
+                                    </div>
+                                </div>
+                                <h3 class="text-sm font-bold text-white mb-1">情节驱动</h3>
+                                <p class="text-xs text-slate-400 leading-relaxed">以高潮、转折点和悬念为边界拆分，增强追剧吸引力。</p>
+                            </div>
+                            <div class="strategy-card rounded-xl border border-white/10 bg-surface/40 p-4" onclick="selectStrategy('character')" id="strategy-character">
+                                <div class="flex items-start justify-between mb-2">
+                                    <div class="w-9 h-9 rounded-lg bg-cyan/10 border border-cyan/20 flex items-center justify-center">
+                                        <i class="fas fa-users text-cyan text-xs"></i>
+                                    </div>
+                                    <div class="check-icon w-5 h-5 rounded-full bg-cyan flex items-center justify-center">
+                                        <i class="fas fa-check text-white text-[9px]"></i>
+                                    </div>
+                                </div>
+                                <h3 class="text-sm font-bold text-white mb-1">角色驱动</h3>
+                                <p class="text-xs text-slate-400 leading-relaxed">以角色出场、成长和关系变化为边界。适合群像剧。</p>
+                            </div>
+                            <div class="strategy-card rounded-xl border border-white/10 bg-surface/40 p-4" onclick="selectStrategy('custom')" id="strategy-custom">
+                                <div class="flex items-start justify-between mb-2">
+                                    <div class="w-9 h-9 rounded-lg bg-amber/10 border border-amber/20 flex items-center justify-center">
+                                        <i class="fas fa-wand-magic-sparkles text-amber text-xs"></i>
+                                    </div>
+                                    <div class="check-icon w-5 h-5 rounded-full bg-amber flex items-center justify-center">
+                                        <i class="fas fa-check text-white text-[9px]"></i>
+                                    </div>
+                                </div>
+                                <h3 class="text-sm font-bold text-white mb-1">自定义策略</h3>
+                                <p class="text-xs text-slate-400 leading-relaxed">输入个性化提示词，AI 完全按照您的需求定制分集。</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                        <div class="p-4 rounded-xl bg-surface/30 border border-white/5">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-sm font-medium text-white">目标集数</label>
+                                <span class="text-sm font-bold text-emerald" id="episodeCountValue">自动</span>
+                            </div>
+                            <input type="range" min="0" max="50" value="0" id="episodeCountSlider" oninput="updateEpisodeCount(this.value)" class="w-full mb-1">
+                            <div class="flex justify-between text-[10px] text-slate-500"><span>自动</span><span>25</span><span>50集</span></div>
+                        </div>
+                        <div class="p-4 rounded-xl bg-surface/30 border border-white/5">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-sm font-medium text-white">每集分镜数范围</label>
+                                <span class="text-sm font-bold text-emerald" id="shotRangeValue">8 - 14</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="number" min="3" max="30" value="8" id="shotMin" onchange="updateShotRange()" class="w-16 px-2 py-1.5 bg-surface border border-white/10 rounded-lg text-sm text-white text-center focus:outline-none focus:border-primary/50">
+                                <span class="text-slate-500">-</span>
+                                <input type="number" min="3" max="30" value="14" id="shotMax" onchange="updateShotRange()" class="w-16 px-2 py-1.5 bg-surface border border-white/10 rounded-lg text-sm text-white text-center focus:outline-none focus:border-primary/50">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 rounded-xl bg-surface/30 border border-white/5 mb-5">
+                        <label class="text-sm font-medium text-white mb-3 block">高级选项</label>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div><div class="text-sm text-slate-300">保持章节完整性</div><div class="text-xs text-slate-500">避免同一章节被拆分到两集</div></div>
+                                <input type="checkbox" class="toggle-switch" id="keepChapterIntegrity" checked>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div><div class="text-sm text-slate-300">首尾集特殊处理</div><div class="text-xs text-slate-500">首集铺垫，尾集收尾或留悬念</div></div>
+                                <input type="checkbox" class="toggle-switch" id="specialFirstLast" checked>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div><div class="text-sm text-slate-300">保留插叙/倒叙结构</div><div class="text-xs text-slate-500">非线性叙事作品建议开启</div></div>
+                                <input type="checkbox" class="toggle-switch" id="preserveNarrative">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="customPromptSection" class="hidden mb-5">
+                        <label class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 block">自定义分集提示词</label>
+                        <textarea id="customSplitPrompt" rows="4" placeholder="描述您的分集需求..." class="w-full px-4 py-3 bg-surface border border-white/10 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber/50 focus:ring-2 focus:ring-amber/10 transition-all resize-none custom-scroll leading-relaxed"></textarea>
+                    </div>
+                    <div class="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15">
+                        <div class="flex items-center gap-2 mb-1"><i class="fas fa-eye text-emerald text-xs"></i><span class="text-xs font-medium text-emerald">策略预览</span></div>
+                        <p class="text-xs text-slate-400 leading-relaxed" id="strategyPreview">AI 将自动分析小说结构，均衡分配情节密度，预计生成 10-15 集。</p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="goToPhase(2)" class="flex-1 py-3 rounded-xl bg-surface border border-white/10 text-slate-300 font-medium hover:text-white hover:border-white/20 transition-all"><i class="fas fa-arrow-left mr-2"></i>返回</button>
+                    <button onclick="startSplitWithStrategy()" class="flex-1 sm:flex-[2] generate-btn py-3 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/25 text-xs sm:text-sm"><i class="fas fa-bolt"></i><span>开始智能拆解</span></button>
+                </div>
+            </div>
+
+            <div id="phase-3-execute" class="hidden max-w-4xl mx-auto">
+                <div class="text-center mb-6">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald/20 to-cyan/20 border border-emerald/20 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald/5 relative">
+                        <i class="fas fa-scissors text-emerald text-xl"></i>
+                        <div class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald flex items-center justify-center" id="split-indicator-dot" style="display:none"><div class="w-1.5 h-1.5 rounded-full bg-white pulse-dot"></div></div>
+                    </div>
+                    <h2 class="text-xl font-bold text-white mb-1">正在拆解分集</h2>
+                    <p class="text-sm text-slate-400">基于「<<span id="strategyNameDisplay" class="text-emerald font-medium">智能均衡</span>」策略分析《<<span id="splitTitle">星辰大海</span>》</p>
+                </div>
+                <div class="glass-panel rounded-2xl p-5 md:p-6 mb-5 shadow-2xl shadow-black/20">
+                    <div class="mb-5" id="splitProgressSection">
+                        <div class="flex items-center justify-between mb-2"><span class="text-sm font-medium text-white">拆分进度</span><span class="text-sm text-emerald font-mono font-bold" id="splitProgressText">0%</span></div>
+                        <div class="h-2 bg-surface-light rounded-full overflow-hidden"><div id="splitProgressBar" class="h-full bg-gradient-to-r from-emerald to-cyan rounded-full progress-bar" style="width: 0%"></div></div>
+                    </div>
+                    <div class="space-y-2.5 mb-5" id="splitTasks">
+                        <div class="flex items-center gap-3 p-3 rounded-xl bg-surface/30 border border-white/5" id="stask-structure">
+                            <div class="w-9 h-9 rounded-lg bg-emerald/10 border border-emerald/20 flex items-center justify-center flex-shrink-0"><i class="fas fa-magnifying-glass-chart text-emerald text-xs"></i></div>
+                            <div class="flex-1"><div class="flex items-center justify-between mb-1"><span class="text-sm font-medium text-white">分析小说结构</span><span class="text-xs text-slate-400 stask-status">等待中...</span></div><div class="h-1.5 bg-surface-light rounded-full overflow-hidden"><div class="h-full bg-emerald rounded-full progress-bar stask-bar" style="width:0%"></div></div></div>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 rounded-xl bg-surface/30 border border-white/5" id="stask-chapters">
+                            <div class="w-9 h-9 rounded-lg bg-cyan/10 border border-cyan/20 flex items-center justify-center flex-shrink-0"><i class="fas fa-book-open text-cyan text-xs"></i></div>
+                            <div class="flex-1"><div class="flex items-center justify-between mb-1"><span class="text-sm font-medium text-white">识别章节边界</span><span class="text-xs text-slate-400 stask-status">等待中...</span></div><div class="h-1.5 bg-surface-light rounded-full overflow-hidden"><div class="h-full bg-cyan rounded-full progress-bar stask-bar" style="width:0%"></div></div></div>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 rounded-xl bg-surface/30 border border-white/5" id="stask-strategy">
+                            <div class="w-9 h-9 rounded-lg bg-amber/10 border border-amber/20 flex items-center justify-center flex-shrink-0"><i class="fas fa-sliders text-amber text-xs"></i></div>
+                            <div class="flex-1"><div class="flex items-center justify-between mb-1"><span class="text-sm font-medium text-white">应用分集策略</span><span class="text-xs text-slate-400 stask-status">等待中...</span></div><div class="h-1.5 bg-surface-light rounded-full overflow-hidden"><div class="h-full bg-amber rounded-full progress-bar stask-bar" style="width:0%"></div></div></div>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 rounded-xl bg-surface/30 border border-white/5" id="stask-split">
+                            <div class="w-9 h-9 rounded-lg bg-amber/10 border border-amber/20 flex items-center justify-center flex-shrink-0"><i class="fas fa-scissors text-amber text-xs"></i></div>
+                            <div class="flex-1"><div class="flex items-center justify-between mb-1"><span class="text-sm font-medium text-white">智能拆解分集</span><span class="text-xs text-slate-400 stask-status">等待中...</span></div><div class="h-1.5 bg-surface-light rounded-full overflow-hidden"><div class="h-full bg-amber rounded-full progress-bar stask-bar" style="width:0%"></div></div></div>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 rounded-xl bg-surface/30 border border-white/5" id="stask-summary">
+                            <div class="w-9 h-9 rounded-lg bg-secondary/10 border border-secondary/20 flex items-center justify-center flex-shrink-0"><i class="fas fa-pen-to-square text-secondary text-xs"></i></div>
+                            <div class="flex-1"><div class="flex items-center justify-between mb-1"><span class="text-sm font-medium text-white">生成分集摘要</span><span class="text-xs text-slate-400 stask-status">等待中...</span></div><div class="h-1.5 bg-surface-light rounded-full overflow-hidden"><div class="h-full bg-secondary rounded-full progress-bar stask-bar" style="width:0%"></div></div></div>
+                        </div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-black/30 border border-white/5 font-mono text-xs text-slate-400 h-24 overflow-y-auto custom-scroll" id="splitLog"><div class="text-emerald-400">[系统] 开始分析小说结构...</div></div>
+                </div>
+            </div>
+
+            <div id="phase-3-editor" class="hidden h-full flex flex-col">
+                <div class="glass-panel rounded-xl p-3 mb-4 flex items-center justify-between flex-wrap gap-2">
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                            <i class="fas fa-check-circle text-emerald text-xs"></i><span class="text-xs text-emerald font-medium">拆分完成</span>
+                        </div>
+                        <span class="text-xs text-slate-500">基于「<<span id="editorStrategyName" class="text-slate-300">智能均衡</span>」策略</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="undoEpisodeChange()" id="btn-undo" class="px-3 py-1.5 rounded-lg bg-surface border border-white/10 text-slate-400 hover:text-white text-xs transition-all disabled:opacity-30" disabled><i class="fas fa-rotate-left mr-1"></i>撤销</button>
+                        <button onclick="redoEpisodeChange()" id="btn-redo" class="px-3 py-1.5 rounded-lg bg-surface border border-white/10 text-slate-400 hover:text-white text-xs transition-all disabled:opacity-30" disabled><i class="fas fa-rotate-right mr-1"></i>重做</button>
+                        <div class="w-px h-5 bg-white/10 mx-1"></div>
+                        <button onclick="toggleMergeMode()" id="btn-merge-mode" class="px-3 py-1.5 rounded-lg bg-surface border border-white/10 text-slate-400 hover:text-amber text-xs transition-all"><i class="fas fa-object-group mr-1"></i>合并模式</button>
+                        <button onclick="backToSplitConfig()" class="px-3 py-1.5 rounded-lg bg-surface border border-white/10 text-slate-400 hover:text-white text-xs transition-all"><i class="fas fa-sliders mr-1"></i>调整策略</button>
+                    </div>
+                </div>
+                <div class="flex-1 grid grid-cols-12 gap-4 min-h-0">
+                    <div class="col-span-12 lg:col-span-4 flex flex-col min-h-0">
+                        <div class="glass-panel rounded-xl p-3 mb-3 flex items-center justify-between">
+                            <span class="text-sm font-semibold text-white">分集列表</span>
+                            <span class="text-xs text-slate-500" id="episodeTotalCount">共 12 集</span>
+                        </div>
+                        <div class="glass-panel rounded-xl p-3 flex-1 overflow-y-auto custom-scroll min-h-0" id="episodeListContainer"></div>
+                        <div id="mergeActionBar" class="hidden mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
+                            <span class="text-xs text-amber">已选择 <span id="mergeSelectedCount">0</span> 集</span>
+                            <button onclick="executeMerge()" class="px-3 py-1.5 rounded-lg bg-amber text-white text-xs font-medium hover:bg-amber/80 transition-all">合并选中</button>
+                        </div>
+                    </div>
+                    <div class="col-span-12 lg:col-span-5 flex flex-col min-h-0">
+                        <div class="glass-panel rounded-xl p-3 mb-3 flex items-center justify-between">
+                            <span class="text-sm font-semibold text-white">分集详情</span>
+                            <div class="flex items-center gap-2">
+                                <button onclick="splitCurrentEpisode()" id="btn-split-episode" class="px-2.5 py-1 rounded-lg bg-surface border border-white/10 text-slate-400 hover:text-cyan text-[10px] transition-all"><i class="fas fa-code-branch mr-1"></i>拆分为二</button>
+                                <button onclick="deleteCurrentEpisode()" id="btn-delete-episode" class="px-2.5 py-1 rounded-lg bg-surface border border-white/10 text-slate-400 hover:text-rose text-[10px] transition-all"><i class="fas fa-trash mr-1"></i>删除</button>
+                            </div>
+                        </div>
+                        <div class="glass-panel rounded-xl p-4 flex-1 overflow-y-auto custom-scroll min-h-0" id="episodeDetailPanel">
+                            <div class="text-center py-12 text-slate-500"><i class="fas fa-hand-pointer text-2xl mb-2 opacity-30"></i><p class="text-sm">点击左侧分集查看详情</p></div>
+                        </div>
+                    </div>
+                    <div class="col-span-12 lg:col-span-3 flex flex-col min-h-0 gap-4">
+                        <div class="glass-panel rounded-xl p-4">
+                            <h3 class="text-xs font-semibold text-white mb-3 uppercase tracking-wider">分集统计</h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between"><span class="text-xs text-slate-400">总集数</span><span class="text-sm font-bold text-white" id="stat-total-eps">12</span></div>
+                                <div class="flex items-center justify-between"><span class="text-xs text-slate-400">总分镜数</span><span class="text-sm font-bold text-white" id="stat-total-shots">124</span></div>
+                                <div class="flex items-center justify-between"><span class="text-xs text-slate-400">平均每集</span><span class="text-sm font-bold text-white" id="stat-avg-shots">10.3</span></div>
+                                <div class="flex items-center justify-between"><span class="text-xs text-slate-400">最长/最短</span><span class="text-sm font-bold text-white" id="stat-max-min">14 / 8</span></div>
+                            </div>
+                        </div>
+                        <div class="glass-panel rounded-xl p-4 flex-1 min-h-0 overflow-y-auto custom-scroll">
+                            <h3 class="text-xs font-semibold text-white mb-3 uppercase tracking-wider">情节密度分布</h3>
+                            <div class="space-y-2" id="densityChart"></div>
+                        </div>
+                        <div class="glass-panel rounded-xl p-4 flex-1 min-h-0 overflow-y-auto custom-scroll">
+                            <h3 class="text-xs font-semibold text-white mb-3 uppercase tracking-wider">角色出场分布</h3>
+                            <div class="space-y-3" id="charDistribution"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 flex gap-3">
+                    <button onclick="goToPhase(2)" class="flex-1 py-3 rounded-xl bg-surface border border-white/10 text-slate-300 font-medium hover:text-white hover:border-white/20 transition-all"><i class="fas fa-arrow-left mr-2"></i>返回</button>
+                    <button onclick="goToPhase(4)" id="btn-phase-3" class="flex-1 sm:flex-[2] generate-btn py-3 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/25 text-xs sm:text-sm"><span>确认分集，继续提取资产</span><i class="fas fa-arrow-right"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== Phase 4: 提取资产 ========== -->
+        <div id="phase-4" class="max-w-4xl mx-auto p-6 md:p-8 hidden">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-primary/20 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/5 relative">
+                    <i class="fas fa-robot text-primary text-2xl"></i>
+                    <div class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center"><div class="w-2 h-2 rounded-full bg-white pulse-dot"></div></div>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-2">AI 正在提取资产</h2>
+                <p class="text-sm text-slate-400">分集已就绪，正在分析《<<span id="extractTitle4">星辰大海</span>》全文，提取角色、场景、道具等关键元素</p>
+            </div>
+            <div class="glass-panel rounded-2xl p-6 md:p-8 mb-6 shadow-2xl shadow-black/20">
+                <div class="mb-8"><div class="flex items-center justify-between mb-2"><span class="text-sm font-medium text-white">总体进度</span><span class="text-sm text-primary font-mono font-bold" id="totalProgressText4">0%</span></div><div class="h-2 bg-surface-light rounded-full overflow-hidden"><div id="totalProgressBar4" class="h-full bg-gradient-to-r from-primary to-secondary rounded-full progress-bar" style="width:0%"></div></div></div>
+                <div class="space-y-3" id="extractTasks4">
+                    <div class="flex items-center gap-4 p-3.5 rounded-xl bg-surface/30 border border-white/5" id="etask-char">
+                        <div class="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0"><i class="fas fa-user text-primary text-sm"></i></div>
+                        <div class="flex-1"><div class="flex items-center justify-between mb-1"><span class="text-sm font-medium text-white">角色识别与提取</span><span class="text-xs text-slate-400 etask-status">等待中...</span></div><div class="h-1.5 bg-surface-light rounded-full overflow-hidden"><div class="h-full bg-primary rounded-full progress-bar etask-bar" style="width:0%"></div></div></div>
+                    </div>
+                    <div class="flex items-center gap-4 p-3.5 rounded-xl bg-surface/30 border border-white/5" id="etask-scene">
+                        <div class="w-10 h-10 rounded-lg bg-cyan/10 border border-cyan/20 flex items-center justify-center flex-shrink-0"><i class="fas fa-image text-cyan text-sm"></i></div>
+                        <div class="flex-1"><div class="flex items-center justify-between mb-1"><span class="text-sm font-medium text-white">场景识别与提取</span><span class="text-xs text-slate-400 etask-status">等待中...</span></div><div class="h-1.5 bg-surface-light rounded-full overflow-hidden"><div class="h-full bg-cyan rounded-full progress-bar etask-bar" style="width:0%"></div></div></div>
+                    </div>
+                    <div class="flex items-center gap-4 p-3.5 rounded-xl bg-surface/30 border border-white/5" id="etask-prop">
+                        <div class="w-10 h-10 rounded-lg bg-amber/10 border border-amber/20 flex items-center justify-center flex-shrink-0"><i class="fas fa-cube text-amber text-sm"></i></div>
+                        <div class="flex-1"><div class="flex items-center justify-between mb-1"><span class="text-sm font-medium text-white">道具识别与提取</span><span class="text-xs text-slate-400 etask-status">等待中...</span></div><div class="h-1.5 bg-surface-light rounded-full overflow-hidden"><div class="h-full bg-amber rounded-full progress-bar etask-bar" style="width:0%"></div></div></div>
+                    </div>
+                    <div class="flex items-center gap-4 p-3.5 rounded-xl bg-surface/30 border border-white/5" id="etask-prompt">
+                        <div class="w-10 h-10 rounded-lg bg-secondary/10 border border-secondary/20 flex items-center justify-center flex-shrink-0"><i class="fas fa-wand-magic-sparkles text-secondary text-sm"></i></div>
+                        <div class="flex-1"><div class="flex items-center justify-between mb-1"><span class="text-sm font-medium text-white">生成资产描述 Prompt</span><span class="text-xs text-slate-400 etask-status">等待中...</span></div><div class="h-1.5 bg-surface-light rounded-full overflow-hidden"><div class="h-full bg-secondary rounded-full progress-bar etask-bar" style="width:0%"></div></div></div>
+                    </div>
+                </div>
+                <div class="mt-6 p-4 rounded-xl bg-black/30 border border-white/5 font-mono text-xs text-slate-400 h-32 overflow-y-auto custom-scroll" id="extractLog4"><div class="text-emerald-400">[系统] 分集已就绪，开始提取资产...</div></div>
+            </div>
+        </div>
+
+        <!-- ========== Phase 5: 确认资产（核心优化：提示词智能生态系统） ========== -->
+        <div id="phase-5" class="max-w-[1400px] mx-auto p-4 md:p-6 hidden h-full flex flex-col overflow-hidden">
+            <!-- 顶部标题区 -->
+            <div class="flex-shrink-0 flex items-center justify-between mb-4 flex-wrap gap-3">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fas fa-wand-magic-sparkles text-primary"></i>
+                        智能资产编辑工作台
+                    </h2>
+                    <p class="text-sm text-slate-400 mt-1">AI 已提取资产。使用「提示词智能助手」快速打磨，无需从零写起</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="px-3 py-1.5 rounded-lg bg-primary/15 border border-primary/25 flex items-center gap-2">
+                        <i class="fas fa-robot text-primary text-xs"></i>
+                        <span class="text-xs text-primary font-medium">智能助手已就绪</span>
+                    </div>
+                    <button onclick="batchApplyStyle()" class="px-3 py-1.5 rounded-lg bg-surface border border-white/10 text-slate-300 hover:text-white text-xs transition-all flex items-center gap-1.5">
+                        <i class="fas fa-layer-group"></i>批量风格化
+                    </button>
+                </div>
+            </div>
+
+            <!-- 工作流程指引 -->
+            <div class="flex-shrink-0 glass-panel rounded-xl p-4 mb-4 bg-gradient-to-r from-primary/5 via-transparent to-secondary/5 border border-primary/15">
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <i class="fas fa-lightbulb text-primary text-sm"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-sm font-semibold text-white mb-2">提示词智能工作流 — 让 AI 帮你写提示词</h4>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+                            <div class="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/5">
+                                <div class="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0"><span class="text-[10px] font-bold text-primary">1</span></div>
+                                <div class="text-xs text-slate-300"><span class="text-white font-medium">点选标签</span><p class="text-slate-500 mt-0.5">选择风格、光影、构图</p></div>
+                            </div>
+                            <div class="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/5">
+                                <div class="w-6 h-6 rounded-full bg-cyan/20 flex items-center justify-center flex-shrink-0"><span class="text-[10px] font-bold text-cyan">2</span></div>
+                                <div class="text-xs text-slate-300"><span class="text-white font-medium">灵感推荐</span><p class="text-slate-500 mt-0.5">AI基于内容推荐方案</p></div>
+                            </div>
+                            <div class="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/5">
+                                <div class="w-6 h-6 rounded-full bg-amber/20 flex items-center justify-center flex-shrink-0"><span class="text-[10px] font-bold text-amber">3</span></div>
+                                <div class="text-xs text-slate-300"><span class="text-white font-medium">一键润色</span><p class="text-slate-500 mt-0.5">AI优化提示词质量</p></div>
+                            </div>
+                            <div class="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/5">
+                                <div class="w-6 h-6 rounded-full bg-emerald/20 flex items-center justify-center flex-shrink-0"><span class="text-[10px] font-bold text-emerald">4</span></div>
+                                <div class="text-xs text-slate-300"><span class="text-white font-medium">确认入库</span><p class="text-slate-500 mt-0.5">满意后进入批量生产</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主体三栏布局 -->
+            <div class="flex-1 min-h-0 overflow-hidden">
+                <div class="h-full grid grid-cols-12 gap-4">
+                    <!-- 左栏：资产列表 + 统计 -->
+                    <div class="col-span-12 lg:col-span-3 flex flex-col gap-3 h-full min-h-0 overflow-hidden">
+                        <!-- 统计卡片 -->
+                        <div class="flex-shrink-0 glass-panel rounded-xl p-4">
+                            <div class="grid grid-cols-3 gap-2 mb-3">
+                                <div class="text-center p-2 rounded-lg bg-primary/5 border border-primary/10">
+                                    <div class="text-lg font-bold text-white" id="stat-char">5</div>
+                                    <div class="text-[10px] text-slate-400">角色</div>
+                                </div>
+                                <div class="text-center p-2 rounded-lg bg-cyan/5 border border-cyan/10">
+                                    <div class="text-lg font-bold text-white" id="stat-scene">8</div>
+                                    <div class="text-[10px] text-slate-400">场景</div>
+                                </div>
+                                <div class="text-center p-2 rounded-lg bg-amber/5 border border-amber/10">
+                                    <div class="text-lg font-bold text-white" id="stat-prop">6</div>
+                                    <div class="text-[10px] text-slate-400">道具</div>
+                                </div>
+                            </div>
+                            <div class="flex gap-1 p-1 bg-surface rounded-lg border border-white/5">
+                                <button onclick="switchAssetTab('character')" id="asset-tab-character" class="flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all bg-primary/20 text-primary border border-primary/30"><i class="fas fa-user mr-1"></i>角色</button>
+                                <button onclick="switchAssetTab('scene')" id="asset-tab-scene" class="flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all text-slate-400 hover:text-white"><i class="fas fa-image mr-1"></i>场景</button>
+                                <button onclick="switchAssetTab('prop')" id="asset-tab-prop" class="flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all text-slate-400 hover:text-white"><i class="fas fa-cube mr-1"></i>道具</button>
+                            </div>
+                        </div>
+                        <!-- 资产列表 -->
+                        <div class="flex-1 min-h-0 glass-panel rounded-xl p-3 overflow-y-auto custom-scroll">
+                            <div class="text-xs text-slate-500 mb-2 uppercase tracking-wider">资产列表</div>
+                            <div id="assetListContainer" class="space-y-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- 中栏：智能提示词编辑器（核心创新区域） -->
+                    <div class="col-span-12 lg:col-span-6 flex flex-col gap-3 h-full min-h-0 overflow-hidden">
+                        <!-- 编辑器头部 -->
+                        <div class="flex-shrink-0 glass-panel rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-primary/20 flex items-center justify-center">
+                                        <i class="fas fa-pen-nib text-primary text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-bold text-white" id="editorAssetName">选择资产开始编辑</div>
+                                        <div class="text-xs text-slate-400" id="editorAssetType">提示词智能编辑器</div>
+                                    </div>
+                                </div>
+                                <!-- 提示词健康评分 -->
+                                <div id="promptScoreContainer" class="hidden flex items-center gap-3">
+                                    <div class="text-right">
+                                        <div class="text-[10px] text-slate-500">提示词质量</div>
+                                        <div class="text-sm font-bold text-emerald" id="promptScoreValue">85分</div>
+                                    </div>
+                                    <div class="relative w-10 h-10">
+                                        <svg class="w-10 h-10 transform -rotate-90">
+                                            <circle cx="20" cy="20" r="16" stroke="rgba(255,255,255,0.1)" stroke-width="3" fill="none"/>
+                                            <circle id="promptScoreRing" cx="20" cy="20" r="16" stroke="#10b981" stroke-width="3" fill="none" stroke-dasharray="100.5" stroke-dashoffset="15" stroke-linecap="round" class="prompt-score-ring"/>
+                                        </svg>
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <i class="fas fa-check text-emerald text-[10px]"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 模式切换 -->
+                            <div class="flex gap-2">
+                                <button onclick="setPromptMode('builder')" id="mode-builder" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-primary/20 text-primary border border-primary/30 flex items-center gap-1.5">
+                                    <i class="fas fa-th-large"></i>可视化构建
+                                </button>
+                                <button onclick="setPromptMode('manual')" id="mode-manual" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white border border-transparent flex items-center gap-1.5">
+                                    <i class="fas fa-keyboard"></i>自由编辑
+                                </button>
+                                <button onclick="setPromptMode('template')" id="mode-template" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white border border-transparent flex items-center gap-1.5">
+                                    <i class="fas fa-book"></i>模板库
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 编辑器内容区 -->
+                        <div class="flex-1 min-h-0 glass-panel rounded-xl p-4 overflow-y-auto custom-scroll">
+                            <!-- 空状态 -->
+                            <div id="editorEmptyState" class="flex flex-col items-center justify-center h-full text-slate-500 px-4">
+                                <div class="w-16 h-16 rounded-2xl bg-surface border border-white/5 flex items-center justify-center mb-3">
+                                    <i class="fas fa-wand-magic-sparkles text-2xl opacity-20"></i>
+                                </div>
+                                <p class="text-sm">从左侧选择资产，开启智能提示词编辑</p>
+                                <p class="text-xs mt-1 opacity-50">AI 将自动推荐风格、光影与构图方案</p>
+                            </div>
+
+                            <!-- 实际编辑器（选择资产后显示） -->
+                            <div id="editorContent" class="hidden space-y-4">
+                                <!-- 当前提示词预览 -->
+                                <div class="p-3 rounded-xl bg-surface/50 border border-white/5">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs text-slate-400 uppercase tracking-wider">当前提示词</span>
+                                        <div class="flex gap-1.5">
+                                            <button onclick="copyPrompt()" class="px-2 py-1 rounded bg-white/5 text-slate-400 hover:text-white text-[10px] transition-all" title="复制">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                            <button onclick="resetPrompt()" class="px-2 py-1 rounded bg-white/5 text-slate-400 hover:text-rose text-[10px] transition-all" title="重置">
+                                                <i class="fas fa-rotate-left"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <textarea id="currentPromptText" rows="3" oninput="onPromptInput(this.value)"
+                                        class="w-full bg-transparent text-sm text-slate-200 focus:outline-none resize-none custom-scroll leading-relaxed"
+                                        placeholder="提示词将在这里显示..."></textarea>
+                                    <div class="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
+                                        <span class="text-[10px] text-slate-500" id="promptCharCount">0 字</span>
+                                        <button onclick="polishPromptWithAI()" class="px-3 py-1.5 rounded-lg bg-secondary/20 text-secondary border border-secondary/30 text-xs font-medium hover:bg-secondary/30 transition-all flex items-center gap-1.5">
+                                            <i class="fas fa-sparkles"></i>AI 一键润色
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- 可视化构建器面板 -->
+                                <div id="builderPanel">
+                                    <!-- 风格维度 -->
+                                    <div class="prompt-builder-category p-2 sm:p-3 rounded-xl border border-white/5">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <i class="fas fa-palette text-primary text-xs"></i>
+                                            <span class="text-xs font-semibold text-white">视觉风格</span>
+                                            <span class="text-[10px] text-slate-500">多选</span>
+                                        </div>
+                                        <div class="flex flex-wrap gap-1.5" id="styleChips"></div>
+                                    </div>
+                                    <!-- 光影维度 -->
+                                    <div class="prompt-builder-category p-2 sm:p-3 rounded-xl border border-white/5">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <i class="fas fa-sun text-amber text-xs"></i>
+                                            <span class="text-xs font-semibold text-white">光影氛围</span>
+                                        </div>
+                                        <div class="flex flex-wrap gap-1.5" id="lightChips"></div>
+                                    </div>
+                                    <!-- 构图维度 -->
+                                    <div class="prompt-builder-category p-2 sm:p-3 rounded-xl border border-white/5">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <i class="fas fa-crop-simple text-cyan text-xs"></i>
+                                            <span class="text-xs font-semibold text-white">构图视角</span>
+                                        </div>
+                                        <div class="flex flex-wrap gap-1.5" id="compChips"></div>
+                                    </div>
+                                    <!-- 质量维度 -->
+                                    <div class="prompt-builder-category p-2 sm:p-3 rounded-xl border border-white/5">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <i class="fas fa-gem text-emerald text-xs"></i>
+                                            <span class="text-xs font-semibold text-white">画质增强</span>
+                                        </div>
+                                        <div class="flex flex-wrap gap-1.5" id="qualityChips"></div>
+                                    </div>
+                                </div>
+
+                                <!-- 模板面板 -->
+                                <div id="templatePanel" class="hidden">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span class="text-xs text-slate-400">选择模板一键套用</span>
+                                        <button onclick="saveCurrentAsTemplate()" class="text-xs text-emerald hover:text-emerald-300 transition-colors">
+                                            <i class="fas fa-plus mr-1"></i>保存当前为模板
+                                        </button>
+                                    </div>
+                                    <div class="space-y-2" id="templateList"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右栏：灵感引擎 + 预览 -->
+                    <div class="col-span-12 lg:col-span-3 flex flex-col gap-3 h-full min-h-0 overflow-hidden">
+                        <!-- AI灵感引擎 -->
+                        <div class="flex-shrink-0 glass-panel rounded-xl p-4">
+                            <div class="flex items-center gap-2 mb-3">
+                                <div class="w-6 h-6 rounded-full bg-amber/20 flex items-center justify-center">
+                                    <i class="fas fa-lightbulb text-amber text-[10px]"></i>
+                                </div>
+                                <span class="text-sm font-semibold text-white">AI 灵感推荐</span>
+                            </div>
+                            <div class="space-y-2 max-h-48 overflow-y-auto custom-scroll" id="inspirationList">
+                                <div class="text-xs text-slate-500 text-center py-4">选择资产后查看灵感推荐</div>
+                            </div>
+                        </div>
+
+                        <!-- 风格预览 -->
+                        <div class="flex-1 min-h-0 glass-panel rounded-xl p-4 overflow-y-auto custom-scroll">
+                            <div class="flex items-center gap-2 mb-3">
+                                <i class="fas fa-eye text-cyan text-xs"></i>
+                                <span class="text-sm font-semibold text-white">风格预览</span>
+                            </div>
+                            <div id="stylePreviewArea" class="space-y-3">
+                                <div class="style-preview-box aspect-video rounded-xl bg-surface border border-white/5 flex items-center justify-center">
+                                    <div class="text-center">
+                                        <i class="fas fa-image text-slate-600 text-2xl mb-2"></i>
+                                        <div class="text-xs text-slate-500">选择风格标签后<br>此处显示视觉预览</div>
+                                    </div>
+                                </div>
+                                <div class="space-y-2" id="styleDescArea">
+                                    <div class="text-xs text-slate-500 text-center">暂无风格描述</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 快捷操作 -->
+                        <div class="flex-shrink-0 glass-panel rounded-xl p-4">
+                            <div class="text-xs font-semibold text-white mb-3">快捷操作</div>
+                            <div class="space-y-2">
+                                <button onclick="applyToSameType()" class="w-full p-2 rounded-lg bg-surface border border-white/5 text-xs text-slate-300 hover:text-white hover:border-white/15 transition-all text-left flex items-center gap-2">
+                                    <i class="fas fa-clone text-primary text-[10px]"></i>应用至同类型资产
+                                </button>
+                                <button onclick="autoFillAll()" class="w-full p-2 rounded-lg bg-surface border border-white/5 text-xs text-slate-300 hover:text-white hover:border-white/15 transition-all text-left flex items-center gap-2">
+                                    <i class="fas fa-magic text-secondary text-[10px]"></i>AI 自动填充全部
+                                </button>
+                                <button onclick="importPrompts()" class="w-full p-2 rounded-lg bg-surface border border-white/5 text-xs text-slate-300 hover:text-white hover:border-white/15 transition-all text-left flex items-center gap-2">
+                                    <i class="fas fa-file-import text-emerald text-[10px]"></i>导入提示词文件
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部操作 -->
+            <div class="flex-shrink-0 mt-4 flex gap-3">
+                <button onclick="goToPhase(4)" class="flex-1 py-3 rounded-xl bg-surface border border-white/10 text-slate-300 font-medium hover:text-white hover:border-white/20 transition-all">
+                    <i class="fas fa-arrow-left mr-2"></i>重新提取
+                </button>
+                <button onclick="goToPhase(6)" class="flex-1 sm:flex-[2] generate-btn py-3 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/25 text-xs sm:text-sm">
+                    <i class="fas fa-wand-magic-sparkles mr-2"></i>
+                    <span>提示词已就绪，进入批量生产</span>
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- ========== Phase 6: 批量生产 ========== -->
+        <div id="phase-6" class="max-w-4xl mx-auto p-6 md:p-8 hidden">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 border border-primary/20 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/5 relative">
+                    <i class="fas fa-wand-magic-sparkles text-primary text-2xl"></i>
+                    <div class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary flex items-center justify-center"><div class="w-2 h-2 rounded-full bg-white pulse-dot"></div></div>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-2">批量生产资产参考图</h2>
+                <p class="text-sm text-slate-400">根据已编辑的提示词，正在逐个生成资产参考图</p>
+            </div>
+            <div class="glass-panel rounded-2xl p-6 md:p-8 mb-6 shadow-2xl shadow-black/20">
+                <div class="mb-8"><div class="flex items-center justify-between mb-2"><span class="text-sm font-medium text-white">生成进度</span><span class="text-sm text-primary font-mono font-bold" id="genProgressText">0 / 19</span></div><div class="h-2 bg-surface-light rounded-full overflow-hidden"><div id="genProgressBar" class="h-full bg-gradient-to-r from-primary to-secondary rounded-full progress-bar" style="width:0%"></div></div></div>
+                <div class="grid grid-cols-4 gap-3 mb-6" id="genQueue"></div>
+                <div class="p-4 rounded-xl bg-surface/50 border border-white/5">
+                    <div class="flex items-center gap-3 mb-3"><div class="w-2 h-2 rounded-full bg-primary pulse-dot"></div><span class="text-sm font-medium text-white">当前正在生成</span><span class="text-xs text-slate-500 ml-auto" id="genEta">预计剩余 8 分钟</span></div>
+                    <div class="flex items-center gap-4"><div class="w-16 h-16 rounded-lg bg-surface border border-white/5 shimmer flex items-center justify-center flex-shrink-0" id="genCurrentImg"><i class="fas fa-image text-slate-600"></i></div><div class="flex-1 min-w-0"><div class="text-sm font-medium text-white mb-1 truncate" id="genCurrentName">林晨 - 角色参考图</div><div class="text-xs text-slate-400 line-clamp-2" id="genCurrentPrompt">年轻亚洲男性，短发，穿银色太空服...</div><div class="mt-2 h-1 bg-surface-light rounded-full overflow-hidden"><div class="h-full bg-primary rounded-full progress-bar shimmer" style="width:45%"></div></div></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== Phase 7: 入资产库 ========== -->
+        <div id="phase-7" class="max-w-5xl mx-auto p-6 md:p-8 hidden">
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4 glow-ring-emerald"><i class="fas fa-check text-emerald-400 text-3xl"></i></div>
+                <h2 class="text-2xl font-bold text-white mb-2">资产入库完成</h2>
+                <p class="text-sm text-slate-400">所有资产已生成参考图并入库，小说已自动拆分为 <span class="text-white font-medium">12 集</span></p>
+            </div>
+            <div class="grid grid-cols-3 gap-6 mb-8">
+                <div class="glass-panel rounded-2xl p-6 col-span-1 shadow-lg shadow-black/10">
+                    <h3 class="text-sm font-semibold text-white mb-4">资产入库统计</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between"><div class="flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><i class="fas fa-user text-primary text-xs"></i></div><span class="text-sm text-slate-300">角色</span></div><span class="text-sm font-bold text-white">5</span></div>
+                        <div class="flex items-center justify-between"><div class="flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-cyan/10 flex items-center justify-center"><i class="fas fa-image text-cyan text-xs"></i></div><span class="text-sm text-slate-300">场景</span></div><span class="text-sm font-bold text-white">8</span></div>
+                        <div class="flex items-center justify-between"><div class="flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-amber/10 flex items-center justify-center"><i class="fas fa-cube text-amber text-xs"></i></div><span class="text-sm text-slate-300">道具</span></div><span class="text-sm font-bold text-white">6</span></div>
+                        <div class="border-t border-white/5 pt-4"><div class="flex items-center justify-between"><span class="text-sm text-slate-400">总计</span><span class="text-lg font-bold text-white">19</span></div></div>
+                    </div>
+                </div>
+                <div class="glass-panel rounded-2xl p-6 col-span-2 shadow-lg shadow-black/10">
+                    <div class="flex items-center justify-between mb-4"><h3 class="text-sm font-semibold text-white">分集列表</h3><span class="text-xs text-slate-500">点击确认进入分镜工作台</span></div>
+                    <div class="space-y-2 max-h-64 overflow-y-auto custom-scroll pr-1" id="finalEpisodeList"></div>
+                </div>
+            </div>
+            <button onclick="enterWorkshop()" class="generate-btn w-full py-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/25 text-base"><i class="fas fa-rocket"></i><span>确认并进入分镜工作台</span></button>
+        </div>
+
+    </main>
+
+    <!-- Toast 通知容器 -->
+    <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        // ========== 全局状态 ==========
+        let currentPhase = 1;
+        let currentAssetTab = 'character';
+        let hasFile = false;
+        let splitTimer = null;
+        let extractTimer4 = null;
+        let genTimer = null;
+        let splitCompleted = false;
+        let currentStrategy = 'balanced';
+        let selectedEpisodeId = null;
+        let mergeMode = false;
+        let selectedForMerge = [];
+        let episodeHistory = [];
+        let historyIndex = -1;
+        let dragSrcEl = null;
+        let currentPromptMode = 'builder';
+        let selectedAssetId = null;
+        let selectedAssetType = null;
+
+        // 提示词智能系统数据
+        const promptDimensions = {
+            style: [
+                { id: 'scifi', label: '科幻写实', icon: 'fa-rocket', color: 'primary' },
+                { id: 'anime', label: '二次元', icon: 'fa-face-smile', color: 'secondary' },
+                { id: 'ink', label: '国风水墨', icon: 'fa-paint-brush', color: 'cyan' },
+                { id: 'comic', label: '欧美漫画', icon: 'fa-book', color: 'amber' },
+                { id: 'cyber', label: '赛博朋克', icon: 'fa-microchip', color: 'rose' },
+                { id: 'steampunk', label: '蒸汽朋克', icon: 'fa-cog', color: 'emerald' },
+                { id: 'realistic', label: '超写实', icon: 'fa-camera', color: 'primary' },
+                { id: 'fantasy', label: '奇幻风格', icon: 'fa-hat-wizard', color: 'secondary' },
+            ],
+            light: [
+                { id: 'side', label: '侧逆光', desc: '轮廓光，电影感强' },
+                { id: 'back', label: '逆光剪影', desc: '神秘感，氛围浓厚' },
+                { id: 'top', label: '顶光', desc: '戏剧性，压迫感' },
+                { id: 'neon', label: '霓虹光', desc: '赛博朋克标配' },
+                { id: 'soft', label: '柔光散射', desc: '温馨，细腻肤质' },
+                { id: 'dramatic', label: '戏剧光', desc: '强对比，油画感' },
+                { id: 'ambient', label: '环境光', desc: '自然，沉浸感' },
+                { id: 'glow', label: '发光体照明', desc: '科幻感，能量感' },
+            ],
+            composition: [
+                { id: 'closeup', label: '特写', desc: '面部细节，情绪' },
+                { id: 'medium', label: '中景', desc: '半身，互动' },
+                { id: 'full', label: '全身', desc: '服装，姿态' },
+                { id: 'wide', label: '全景', desc: '环境，史诗感' },
+                { id: 'bird', label: '鸟瞰', desc: '宏大，战略感' },
+                { id: 'ots', label: '过肩镜头', desc: '对话，代入感' },
+                { id: 'dutch', label: '斜角构图', desc: '紧张，不稳定' },
+                { id: 'symmetry', label: '对称构图', desc: '庄严，秩序感' },
+            ],
+            quality: [
+                { id: '8k', label: '8K超高清' },
+                { id: 'cinematic', label: '电影级' },
+                { id: 'octane', label: '辛烷渲染' },
+                { id: 'unreal', label: '虚幻引擎' },
+                { id: 'detailed', label: '超精细' },
+                { id: 'concept', label: '概念艺术' },
+                { id: 'matte', label: '数字绘景' },
+                { id: 'vray', label: 'V-Ray渲染' },
+            ]
+        };
+
+        // 提示词模板库
+        let promptTemplates = [
+            { id: 't1', name: '科幻主角标准', type: 'character', tags: ['科幻写实', '侧逆光', '中景', '8K超高清'], content: '电影级画面，年轻亚洲男性，短发，银色太空服，冷峻眼神，侧逆光，赛博朋克风格，8K超高清，辛烷渲染，超精细面部细节' },
+            { id: 't2', name: '异星场景概念', type: 'scene', tags: ['科幻写实', '环境光', '全景', '概念艺术'], content: '史诗级场景概念图，异星地表，蓝色植被，双太阳天空，远处山脉，环境散射光，广角视角，概念艺术，8K渲染' },
+            { id: 't3', name: '国风角色水墨', type: 'character', tags: ['国风水墨', '柔光散射', '全身', '概念艺术'], content: '国风水墨风格，古代侠客，白衣飘飘，手持长剑，山水背景，柔光散射，全身构图，概念艺术，留白意境' },
+            { id: 't4', name: '二次元少女', type: 'character', tags: ['二次元', '柔光散射', '中景', '8K超高清'], content: '二次元动漫风格，少女，大眼睛，精致服装，柔和光线，中景构图，8K超高清，Pixiv trending' },
+            { id: 't5', name: '赛博朋克夜景', type: 'scene', tags: ['赛博朋克', '霓虹光', '全景', '辛烷渲染'], content: '赛博朋克都市夜景，霓虹灯牌，雨夜街道，全息广告，霓虹光反射，全景构图，辛烷渲染，电影级光影' },
+        ];
+
+        // 当前激活的构建器标签
+        let activeBuilderTags = {
+            style: new Set(),
+            light: new Set(),
+            composition: new Set(),
+            quality: new Set()
+        };
+
+        const strategyData = {
+            balanced: { name: '智能均衡', color: 'emerald', preview: 'AI 将自动分析小说结构，均衡分配情节密度，预计生成 10-15 集。' },
+            plot: { name: '情节驱动', color: 'primary', preview: 'AI 将以情节高潮、转折点和悬念为边界拆分，确保每集结尾留有钩子。' },
+            character: { name: '角色驱动', color: 'cyan', preview: 'AI 将以角色出场、成长和关系变化为边界拆分，确保角色弧光完整呈现。' },
+            custom: { name: '自定义策略', color: 'amber', preview: 'AI 将完全按照您输入的自定义提示词执行分集，满足个性化需求。' }
+        };
+
+        let episodes = [
+            { id: 1, title: "初入星海", shots: 8, chapters: "第1-3章", desc: "林晨登上曙光号，驶向未知星域，首次目睹蓝晶星球", content: "林晨站在太空港的观景台上，望着眼前巨大的星际飞船「曙光号」。这是他第一次离开地球，前往未知的星域。", characters: ['林晨', '小七', '老船长'], scenes: ['太空港', '曙光号驾驶舱'], props: ['全息平板', '太空服头盔'], density: 65, shotList: [{id:1,type:'场景',desc:'太空港全景',assets:['太空港']},{id:2,type:'角色',desc:'林晨仰望曙光号',assets:['林晨']},{id:3,type:'对话',desc:'老船长欢迎登船',assets:['林晨','老船长']},{id:4,type:'特效',desc:'小七全息投影现身',assets:['小七']},{id:5,type:'场景',desc:'曙光号驶离太空港',assets:['太空港']},{id:6,type:'场景',desc:'飞船穿越紫云星云',assets:['紫云星云']},{id:7,type:'角色',desc:'林晨在观景舱凝视星空',assets:['林晨']},{id:8,type:'场景',desc:'蓝晶星球首次出现在视野中',assets:['蓝色星球「蓝晶」']}] },
+            { id: 2, title: "异星遗迹", shots: 12, chapters: "第4-6章", desc: "登陆蓝晶，发现古老遗迹，遭遇神秘能量波动", content: "曙光号降落在蓝晶星球表面。林晨穿上太空服，踏上这片陌生的土地。", characters: ['林晨', '苏雨', '小七'], scenes: ['蓝色星球「蓝晶」', '异星遗迹'], props: ['太空服头盔', '星际通讯器'], density: 85, shotList: [{id:1,type:'场景',desc:'曙光号降落在蓝晶地表',assets:['蓝色星球「蓝晶」']},{id:2,type:'角色',desc:'林晨踏上异星土地',assets:['林晨']},{id:3,type:'场景',desc:'蓝色植被与双太阳天空',assets:['蓝色星球「蓝晶」']},{id:4,type:'角色',desc:'苏雨从飞船走出',assets:['苏雨']},{id:5,type:'场景',desc:'发现远处古老遗迹',assets:['异星遗迹']},{id:6,type:'场景',desc:'遗迹近景，巨型石柱',assets:['异星遗迹']},{id:7,type:'特效',desc:'石柱上的发光符文',assets:['异星遗迹']},{id:8,type:'角色',desc:'林晨触摸符文',assets:['林晨']},{id:9,type:'特效',desc:'神秘能量从地下涌出',assets:['能量核心']},{id:10,type:'角色',desc:'苏雨拔剑保护林晨',assets:['苏雨']},{id:11,type:'场景',desc:'遗迹开始震动',assets:['异星遗迹']},{id:12,type:'场景',desc:'小七扫描能量源',assets:['小七']}] },
+            { id: 3, title: "暗流涌动", shots: 10, chapters: "第7-9章", desc: "黑曜势力介入，小七觉醒，林晨陷入两难抉择", content: "黑曜的舰队突然出现在蓝晶轨道上。林晨通过通讯器收到了来自黑曜的警告。", characters: ['林晨', '苏雨', '黑曜', '小七'], scenes: ['蓝色星球「蓝晶」', '曙光号驾驶舱'], props: ['星际通讯器', '全息平板'], density: 90, shotList: [] },
+            { id: 4, title: "真相浮现", shots: 11, chapters: "第10-12章", desc: "遗迹秘密揭开，蓝晶星球的真实身份浮出水面", content: "深入遗迹核心，林晨发现了一块古代石板。", characters: ['林晨', '苏雨', '小七'], scenes: ['异星遗迹', '水晶洞穴'], props: ['古代石板', '能量核心'], density: 80, shotList: [] },
+            { id: 5, title: "决裂时刻", shots: 9, chapters: "第13-15章", desc: "团队内部产生分歧，苏雨与林晨理念冲突爆发", content: "得知真相后，苏雨认为应该立即摧毁能量核心。", characters: ['林晨', '苏雨', '老船长'], scenes: ['曙光号驾驶舱'], props: ['光剑', '全息平板'], density: 75, shotList: [] },
+            { id: 6, title: "背水一战", shots: 13, chapters: "第16-18章", desc: "黑曜发动总攻，曙光号面临毁灭危机", content: "黑曜舰队发动全面攻击。", characters: ['林晨', '苏雨', '黑曜', '老船长', '小七'], scenes: ['曙光号驾驶舱', '紫云星云', '废弃空间站'], props: ['光剑', '能量核心', '全息平板'], density: 95, shotList: [] },
+            { id: 7, title: "水晶之心", shots: 10, chapters: "第19-21章", desc: "深入水晶洞穴，寻找拯救星球的关键能量源", content: "为了修复曙光号并保护蓝晶，林晨决定深入水晶洞穴。", characters: ['林晨', '小七'], scenes: ['水晶洞穴'], props: ['能量核心', '全息平板'], density: 70, shotList: [] },
+            { id: 8, title: "时空裂隙", shots: 11, chapters: "第22-24章", desc: "意外打开时空裂隙，过去与现在交织", content: "能量核心的激活意外打开了时空裂隙。", characters: ['林晨', '小七'], scenes: ['水晶洞穴', '异星遗迹'], props: ['能量核心', '古代石板'], density: 88, shotList: [] },
+            { id: 9, title: "记忆迷宫", shots: 9, chapters: "第25-27章", desc: "林晨陷入记忆迷宫，面对内心最深处的恐惧", content: "时空裂隙的影响让林晨陷入了记忆迷宫。", characters: ['林晨', '小七'], scenes: ['曙光号驾驶舱'], props: ['全息平板'], density: 72, shotList: [] },
+            { id: 10, title: "联盟诞生", shots: 10, chapters: "第28-30章", desc: "各方势力联合，组建星际联盟共同对抗威胁", content: "林晨意识到单凭曙光号无法对抗黑曜。", characters: ['林晨', '苏雨', '老船长', '小七'], scenes: ['太空港', '曙光号驾驶舱'], props: ['星际通讯器', '全息平板'], density: 78, shotList: [] },
+            { id: 11, title: "最终战役", shots: 14, chapters: "第31-33章", desc: "全面对决，曙光号与黑曜舰队的终极之战", content: "星际联盟与黑曜舰队的终极之战在蓝晶轨道上展开。", characters: ['林晨', '苏雨', '黑曜', '老船长', '小七'], scenes: ['紫云星云', '曙光号驾驶舱', '蓝色星球「蓝晶」'], props: ['光剑', '能量核心', '全息平板'], density: 98, shotList: [] },
+            { id: 12, title: "星辰归途", shots: 8, chapters: "第34-36章", desc: "战争结束，新的旅程开始，星辰大海永不止步", content: "战争结束了，但林晨知道这只是开始。", characters: ['林晨', '苏雨', '小七'], scenes: ['太空港', '曙光号驾驶舱', '蓝色星球「蓝晶」'], props: ['全息平板', '星际通讯器'], density: 60, shotList: [] },
+        ];
+
+        let extractedAssets = {
+            character: [
+                { id: 'c1', name: '林晨', subtype: '男主角', prompt: '年轻亚洲男性，短发，穿银色太空服，眼神坚定，赛博朋克风格，电影级光影', confirmed: false, hasImage: false, img: null, regenerateCount: 0, episodes: [1,2,3,4,5,6,7,8,9,10,11,12], builderTags: { style: new Set(['scifi']), light: new Set(['side']), composition: new Set(['medium']), quality: new Set(['8k','cinematic']) } },
+                { id: 'c2', name: '苏雨', subtype: '女主角', prompt: '年轻亚洲女性，长发，穿黑色战斗服，手持光剑，冷酷表情，科幻风格', confirmed: false, hasImage: false, img: null, regenerateCount: 0, episodes: [2,3,4,5,6,10,11,12], builderTags: { style: new Set(['scifi']), light: new Set(['dramatic']), composition: new Set(['medium']), quality: new Set(['8k','detailed']) } },
+                { id: 'c3', name: '黑曜', subtype: '反派', prompt: '中年男性，短发带灰，穿黑色军装，阴沉表情，暗光环境', confirmed: false, hasImage: false, img: null, regenerateCount: 0, episodes: [3,6,11], builderTags: { style: new Set(['scifi']), light: new Set(['top']), composition: new Set(['closeup']), quality: new Set(['cinematic']) } },
+                { id: 'c4', name: '老船长', subtype: '配角', prompt: '老年男性，白发，穿棕色皮夹克，慈祥笑容，飞船驾驶舱背景', confirmed: false, hasImage: false, img: null, regenerateCount: 0, episodes: [1,5,6,10,11], builderTags: { style: new Set(['scifi']), light: new Set(['soft']), composition: new Set(['medium']), quality: new Set(['cinematic']) } },
+                { id: 'c5', name: 'AI助手-小七', subtype: 'AI角色', prompt: '全息投影少女，蓝发，半透明身体，未来科技感，悬浮姿态', confirmed: false, hasImage: false, img: null, regenerateCount: 0, episodes: [1,2,3,4,6,7,8,9,10,11,12], builderTags: { style: new Set(['scifi','cyber']), light: new Set(['glow']), composition: new Set(['medium']), quality: new Set(['8k','octane']) } },
+            ],
+            scene: [
+                { id: 's1', name: '星际飞船「曙光号」', subtype: '飞船内部', prompt: '未来主义飞船驾驶舱，全息控制台，金属质感，冷色调蓝光', confirmed: false, hasImage: false, img: null, regenerateCount: 0, episodes: [1,3,5,6,9,10,11,12], builderTags: { style: new Set(['scifi']), light: new Set(['ambient']), composition: new Set(['wide']), quality: new Set(['cinematic','octane']) } },
+                { id: 's2', name: '蓝色星球「蓝晶」', subtype: '行星表面', prompt: '异星地表，蓝色植被，双太阳天空，远处山脉，科幻概念艺术', confirmed: false, hasImage: false, img: null, regenerateCount: 0, episodes: [1,2,3,4,7,8,11,12], builderTags: { style: new Set(['scifi']), light: new Set(['ambient']), composition: new Set(['wide']), quality: new Set(['concept','8k']) } },
+                { id: 's3', name: '紫云星云', subtype: '太空', prompt: '深空星云，紫色和粉色气体云，遥远星系，星光点点', confirmed: false, hasImage: false, img: null, regenerateCount: 0, episodes: [1,6,8,10,11,12], builderTags: { style: new Set(['scifi']), light: new Set(['ambient']), composition: new Set(['bird']), quality: new Set(['8k','matte']) } },
+                { id: 's4', name: '异星遗迹', subtype: '外景', prompt: '古老外星遗迹，巨型石柱，发光符文，神秘氛围，黄昏光线', confirmed: false, hasImage: false, img: null, regenerateCount: 0, episodes: [2,4,8], builderTags: { style: new Set(['scifi','fantasy']), light: new Set(['dramatic']), composition: new Set(['wide']), quality: new Set(['concept','cinematic']) } },
+                { id: 's5', name: '地下基地', subtype: '室内', prompt: '秘密地下基地，红色警报灯，金属走廊，科技感十足', confirmed: false, hasImage: false, img: null, regenerateCount: 0, episodes: [3], builderTags: { style: new Set(['scifi','cyber']), light: new Set(['neon']), composition: new Set(['medium']), quality: new Set(['cinematic']) } },
+                { id: 's6', name: '太空港', subtype: '建筑', prompt: '繁忙太空港口，飞船起降，霓虹灯牌，未来都市风格', confirmed: false, hasImage: false, img: null, regenerateCount: 0, episodes: [1,10,12], builderTags: { style: new Set(['scifi','cyber']), light: new Set(['neon']), composition: new Set(['wide']), quality: new Set(['cinematic','unreal']) } },
+                { id: 's7', name: '废弃空间站', subtype: '太空建筑', prompt: '破败空间站内部，漂浮碎片，昏暗灯光，末日氛围', confirmed: false, hasImage: false, img: null, regenerateCount: 0, episodes: [6], builderTags: { style: new Set(['scifi']), light: new Set(['dramatic']), composition: new Set(['wide']), quality: new Set(['cinematic']) } },
+                { id: 's8', name: '水晶洞穴', subtype: '自然', prompt: '发光水晶洞穴，蓝紫色光芒，地下湖倒影，奇幻风格', confirmed: false, hasImage: false, img: null, regenerateCount: 0, episodes: [4,7,8], builderTags: { style: new Set(['fantasy']), light: new Set(['glow']), composition: new Set(['wide']), quality: new Set(['concept','8k']) } },
+            ],
+            prop: [
+                { id: 'p1', name: '光剑', subtype: '武器', prompt: '蓝色光剑，能量刃发光，金属握把，科幻武器设计', confirmed: false, hasImage: false, img: null, regenerateCount: 0, episodes: [2,3,5,6,11], builderTags: { style: new Set(['scifi']), light: new Set(['glow']), composition: new Set(['closeup']), quality: new Set(['8k','detailed']) } },
+                { id: 'p2', name: '全息平板', subtype: '设备', prompt: '透明全息显示屏，悬浮界面，蓝色数据流，未来科技设备', confirmed: false, hasImage: false, img: null, regenerateCount: 0, episodes: [1,2,3,5,6,10,11,12], builderTags: { style: new Set(['scifi','cyber']), light: new Set(['glow']), composition: new Set(['closeup']), quality: new Set(['8k','detailed']) } },
+                { id: 'p3', name: '星际通讯器', subtype: '设备', prompt: '小型通讯设备，天线展开，绿色指示灯，金属外壳', confirmed: false, hasImage: false, img: null, regenerateCount: 0, episodes: [2,10,12], builderTags: { style: new Set(['scifi']), light: new Set(['ambient']), composition: new Set(['closeup']), quality: new Set(['detailed']) } },
+                { id: 'p4', name: '能量核心', subtype: '能源', prompt: '发光球体能量核心，蓝色脉冲光芒，悬浮状态，科幻风格', confirmed: false, hasImage: false, img: null, regenerateCount: 0, episodes: [4,6,7,8,11], builderTags: { style: new Set(['scifi']), light: new Set(['glow']), composition: new Set(['closeup']), quality: new Set(['8k','octane']) } },
+                { id: 'p5', name: '太空服头盔', subtype: '装备', prompt: '未来太空服头盔，金色面罩反光，金属质感，细节丰富', confirmed: false, hasImage: false, img: null, regenerateCount: 0, episodes: [2], builderTags: { style: new Set(['scifi']), light: new Set(['side']), composition: new Set(['closeup']), quality: new Set(['8k','detailed']) } },
+                { id: 'p6', name: '古代石板', subtype: '文物', prompt: '刻有符文的古代石板，发光纹路，神秘符号，考古风格', confirmed: false, hasImage: false, img: null, regenerateCount: 0, episodes: [4,8], builderTags: { style: new Set(['fantasy']), light: new Set(['dramatic']), composition: new Set(['closeup']), quality: new Set(['detailed']) } },
+            ]
+        };
+
+        const genQueueItems = [];
+
+        // ========== 导航控制 ==========
+        function goToPhase(phase) {
+            if (phase < 1 || phase > 7) return;
+            for (let i = 1; i <= 7; i++) document.getElementById(`phase-${i}`).classList.add('hidden');
+            const target = document.getElementById(`phase-${phase}`);
+            target.classList.remove('hidden');
+            target.classList.add('fade-in');
+            updateNav(phase);
+            currentPhase = phase;
+            if (phase !== 3 && splitTimer) { clearInterval(splitTimer); splitTimer = null; }
+            if (phase !== 4 && extractTimer4) { clearInterval(extractTimer4); extractTimer4 = null; }
+            if (phase !== 6 && genTimer) { clearInterval(genTimer); genTimer = null; }
+            if (phase === 3) {
+                document.getElementById('phase-3-config').classList.remove('hidden');
+                document.getElementById('phase-3-execute').classList.add('hidden');
+                document.getElementById('phase-3-editor').classList.add('hidden');
+                splitCompleted = false;
+            }
+            if (phase === 4) startExtractSimulation4();
+            if (phase === 5) {
+                updateAssetStats();
+                renderAssetList();
+                renderBuilderChips();
+                renderTemplates();
+                // 默认选择第一个资产
+                const firstAsset = extractedAssets.character[0];
+                if (firstAsset) selectAssetForEdit('character', firstAsset.id);
+            }
+            if (phase === 6) startGenSimulation();
+            if (phase === 7) renderFinalEpisodeList();
+            document.getElementById('mainContent').scrollTop = 0;
+        }
+
+        function updateNav(phase) {
+            for (let i = 1; i <= 7; i++) {
+                const badge = document.getElementById(`nav-badge-${i}`);
+                const title = document.getElementById(`nav-title-${i}`);
+                const icons = ['upload', 'file-shield', 'scissors', 'robot', 'list-check', 'wand-magic-sparkles', 'check-double'];
+                if (i < phase) {
+                    badge.className = 'step-badge completed w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center text-white font-bold text-xs';
+                    badge.innerHTML = '<i class="fas fa-check"></i>';
+                    if (title) { title.classList.remove('text-white', 'text-slate-300'); title.classList.add('text-slate-300'); }
+                } else if (i === phase) {
+                    badge.className = 'step-badge active w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center text-white font-bold text-xs';
+                    badge.innerHTML = `<i class="fas fa-${icons[i-1]}"></i>`;
+                    if (title) { title.classList.remove('text-slate-500', 'text-slate-300'); title.classList.add('text-white'); }
+                } else {
+                    badge.className = 'step-badge pending w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-xs';
+                    badge.innerHTML = `<i class="fas fa-${icons[i-1]}"></i>`;
+                    if (title) { title.classList.remove('text-white', 'text-slate-300'); title.classList.add('text-slate-500'); }
+                }
+            }
+            for (let i = 1; i <= 6; i++) {
+                const line = document.getElementById(`nav-line-${i}`);
+                const innerDiv = line ? line.querySelector('div') : null;
+                if (line && innerDiv) {
+                    if (i < phase) { innerDiv.style.width = '100%'; line.classList.add('completed'); } 
+                    else { innerDiv.style.width = '0%'; line.classList.remove('completed'); }
+                }
+            }
+        }
+
+        // ========== Phase 1 ==========
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            hasFile = true;
+            document.getElementById('uploadZone').classList.add('has-file');
+            document.getElementById('uploadIcon').classList.add('hidden');
+            document.getElementById('fileInfo').classList.remove('hidden');
+            document.getElementById('fileName').textContent = file.name;
+            const size = (file.size / 1024 / 1024).toFixed(1);
+            document.getElementById('fileSize').textContent = `${size} MB · 约 38 万字`;
+            document.getElementById('novelTitle').value = file.name.replace(/\.[^/.]+$/, '');
+            document.getElementById('splitTitle').textContent = file.name.replace(/\.[^/.]+$/, '');
+            document.getElementById('extractTitle4').textContent = file.name.replace(/\.[^/.]+$/, '');
+
+            // 显示智能题材识别
+            setTimeout(() => {
+                document.getElementById('genreDetection').classList.remove('hidden');
+                document.getElementById('genreDetection').classList.add('fade-in');
+                // 自动设置推荐值
+                document.getElementById('genreSelect').value = '科幻';
+                document.getElementById('styleSelect').value = '写实科幻';
+            }, 600);
+
+            checkUploadReady();
+        }
+        function clearFile() {
+            hasFile = false;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('uploadZone').classList.remove('has-file');
+            document.getElementById('uploadIcon').classList.remove('hidden');
+            document.getElementById('fileInfo').classList.add('hidden');
+            document.getElementById('genreDetection').classList.add('hidden');
+            checkUploadReady();
+        }
+        function checkUploadReady() {
+            const title = document.getElementById('novelTitle').value.trim();
+            document.getElementById('btn-phase-1').disabled = !(hasFile && title);
+        }
+        document.getElementById('novelTitle').addEventListener('input', checkUploadReady);
+        const dropZone = document.getElementById('uploadZone');
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => { dropZone.addEventListener(eventName, preventDefaults, false); });
+        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+        ['dragenter', 'dragover'].forEach(eventName => { dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false); });
+        ['dragleave', 'drop'].forEach(eventName => { dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false); });
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length) { document.getElementById('fileInput').files = files; handleFileSelect({ target: { files } }); }
+        });
+
+        // ========== Phase 2 ==========
+        function checkAgreements() {
+            const all = ['agree1', 'agree2', 'agree3', 'agree4'].every(id => document.getElementById(id).checked);
+            document.getElementById('btn-phase-2').disabled = !all;
+            const count = ['agree1', 'agree2', 'agree3', 'agree4'].filter(id => document.getElementById(id).checked).length;
+            document.getElementById('agreeCount').textContent = count;
+            document.getElementById('agreeProgress').style.width = (count / 4 * 100) + '%';
+            document.getElementById('agreeAll').checked = count === 4;
+        }
+        function toggleAgreement(id) { const checkbox = document.getElementById(id); checkbox.checked = !checkbox.checked; checkAgreements(); }
+        function toggleAllAgreements(checked) {
+            ['agree1', 'agree2', 'agree3', 'agree4'].forEach(id => { document.getElementById(id).checked = checked; });
+            checkAgreements();
+        }
+
+        // ========== Phase 3 ==========
+        function selectStrategy(strategy) {
+            currentStrategy = strategy;
+            ['balanced', 'plot', 'character', 'custom'].forEach(s => {
+                const card = document.getElementById(`strategy-${s}`);
+                if (s === strategy) card.classList.add('selected'); else card.classList.remove('selected');
+            });
+            document.getElementById('strategyPreview').textContent = strategyData[strategy].preview;
+            const customSection = document.getElementById('customPromptSection');
+            if (strategy === 'custom') { customSection.classList.remove('hidden'); customSection.classList.add('fade-in'); }
+            else customSection.classList.add('hidden');
+        }
+        function updateEpisodeCount(val) { document.getElementById('episodeCountValue').textContent = val == 0 ? '自动' : val + ' 集'; }
+        function updateShotRange() {
+            const min = parseInt(document.getElementById('shotMin').value) || 8;
+            const max = parseInt(document.getElementById('shotMax').value) || 14;
+            document.getElementById('shotRangeValue').textContent = min + ' - ' + max;
+        }
+        function startSplitWithStrategy() {
+            document.getElementById('phase-3-config').classList.add('hidden');
+            document.getElementById('phase-3-execute').classList.remove('hidden');
+            document.getElementById('phase-3-execute').classList.add('fade-in');
+            document.getElementById('strategyNameDisplay').textContent = strategyData[currentStrategy].name;
+            document.getElementById('editorStrategyName').textContent = strategyData[currentStrategy].name;
+            startSplitSimulation();
+        }
+        function backToSplitConfig() {
+            if (splitTimer) { clearInterval(splitTimer); splitTimer = null; }
+            splitCompleted = false;
+            document.getElementById('phase-3-config').classList.remove('hidden');
+            document.getElementById('phase-3-execute').classList.add('hidden');
+            document.getElementById('phase-3-editor').classList.add('hidden');
+        }
+        function startSplitSimulation() {
+            if (splitTimer) clearInterval(splitTimer);
+            splitCompleted = false;
+            document.getElementById('splitProgressSection').classList.remove('hidden');
+            document.getElementById('splitTasks').classList.remove('hidden');
+            document.getElementById('split-indicator-dot').style.display = 'flex';
+            const tasks = [
+                { id: 'stask-structure', bar: 0, speed: 3 },
+                { id: 'stask-chapters', bar: 0, speed: 2.5 },
+                { id: 'stask-strategy', bar: 0, speed: 2 },
+                { id: 'stask-split', bar: 0, speed: 2 },
+                { id: 'stask-summary', bar: 0, speed: 1.5 },
+            ];
+            let totalProgress = 0;
+            const log = document.getElementById('splitLog');
+            log.innerHTML = `<div class="text-emerald-400">[系统] 已加载「${strategyData[currentStrategy].name}」策略，开始分析...</div>`;
+            const strategyLogs = {
+                balanced: ['[分析] 检测到约38万字文本...','[结构] 发现36个章节，分为3卷...','[边界] 精确定位章节起止...','[均衡] 计算情节密度分布...','[拆分] 智能合并相近章节...'],
+                plot: ['[分析] 扫描全文情节高潮...','[结构] 识别出8个主要高潮...','[边界] 以悬念钩子为优先...','[钩子] 确保每集结尾吸引力...','[拆分] 按情节密度分配...'],
+                character: ['[分析] 扫描角色出场频率...','[结构] 识别5个主要角色弧光...','[边界] 以角色关系变化为节点...','[分布] 确保主角出场均匀...','[拆分] 按角色驱动重组...'],
+                custom: ['[分析] 解析自定义提示词...','[配置] 应用用户指定规则...','[验证] 检查约束可行性...','[优化] 满足约束前提下优化...','[拆分] 按自定义策略执行...']
+            };
+            const commonLogs = ['[拆分] 第1-3章合并为"初入星海"...','[拆分] 第4-6章合并为"异星遗迹"...','[拆分] 第7-9章合并为"暗流涌动"...','[拆分] 第10-12章合并为"真相浮现"...','[拆分] 第13-15章合并为"决裂时刻"...','[拆分] 第16-18章合并为"背水一战"...','[摘要] 正在生成标题和概要...','[完成] 成功拆分为12集'];
+            const logs = [...strategyLogs[currentStrategy], ...commonLogs];
+            let logIdx = 0;
+            splitTimer = setInterval(() => {
+                let allDone = true;
+                tasks.forEach(task => {
+                    if (task.bar < 100) {
+                        task.bar = Math.min(100, task.bar + task.speed + Math.random() * 3);
+                        allDone = false;
+                        const el = document.querySelector(`#${task.id} .stask-bar`);
+                        const status = document.querySelector(`#${task.id} .stask-status`);
+                        if (el) el.style.width = task.bar + '%';
+                        if (status) status.textContent = task.bar >= 100 ? '已完成' : Math.floor(task.bar) + '%';
+                    }
+                });
+                totalProgress = tasks.reduce((s, t) => s + t.bar, 0) / tasks.length;
+                document.getElementById('splitProgressBar').style.width = totalProgress + '%';
+                document.getElementById('splitProgressText').textContent = Math.floor(totalProgress) + '%';
+                if (Math.random() > 0.6 && logIdx < logs.length) {
+                    const div = document.createElement('div');
+                    div.className = 'text-emerald-400/80 mt-1';
+                    div.textContent = logs[logIdx];
+                    log.appendChild(div);
+                    log.scrollTop = log.scrollHeight;
+                    logIdx++;
+                }
+                if (allDone) {
+                    clearInterval(splitTimer);
+                    splitTimer = null;
+                    splitCompleted = true;
+                    document.getElementById('split-indicator-dot').style.display = 'none';
+                    setTimeout(() => showSplitEditor(), 600);
+                }
+            }, 100);
+        }
+        function showSplitEditor() {
+            document.getElementById('phase-3-execute').classList.add('hidden');
+            document.getElementById('phase-3-editor').classList.remove('hidden');
+            document.getElementById('phase-3-editor').classList.add('fade-in');
+            saveEpisodeHistory();
+            renderEpisodeList();
+            renderDensityChart();
+            renderCharDistribution();
+            updateEpisodeStats();
+            if (episodes.length > 0) selectEpisode(episodes[0].id);
+        }
+        function saveEpisodeHistory() {
+            episodeHistory = episodeHistory.slice(0, historyIndex + 1);
+            episodeHistory.push(JSON.parse(JSON.stringify(episodes)));
+            historyIndex++;
+            updateHistoryButtons();
+        }
+        function undoEpisodeChange() { if (historyIndex > 0) { historyIndex--; episodes = JSON.parse(JSON.stringify(episodeHistory[historyIndex])); refreshEditor(); updateHistoryButtons(); } }
+        function redoEpisodeChange() { if (historyIndex < episodeHistory.length - 1) { historyIndex++; episodes = JSON.parse(JSON.stringify(episodeHistory[historyIndex])); refreshEditor(); updateHistoryButtons(); } }
+        function updateHistoryButtons() {
+            document.getElementById('btn-undo').disabled = historyIndex <= 0;
+            document.getElementById('btn-redo').disabled = historyIndex >= episodeHistory.length - 1;
+        }
+        function refreshEditor() { renderEpisodeList(); renderDensityChart(); renderCharDistribution(); updateEpisodeStats(); if (selectedEpisodeId) { const exists = episodes.find(e => e.id === selectedEpisodeId); if (exists) selectEpisode(selectedEpisodeId); else if (episodes.length > 0) selectEpisode(episodes[0].id); } }
+        function renderEpisodeList() {
+            const container = document.getElementById('episodeListContainer');
+            container.innerHTML = episodes.map((ep, idx) => `
+                <div class="episode-card flex items-center gap-2 p-2.5 rounded-lg bg-surface/30 border border-white/5 mb-2 ${ep.id === selectedEpisodeId ? 'active' : ''} ${selectedForMerge.includes(ep.id) ? 'selected-for-merge' : ''}" 
+                     draggable="true" data-id="${ep.id}" onclick="handleEpisodeClick(${ep.id})"
+                     ondragstart="handleDragStart(event)" ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragend="handleDragEnd(event)">
+                    <div class="w-7 h-7 rounded-md bg-emerald/10 border border-emerald/20 flex items-center justify-center flex-shrink-0 cursor-grab">
+                        <span class="text-[10px] font-bold text-emerald">${String(idx+1).padStart(2,'0')}</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-white truncate">${ep.title}</span>
+                            <span class="text-[10px] text-slate-500 flex-shrink-0 ml-1">${ep.shots}镜</span>
+                        </div>
+                        <p class="text-[10px] text-slate-500 line-clamp-1 mt-0.5">${ep.chapters}</p>
+                    </div>
+                    ${mergeMode ? `<div class="flex-shrink-0" onclick="event.stopPropagation(); toggleMergeSelect(${ep.id})"><div class="w-5 h-5 rounded border ${selectedForMerge.includes(ep.id) ? 'bg-amber border-amber' : 'border-white/20'} flex items-center justify-center">${selectedForMerge.includes(ep.id) ? '<i class="fas fa-check text-white text-[8px]"></i>' : ''}</div></div>` : ''}
+                </div>
+            `).join('');
+            document.getElementById('episodeTotalCount').textContent = `共 ${episodes.length} 集`;
+        }
+        function handleEpisodeClick(id) { if (mergeMode) toggleMergeSelect(id); else selectEpisode(id); }
+        function selectEpisode(id) {
+            selectedEpisodeId = id;
+            renderEpisodeList();
+            const ep = episodes.find(e => e.id === id);
+            if (!ep) return;
+            const detailPanel = document.getElementById('episodeDetailPanel');
+            detailPanel.innerHTML = `
+                <div class="slide-in-right">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex-1">
+                            <input type="text" value="${ep.title}" onchange="updateEpisodeTitle(${id}, this.value)" class="w-full text-lg font-bold text-white bg-transparent border-b border-white/10 focus:border-primary/50 focus:outline-none pb-1 mb-2 transition-all">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-xs px-2 py-0.5 rounded bg-emerald/10 text-emerald border border-emerald/20">${ep.chapters}</span>
+                                <span class="text-xs px-2 py-0.5 rounded bg-amber/10 text-amber border border-amber/20">情节密度 ${ep.density}%</span>
+                                <span class="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">${ep.characters.length} 位角色</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="text-xs text-slate-500 mb-2 block">情绪基调</label>
+                        <div class="flex flex-wrap gap-2">
+                            ${getEmotionTags(ep.density).map(tag => `<span class="px-3 py-1.5 rounded-lg ${tag.color} text-xs border ${tag.border}"><i class="${tag.icon} mr-1"></i>${tag.label}</span>`).join('')}
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="text-xs text-slate-500 mb-2 block">核心剧情概述</label>
+                        <textarea onchange="updateEpisodeDesc(${id}, this.value)" rows="3" class="w-full px-3 py-2 bg-surface/50 border border-white/10 rounded-lg text-sm text-slate-300 focus:outline-none focus:border-primary/50 resize-none transition-all leading-relaxed">${ep.desc}</textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="text-xs text-slate-500 mb-1 block">内容预览</label>
+                        <div class="p-3 rounded-lg bg-surface/30 border border-white/5 text-xs text-slate-400 leading-relaxed max-h-32 overflow-y-auto custom-scroll">${ep.content}</div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="text-xs text-slate-500 mb-2 block">出场角色</label>
+                        <div class="flex flex-wrap gap-2">
+                            ${ep.characters.map(c => `<div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 border border-primary/20"><i class="fas fa-user text-primary text-[10px]"></i><span class="text-xs text-indigo-300">${c}</span></div>`).join('')}
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="text-xs text-slate-500 mb-2 block">重要道具</label>
+                        <div class="flex flex-wrap gap-1.5">
+                            ${ep.props.length > 0 ? ep.props.map(p => `<span class="px-2.5 py-1.5 rounded-lg bg-amber/10 text-amber text-xs border border-amber/20"><i class="fas fa-cube mr-1 text-[10px]"></i>${p}</span>`).join('') : '<span class="text-xs text-slate-500 italic">无特殊道具</span>'}
+                        </div>
+                    </div>
+                    <div class="p-3 rounded-lg bg-surface/30 border border-white/5">
+                        <label class="text-xs text-slate-500 mb-2 block">分集信息</label>
+                        <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                            <div class="flex items-center justify-between"><span class="text-slate-500">涉及角色</span><span class="text-slate-300">${ep.characters.length} 人</span></div>
+                            <div class="flex items-center justify-between"><span class="text-slate-500">场景数量</span><span class="text-slate-300">${ep.scenes.length} 个</span></div>
+                            <div class="flex items-center justify-between"><span class="text-slate-500">道具数量</span><span class="text-slate-300">${ep.props.length} 件</span></div>
+                            <div class="flex items-center justify-between"><span class="text-slate-500">情节定位</span><span class="text-slate-300">${getPlotPosition(ep.id, episodes.length)}</span></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        function getEmotionTags(density) {
+            const tags = [];
+            if (density > 90) { tags.push({ label: '紧张刺激', color: 'bg-rose/10 text-rose border-rose/20', border: 'border-rose/20', icon: 'fas fa-bolt' }); tags.push({ label: '高能不断', color: 'bg-amber/10 text-amber border-amber/20', border: 'border-amber/20', icon: 'fas fa-fire' }); }
+            else if (density > 75) { tags.push({ label: '悬念迭起', color: 'bg-primary/10 text-primary border-primary/20', border: 'border-primary/20', icon: 'fas fa-question' }); tags.push({ label: '情节推进', color: 'bg-emerald/10 text-emerald border-emerald/20', border: 'border-emerald/20', icon: 'fas fa-arrow-right' }); }
+            else if (density > 60) { tags.push({ label: '平稳叙事', color: 'bg-cyan/10 text-cyan border-cyan/20', border: 'border-cyan/20', icon: 'fas fa-compass' }); tags.push({ label: '期待积累', color: 'bg-primary/10 text-primary border-primary/20', border: 'border-primary/20', icon: 'fas fa-star' }); }
+            else { tags.push({ label: '铺垫蓄力', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', border: 'border-slate-500/20', icon: 'fas fa-seedling' }); tags.push({ label: '伏笔埋设', color: 'bg-cyan/10 text-cyan border-cyan/20', border: 'border-cyan/20', icon: 'fas fa-lightbulb' }); }
+            return tags;
+        }
+        function getPlotPosition(epId, totalEps) {
+            const position = epId / totalEps;
+            if (position <= 0.2) return '开篇铺垫'; if (position <= 0.4) return '发展前期'; if (position <= 0.6) return '中段高潮'; if (position <= 0.8) return '冲突升级'; return '收尾阶段';
+        }
+        function updateEpisodeTitle(id, val) { const ep = episodes.find(e => e.id === id); if (ep) { ep.title = val; saveEpisodeHistory(); renderEpisodeList(); } }
+        function updateEpisodeDesc(id, val) { const ep = episodes.find(e => e.id === id); if (ep) { ep.desc = val; saveEpisodeHistory(); } }
+        function deleteCurrentEpisode() { if (episodes.length <= 3) { showToast('至少需要保留 3 集', 'warning'); return; } const idx = episodes.findIndex(e => e.id === selectedEpisodeId); if (idx > -1) { episodes.splice(idx, 1); saveEpisodeHistory(); refreshEditor(); } }
+        function splitCurrentEpisode() {
+            const idx = episodes.findIndex(e => e.id === selectedEpisodeId);
+            if (idx === -1) return;
+            const ep = episodes[idx];
+            if (ep.shots < 6) { showToast('分镜数过少，无法拆分', 'warning'); return; }
+            const mid = Math.floor(ep.shotList.length / 2);
+            const newId = Math.max(...episodes.map(e => e.id)) + 1;
+            const newEp = { id: newId, title: ep.title + ' (下)', shots: ep.shotList.length - mid, chapters: ep.chapters, desc: ep.desc + '（后半部分）', content: ep.content, characters: [...ep.characters], scenes: [...ep.scenes], props: [...ep.props], density: Math.floor(ep.density * 0.9), shotList: ep.shotList.slice(mid).map((s, i) => ({...s, id: i + 1})) };
+            ep.title = ep.title + ' (上)'; ep.shots = mid; ep.shotList = ep.shotList.slice(0, mid).map((s, i) => ({...s, id: i + 1}));
+            episodes.splice(idx + 1, 0, newEp);
+            saveEpisodeHistory(); refreshEditor(); selectEpisode(newId);
+        }
+        function handleDragStart(e) { dragSrcEl = e.target.closest('.episode-card'); e.dataTransfer.effectAllowed = 'move'; dragSrcEl.classList.add('dragging'); }
+        function handleDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; const card = e.target.closest('.episode-card'); if (card && card !== dragSrcEl) card.classList.add('drag-over'); }
+        function handleDrop(e) {
+            e.stopPropagation();
+            const card = e.target.closest('.episode-card');
+            if (dragSrcEl && card && dragSrcEl !== card) {
+                const srcId = parseInt(dragSrcEl.dataset.id); const targetId = parseInt(card.dataset.id);
+                const srcIdx = episodes.findIndex(e => e.id === srcId); const targetIdx = episodes.findIndex(e => e.id === targetId);
+                if (srcIdx > -1 && targetIdx > -1) { const [moved] = episodes.splice(srcIdx, 1); episodes.splice(targetIdx, 0, moved); saveEpisodeHistory(); refreshEditor(); }
+            }
+            return false;
+        }
+        function handleDragEnd(e) { document.querySelectorAll('.episode-card').forEach(c => { c.classList.remove('dragging', 'drag-over'); }); }
+        function toggleMergeMode() {
+            mergeMode = !mergeMode; selectedForMerge = [];
+            const btn = document.getElementById('btn-merge-mode'); const bar = document.getElementById('mergeActionBar');
+            if (mergeMode) { btn.classList.add('text-amber', 'border-amber/30'); btn.classList.remove('text-slate-400'); bar.classList.remove('hidden'); }
+            else { btn.classList.remove('text-amber', 'border-amber/30'); btn.classList.add('text-slate-400'); bar.classList.add('hidden'); }
+            renderEpisodeList();
+        }
+        function toggleMergeSelect(id) { if (selectedForMerge.includes(id)) selectedForMerge = selectedForMerge.filter(x => x !== id); else selectedForMerge.push(id); document.getElementById('mergeSelectedCount').textContent = selectedForMerge.length; renderEpisodeList(); }
+        function executeMerge() {
+            if (selectedForMerge.length < 2) { showToast('请至少选择 2 集进行合并', 'warning'); return; }
+            const toMerge = episodes.filter(e => selectedForMerge.includes(e.id));
+            const newId = Math.max(...episodes.map(e => e.id)) + 1;
+            const newEp = { id: newId, title: toMerge[0].title + ' 等', shots: toMerge.reduce((s, e) => s + e.shots, 0), chapters: toMerge[0].chapters + '-' + toMerge[toMerge.length-1].chapters.split('-')[1], desc: toMerge.map(e => e.desc).join('；'), content: toMerge.map(e => e.content).join('\n\n'), characters: [...new Set(toMerge.flatMap(e => e.characters))], scenes: [...new Set(toMerge.flatMap(e => e.scenes))], props: [...new Set(toMerge.flatMap(e => e.props))], density: Math.floor(toMerge.reduce((s, e) => s + e.density, 0) / toMerge.length), shotList: toMerge.flatMap((e, ei) => e.shotList.map(s => ({...s, id: s.id + ei * 100}))).map((s, i) => ({...s, id: i + 1})) };
+            const firstIdx = episodes.findIndex(e => e.id === toMerge[0].id);
+            episodes = episodes.filter(e => !selectedForMerge.includes(e.id));
+            episodes.splice(firstIdx, 0, newEp);
+            selectedForMerge = []; toggleMergeMode(); saveEpisodeHistory(); refreshEditor(); selectEpisode(newId);
+        }
+        function updateEpisodeStats() {
+            const total = episodes.length; const totalShots = episodes.reduce((s, e) => s + e.shots, 0); const avg = total > 0 ? (totalShots / total).toFixed(1) : 0;
+            const shots = episodes.map(e => e.shots); const max = shots.length ? Math.max(...shots) : 0; const min = shots.length ? Math.min(...shots) : 0;
+            document.getElementById('stat-total-eps').textContent = total; document.getElementById('stat-total-shots').textContent = totalShots;
+            document.getElementById('stat-avg-shots').textContent = avg; document.getElementById('stat-max-min').textContent = max + ' / ' + min;
+        }
+        function renderDensityChart() {
+            const maxDensity = Math.max(...episodes.map(e => e.density), 100);
+            const container = document.getElementById('densityChart');
+            container.innerHTML = episodes.map((ep, idx) => {
+                const pct = (ep.density / maxDensity * 100).toFixed(0);
+                const color = ep.density > 90 ? 'bg-rose' : ep.density > 75 ? 'bg-amber' : ep.density > 60 ? 'bg-emerald' : 'bg-cyan';
+                return `<div class="flex items-center gap-2 cursor-pointer" onclick="selectEpisode(${ep.id})"><span class="text-[10px] text-slate-500 w-5">${String(idx+1).padStart(2,'0')}</span><div class="flex-1 h-5 bg-surface-light rounded-full overflow-hidden relative"><div class="h-full ${color} density-bar rounded-full" style="width: ${pct}%"></div><span class="absolute inset-0 flex items-center px-2 text-[9px] text-white font-medium truncate">${ep.title}</span></div><span class="text-[10px] text-slate-400 w-6 text-right">${ep.density}%</span></div>`;
+            }).join('');
+        }
+        function renderCharDistribution() {
+            const allChars = [...new Set(episodes.flatMap(e => e.characters))];
+            const container = document.getElementById('charDistribution');
+            const charColors = ['#6366f1', '#06b6d4', '#f59e0b', '#10b981', '#ec4899'];
+            container.innerHTML = allChars.map((char, cidx) => {
+                const color = charColors[cidx % charColors.length];
+                const presence = episodes.map(e => e.characters.includes(char) ? 1 : 0);
+                return `<div class="flex items-center gap-2"><span class="text-[10px] text-slate-400 w-10 truncate">${char}</span><div class="flex-1 flex gap-0.5 h-4">${presence.map((p, i) => `<div class="flex-1 rounded-sm ${p ? 'char-bar-segment' : ''}" style="${p ? `background:${color}` : 'background:rgba(255,255,255,0.05)'}"></div>`).join('')}</div><span class="text-[10px] text-slate-500 w-4 text-right">${presence.filter(x=>x).length}</span></div>`;
+            }).join('');
+        }
+
+        // ========== Phase 4 ==========
+        function startExtractSimulation4() {
+            if (extractTimer4) clearInterval(extractTimer4);
+            const tasks = [{ id: 'etask-char', bar: 0, speed: 2.2 }, { id: 'etask-scene', bar: 0, speed: 1.6 }, { id: 'etask-prop', bar: 0, speed: 2 }, { id: 'etask-prompt', bar: 0, speed: 1.3 }];
+            let totalProgress = 0;
+            const log = document.getElementById('extractLog4');
+            log.innerHTML = '<div class="text-emerald-400">[系统] 分集已就绪，开始提取资产...</div>';
+            const logs = ['[识别] 发现主要角色：林晨、苏雨、黑曜...','[识别] 发现次要角色：老船长、AI助手-小七...','[场景] 提取到星际飞船、蓝晶星球、紫云星云...','[场景] 提取到异星遗迹、地下基地、太空港...','[道具] 提取到光剑、全息平板、星际通讯器...','[道具] 提取到能量核心、太空服头盔、古代石板...','[Prompt] 正在为林晨生成角色描述...','[Prompt] 正在为曙光号生成场景描述...','[完成] 所有资产提取完毕，共19个元素'];
+            let logIdx = 0;
+            extractTimer4 = setInterval(() => {
+                let allDone = true;
+                tasks.forEach(task => {
+                    if (task.bar < 100) {
+                        task.bar = Math.min(100, task.bar + task.speed + Math.random() * 2.5); allDone = false;
+                        const el = document.querySelector(`#${task.id} .etask-bar`); const status = document.querySelector(`#${task.id} .etask-status`);
+                        if (el) el.style.width = task.bar + '%'; if (status) status.textContent = task.bar >= 100 ? '已完成' : Math.floor(task.bar) + '%';
+                    }
+                });
+                totalProgress = tasks.reduce((s, t) => s + t.bar, 0) / tasks.length;
+                document.getElementById('totalProgressBar4').style.width = totalProgress + '%';
+                document.getElementById('totalProgressText4').textContent = Math.floor(totalProgress) + '%';
+                if (Math.random() > 0.65 && logIdx < logs.length) { const div = document.createElement('div'); div.className = 'text-emerald-400/80 mt-1'; div.textContent = logs[logIdx]; log.appendChild(div); log.scrollTop = log.scrollHeight; logIdx++; }
+                if (allDone) { clearInterval(extractTimer4); extractTimer4 = null; setTimeout(() => goToPhase(5), 800); }
+            }, 100);
+        }
+
+        // ========== Phase 5: 提示词智能生态系统（核心优化） ==========
+        function switchAssetTab(tab) {
+            currentAssetTab = tab;
+            ['character', 'scene', 'prop'].forEach(t => {
+                const btn = document.getElementById(`asset-tab-${t}`);
+                if (t === tab) {
+                    const colors = { character: 'primary', scene: 'cyan', prop: 'amber' };
+                    const c = colors[t];
+                    btn.className = `flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all bg-${c}/20 text-${c} border border-${c}/30`;
+                } else btn.className = 'flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all text-slate-400 hover:text-white';
+            });
+            renderAssetList();
+            // 自动选择该类型第一个资产
+            const first = extractedAssets[tab][0];
+            if (first) selectAssetForEdit(tab, first.id);
+        }
+
+        function renderAssetList() {
+            const container = document.getElementById('assetListContainer');
+            const items = extractedAssets[currentAssetTab];
+            const colors = { character: 'primary', scene: 'cyan', prop: 'amber' };
+            const c = colors[currentAssetTab];
+            container.innerHTML = items.map((asset, idx) => {
+                const isSelected = selectedAssetId === asset.id && selectedAssetType === currentAssetTab;
+                const hasPrompt = asset.prompt && asset.prompt.length > 10;
+                return `
+                <div class="flex items-center gap-1.5 p-2 rounded-lg border cursor-pointer transition-all ${isSelected ? 'bg-primary/10 border-primary/30' : 'bg-surface/30 border-white/5 hover:border-white/15'}" onclick="selectAssetForEdit('${currentAssetTab}', '${asset.id}')">
+                    <div class="w-8 h-8 rounded-lg bg-${c}/10 border border-${c}/20 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-${currentAssetTab === 'character' ? 'user' : currentAssetTab === 'scene' ? 'image' : 'cube'} text-${c} text-xs"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs font-medium text-white truncate">${asset.name}</div>
+                        <div class="flex items-center gap-1.5 mt-0.5">
+                            <span class="text-[9px] text-slate-500">${asset.subtype}</span>
+                            ${hasPrompt ? '<span class="text-[9px] text-emerald"><i class="fas fa-check mr-0.5"></i>已编辑</span>' : '<span class="text-[9px] text-amber"><i class="fas fa-pen mr-0.5"></i>待完善</span>'}
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0 w-5 h-5 rounded-full ${asset.confirmed ? 'bg-emerald' : 'bg-surface border border-white/10'} flex items-center justify-center">
+                        ${asset.confirmed ? '<i class="fas fa-check text-white text-[8px]"></i>' : ''}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function selectAssetForEdit(type, id) {
+            selectedAssetType = type;
+            selectedAssetId = id;
+            renderAssetList();
+            const asset = extractedAssets[type].find(a => a.id === id);
+            if (!asset) return;
+
+            // 显示编辑器，隐藏空状态
+            document.getElementById('editorEmptyState').classList.add('hidden');
+            document.getElementById('editorContent').classList.remove('hidden');
+            document.getElementById('promptScoreContainer').classList.remove('hidden');
+
+            // 更新头部信息
+            document.getElementById('editorAssetName').textContent = asset.name;
+            const typeNames = { character: '角色资产', scene: '场景资产', prop: '道具资产' };
+            document.getElementById('editorAssetType').textContent = `${typeNames[type]} · ${asset.subtype}`;
+
+            // 设置提示词文本
+            document.getElementById('currentPromptText').value = asset.prompt;
+            document.getElementById('promptCharCount').textContent = asset.prompt.length + ' 字';
+
+            // 恢复构建器标签状态
+            activeBuilderTags = {
+                style: new Set(asset.builderTags?.style || []),
+                light: new Set(asset.builderTags?.light || []),
+                composition: new Set(asset.builderTags?.composition || []),
+                quality: new Set(asset.builderTags?.quality || [])
+            };
+            renderBuilderChips();
+            updatePromptScore();
+            generateInspirations(asset);
+            updateStylePreview();
+        }
+
+        function setPromptMode(mode) {
+            currentPromptMode = mode;
+            ['builder', 'manual', 'template'].forEach(m => {
+                const btn = document.getElementById(`mode-${m}`);
+                if (m === mode) btn.className = 'px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-primary/20 text-primary border border-primary/30 flex items-center gap-1.5';
+                else btn.className = 'px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white border border-transparent flex items-center gap-1.5';
+            });
+            if (mode === 'builder') { document.getElementById('builderPanel').classList.remove('hidden'); document.getElementById('templatePanel').classList.add('hidden'); }
+            else if (mode === 'template') { document.getElementById('builderPanel').classList.add('hidden'); document.getElementById('templatePanel').classList.remove('hidden'); }
+            else { document.getElementById('builderPanel').classList.add('hidden'); document.getElementById('templatePanel').classList.add('hidden'); }
+        }
+
+        function renderBuilderChips() {
+            const renderChipGroup = (dimension, containerId, colorMap) => {
+                const container = document.getElementById(containerId);
+                if (!container) return;
+                container.innerHTML = promptDimensions[dimension].map(item => {
+                    const isActive = activeBuilderTags[dimension].has(item.id);
+                    const color = colorMap[item.color] || colorMap.default;
+                    return `<span class="prompt-chip px-2.5 py-1.5 rounded-lg text-xs border ${isActive ? 'active' : 'bg-white/5 border-white/10 text-slate-400'} flex items-center gap-1.5" onclick="toggleBuilderTag('${dimension}', '${item.id}')">
+                        ${item.icon ? `<i class="fas ${item.icon} text-[10px] ${isActive ? 'text-primary' : 'text-slate-500'}"></i>` : ''}
+                        ${item.label}
+                    </span>`;
+                }).join('');
+            };
+            renderChipGroup('style', 'styleChips', { primary: 'primary', secondary: 'secondary', cyan: 'cyan', amber: 'amber', rose: 'rose', emerald: 'emerald', default: 'primary' });
+            renderChipGroup('light', 'lightChips', { default: 'amber' });
+            renderChipGroup('composition', 'compChips', { default: 'cyan' });
+            renderChipGroup('quality', 'qualityChips', { default: 'emerald' });
+        }
+
+        function toggleBuilderTag(dimension, tagId) {
+            const set = activeBuilderTags[dimension];
+            if (set.has(tagId)) set.delete(tagId); else set.add(tagId);
+            renderBuilderChips();
+            rebuildPromptFromBuilder();
+            updateStylePreview();
+        }
+
+        function rebuildPromptFromBuilder() {
+            const asset = extractedAssets[selectedAssetType].find(a => a.id === selectedAssetId);
+            if (!asset) return;
+
+            // 基础描述（从资产名称和类型推断）
+            let parts = [];
+            const typeNames = { character: '角色设计', scene: '场景概念图', prop: '道具设计' };
+            parts.push(typeNames[selectedAssetType]);
+            parts.push(asset.name);
+
+            // 风格
+            const styles = Array.from(activeBuilderTags.style).map(id => promptDimensions.style.find(s => s.id === id)?.label).filter(Boolean);
+            if (styles.length) parts.push(styles.join('，') + '风格');
+
+            // 光影
+            const lights = Array.from(activeBuilderTags.light).map(id => promptDimensions.light.find(l => l.id === id)?.label).filter(Boolean);
+            if (lights.length) parts.push(lights.join('，'));
+
+            // 构图
+            const comps = Array.from(activeBuilderTags.composition).map(id => promptDimensions.composition.find(c => c.id === id)?.label).filter(Boolean);
+            if (comps.length) parts.push(comps.join('，') + '构图');
+
+            // 画质
+            const qualities = Array.from(activeBuilderTags.quality).map(id => promptDimensions.quality.find(q => q.id === id)?.label).filter(Boolean);
+            if (qualities.length) parts.push(qualities.join('，'));
+
+            const newPrompt = parts.join('，');
+            document.getElementById('currentPromptText').value = newPrompt;
+            asset.prompt = newPrompt;
+            document.getElementById('promptCharCount').textContent = newPrompt.length + ' 字';
+            updatePromptScore();
+            renderAssetList();
+        }
+
+        function onPromptInput(value) {
+            const asset = extractedAssets[selectedAssetType].find(a => a.id === selectedAssetId);
+            if (asset) { asset.prompt = value; document.getElementById('promptCharCount').textContent = value.length + ' 字'; updatePromptScore(); renderAssetList(); }
+        }
+
+        function updatePromptScore() {
+            const asset = extractedAssets[selectedAssetType]?.find(a => a.id === selectedAssetId);
+            if (!asset) return;
+            const prompt = asset.prompt;
+            let score = 50;
+            // 长度评分
+            if (prompt.length > 20) score += 10; if (prompt.length > 40) score += 10; if (prompt.length > 60) score += 5;
+            // 关键词评分
+            const keywords = ['电影级', '8K', '超高清', '精细', '光影', '风格', '构图', '渲染'];
+            keywords.forEach(kw => { if (prompt.includes(kw)) score += 3; });
+            score = Math.min(100, score);
+            document.getElementById('promptScoreValue').textContent = score + '分';
+            document.getElementById('promptScoreValue').className = 'text-sm font-bold ' + (score >= 80 ? 'text-emerald' : score >= 60 ? 'text-amber' : 'text-rose');
+            const ring = document.getElementById('promptScoreRing');
+            const circumference = 2 * Math.PI * 16;
+            const offset = circumference - (score / 100) * circumference;
+            ring.style.strokeDashoffset = offset;
+            ring.style.stroke = score >= 80 ? '#10b981' : score >= 60 ? '#f59e0b' : '#f43f5e';
+        }
+
+        function generateInspirations(asset) {
+            const container = document.getElementById('inspirationList');
+            const inspirations = generateInspirationData(asset);
+            container.innerHTML = inspirations.map((inp, idx) => `
+                <div class="inspiration-card p-2 sm:p-3 rounded-xl bg-surface/40 border border-white/5" onclick="applyInspiration('${inp.prompt.replace(/'/g, "\\'")}')" style="animation: fadeIn 0.3s ease ${idx*0.1}s both">
+                    <div class="flex items-start gap-2">
+                        <div class="w-6 h-6 rounded-full bg-amber/10 border border-amber/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i class="fas fa-lightbulb text-amber text-[10px]"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs font-medium text-white mb-1">${inp.title}</div>
+                            <div class="text-[10px] text-slate-400 line-clamp-2 leading-relaxed">${inp.prompt}</div>
+                            <div class="flex items-center gap-1.5 mt-1.5">
+                                ${inp.tags.map(t => `<span class="px-1.5 py-0.5 rounded bg-white/5 text-slate-500 text-[9px]">${t}</span>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function generateInspirationData(asset) {
+            const type = selectedAssetType;
+            const name = asset.name;
+            const genre = document.getElementById('genreSelect')?.value || '科幻';
+            const style = document.getElementById('styleSelect')?.value || '写实科幻';
+
+            if (type === 'character') {
+                return [
+                    { title: `电影级${name}特写`, prompt: `电影级画面，${name}特写，精致面部细节，情感丰富，侧逆光勾勒轮廓，${style}风格，8K超高清，辛烷渲染`, tags: ['特写', '电影级', '8K'] },
+                    { title: `${name}动态战斗姿态`, prompt: `${name}全身动态构图，战斗姿态，速度线，强烈光影对比，${style}风格，超精细，虚幻引擎渲染`, tags: ['全身', '动态', '战斗'] },
+                    { title: `${name}情感氛围肖像`, prompt: `${name}肖像，柔和散射光，细腻肤质，情绪表达，背景虚化，${style}风格，专业摄影棚质感`, tags: ['肖像', '柔光', '情绪'] },
+                    { title: `赛博朋克风格${name}`, prompt: `赛博朋克风格${name}，霓虹光反射，雨夜背景，高科技装备，冷色调，电影级光影，8K`, tags: ['赛博朋克', '霓虹', '夜景'] },
+                ];
+            } else if (type === 'scene') {
+                return [
+                    { title: `${name}全景概念`, prompt: `史诗级场景概念图，${name}，广角全景，大气透视，宏大尺度，${style}风格，概念艺术，8K数字绘景`, tags: ['全景', '概念艺术', '8K'] },
+                    { title: `${name}氛围近景`, prompt: `${name}近景细节，材质纹理清晰，环境光遮蔽，沉浸感，${style}风格，超精细渲染`, tags: ['近景', '材质', '沉浸'] },
+                    { title: `${name}戏剧光线版`, prompt: `${name}，戏剧性强对比光线，丁达尔效应，神秘氛围，${style}风格，电影级构图`, tags: ['戏剧光', '丁达尔', '神秘'] },
+                ];
+            } else {
+                return [
+                    { title: `${name}产品级展示`, prompt: `产品摄影风格，${name}，纯色背景，精致细节，金属质感，柔和棚光，8K超精细`, tags: ['产品摄影', '纯色背景', '8K'] },
+                    { title: `${name}使用场景`, prompt: `${name}在实际使用场景中，手持/佩戴状态，自然光，生活感，${style}风格，真实渲染`, tags: ['场景', '自然光', '真实'] },
+                    { title: `${name}能量发光效果`, prompt: `${name}发光特效，能量脉冲，粒子效果，科技感，暗背景衬托，${style}风格，V-Ray渲染`, tags: ['发光', '粒子', '科技'] },
+                ];
+            }
+        }
+
+        function applyInspiration(prompt) {
+            const asset = extractedAssets[selectedAssetType].find(a => a.id === selectedAssetId);
+            if (asset) {
+                asset.prompt = prompt;
+                document.getElementById('currentPromptText').value = prompt;
+                document.getElementById('promptCharCount').textContent = prompt.length + ' 字';
+                updatePromptScore();
+                renderAssetList();
+                showToast('已应用灵感方案', 'success');
+            }
+        }
+
+        function polishPromptWithAI() {
+            const asset = extractedAssets[selectedAssetType].find(a => a.id === selectedAssetId);
+            if (!asset) return;
+            const textarea = document.getElementById('currentPromptText');
+            const original = asset.prompt;
+            textarea.disabled = true;
+            textarea.value = 'AI 正在分析并润色提示词...';
+
+            const polishRules = [
+                '电影级画面质量，{prompt}，8K超高清，详细光影，辛烷渲染',
+                '专业视觉设计，{prompt}，超精细细节，完美构图，影视级后期',
+                '高质量概念艺术，{prompt}，大气透视，戏剧性光线，顶级渲染'
+            ];
+            const polished = polishRules[Math.floor(Math.random() * polishRules.length)].replace('{prompt}', original);
+
+            setTimeout(() => {
+                textarea.disabled = false;
+                textarea.value = polished;
+                asset.prompt = polished;
+                document.getElementById('promptCharCount').textContent = polished.length + ' 字';
+                updatePromptScore();
+                renderAssetList();
+                showToast('AI 润色完成！提示词质量已提升', 'success');
+            }, 1200);
+        }
+
+        function renderTemplates() {
+            const container = document.getElementById('templateList');
+            container.innerHTML = promptTemplates.map((t, idx) => `
+                <div class="template-card p-3 rounded-xl bg-surface/40 border border-white/5" onclick="applyTemplate('${t.id}')" style="animation: fadeIn 0.3s ease ${idx*0.05}s both">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <div class="text-xs font-medium text-white">${t.name}</div>
+                        <span class="px-1.5 py-0.5 rounded bg-emerald/10 text-emerald text-[9px] border border-emerald/20">${t.type === 'character' ? '角色' : t.type === 'scene' ? '场景' : '道具'}</span>
+                    </div>
+                    <div class="text-[10px] text-slate-400 line-clamp-2 mb-2">${t.content}</div>
+                    <div class="flex flex-wrap gap-1">${t.tags.map(tag => `<span class="px-1.5 py-0.5 rounded bg-white/5 text-slate-500 text-[9px]">${tag}</span>`).join('')}</div>
+                </div>
+            `).join('');
+        }
+
+        function applyTemplate(templateId) {
+            const template = promptTemplates.find(t => t.id === templateId);
+            if (!template) return;
+            const asset = extractedAssets[selectedAssetType].find(a => a.id === selectedAssetId);
+            if (!asset) return;
+            // 将模板中的通用描述替换为当前资产名称
+            let content = template.content;
+            // 简单替换逻辑：如果模板中有明显占位符则替换
+            asset.prompt = content;
+            document.getElementById('currentPromptText').value = content;
+            document.getElementById('promptCharCount').textContent = content.length + ' 字';
+            // 同步标签
+            activeBuilderTags = { style: new Set(), light: new Set(), composition: new Set(), quality: new Set() };
+            template.tags.forEach(tag => {
+                ['style', 'light', 'composition', 'quality'].forEach(dim => {
+                    const found = promptDimensions[dim].find(d => d.label === tag);
+                    if (found) activeBuilderTags[dim].add(found.id);
+                });
+            });
+            renderBuilderChips();
+            updatePromptScore();
+            renderAssetList();
+            showToast(`已应用模板：${template.name}`, 'success');
+        }
+
+        function saveCurrentAsTemplate() {
+            const asset = extractedAssets[selectedAssetType].find(a => a.id === selectedAssetId);
+            if (!asset || !asset.prompt) { showToast('当前没有可保存的提示词', 'warning'); return; }
+            const name = prompt('为模板命名：', `${asset.name}模板`);
+            if (!name) return;
+            const newTemplate = {
+                id: 't' + (promptTemplates.length + 1),
+                name: name,
+                type: selectedAssetType,
+                tags: Array.from(activeBuilderTags.style).map(id => promptDimensions.style.find(s => s.id === id)?.label).filter(Boolean),
+                content: asset.prompt
+            };
+            promptTemplates.unshift(newTemplate);
+            renderTemplates();
+            showToast('模板保存成功！', 'success');
+        }
+
+        function updateStylePreview() {
+            const container = document.getElementById('stylePreviewArea');
+            const activeStyles = Array.from(activeBuilderTags.style);
+            const activeLights = Array.from(activeBuilderTags.light);
+
+            // 生成风格描述
+            let desc = [];
+            if (activeStyles.length) desc.push('视觉风格：' + activeStyles.map(id => promptDimensions.style.find(s => s.id === id)?.label).join('、'));
+            if (activeLights.length) desc.push('光影氛围：' + activeLights.map(id => promptDimensions.light.find(l => l.id === id)?.label).join('、'));
+            if (!desc.length) desc.push('请选择风格标签以预览视觉效果');
+
+            document.getElementById('styleDescArea').innerHTML = desc.map(d => `<div class="text-xs text-slate-400 flex items-center gap-2"><i class="fas fa-circle text-[6px] text-primary"></i>${d}</div>`).join('');
+        }
+
+        function copyPrompt() {
+            const text = document.getElementById('currentPromptText').value;
+            navigator.clipboard.writeText(text).then(() => showToast('提示词已复制', 'success'));
+        }
+        function resetPrompt() {
+            const asset = extractedAssets[selectedAssetType].find(a => a.id === selectedAssetId);
+            if (asset) {
+                asset.prompt = '';
+                document.getElementById('currentPromptText').value = '';
+                activeBuilderTags = { style: new Set(), light: new Set(), composition: new Set(), quality: new Set() };
+                renderBuilderChips();
+                updatePromptScore();
+                renderAssetList();
+                showToast('已重置提示词', 'info');
+            }
+        }
+        function batchApplyStyle() {
+            const styleCount = activeBuilderTags.style.size + activeBuilderTags.light.size + activeBuilderTags.composition.size + activeBuilderTags.quality.size;
+            if (styleCount === 0) { showToast('请先在编辑器中选择至少一个风格标签', 'warning'); return; }
+            if (!confirm(`将当前选中的 ${styleCount} 个标签应用到所有${selectedAssetType === 'character' ? '角色' : selectedAssetType === 'scene' ? '场景' : '道具'}资产？`)) return;
+
+            extractedAssets[selectedAssetType].forEach(asset => {
+                if (asset.id === selectedAssetId) return; // 跳过当前（已设置）
+                // 合并标签
+                ['style', 'light', 'composition', 'quality'].forEach(dim => {
+                    activeBuilderTags[dim].forEach(tag => asset.builderTags[dim].add(tag));
+                });
+                // 重建提示词
+                let parts = [];
+                const typeNames = { character: '角色设计', scene: '场景概念图', prop: '道具设计' };
+                parts.push(typeNames[selectedAssetType]);
+                parts.push(asset.name);
+                const styles = Array.from(asset.builderTags.style).map(id => promptDimensions.style.find(s => s.id === id)?.label).filter(Boolean);
+                if (styles.length) parts.push(styles.join('，') + '风格');
+                const lights = Array.from(asset.builderTags.light).map(id => promptDimensions.light.find(l => l.id === id)?.label).filter(Boolean);
+                if (lights.length) parts.push(lights.join('，'));
+                const comps = Array.from(asset.builderTags.composition).map(id => promptDimensions.composition.find(c => c.id === id)?.label).filter(Boolean);
+                if (comps.length) parts.push(comps.join('，') + '构图');
+                const qualities = Array.from(asset.builderTags.quality).map(id => promptDimensions.quality.find(q => q.id === id)?.label).filter(Boolean);
+                if (qualities.length) parts.push(qualities.join('，'));
+                asset.prompt = parts.join('，');
+            });
+            renderAssetList();
+            showToast('批量应用成功！', 'success');
+        }
+        function autoFillAll() {
+            if (!confirm('AI 将自动为所有资产生成提示词，是否继续？')) return;
+            let count = 0;
+            ['character', 'scene', 'prop'].forEach(type => {
+                extractedAssets[type].forEach(asset => {
+                    if (!asset.prompt || asset.prompt.length < 10) {
+                        const inspirations = generateInspirationData(asset);
+                        if (inspirations.length) {
+                            asset.prompt = inspirations[0].prompt;
+                            count++;
+                        }
+                    }
+                });
+            });
+            renderAssetList();
+            if (selectedAssetId) {
+                const asset = extractedAssets[selectedAssetType].find(a => a.id === selectedAssetId);
+                if (asset) {
+                    document.getElementById('currentPromptText').value = asset.prompt;
+                    document.getElementById('promptCharCount').textContent = asset.prompt.length + ' 字';
+                    updatePromptScore();
+                }
+            }
+            showToast(`AI 已为 ${count} 个资产生成提示词`, 'success');
+        }
+        function importPrompts() {
+            showToast('导入功能：请上传 JSON/CSV 格式的提示词文件', 'info');
+        }
+        function applyToSameType() {
+            if (!selectedAssetId) return;
+            const asset = extractedAssets[selectedAssetType].find(a => a.id === selectedAssetId);
+            if (!asset) return;
+            if (!confirm(`将「${asset.name}」的提示词应用到同类型其他资产？`)) return;
+            extractedAssets[selectedAssetType].forEach(other => {
+                if (other.id !== asset.id) {
+                    other.prompt = asset.prompt.replace(asset.name, other.name);
+                    other.builderTags = JSON.parse(JSON.stringify(asset.builderTags));
+                }
+            });
+            renderAssetList();
+            showToast('已应用到同类型资产', 'success');
+        }
+
+        function updateAssetStats() {
+            document.getElementById('stat-char').textContent = extractedAssets.character.length;
+            document.getElementById('stat-scene').textContent = extractedAssets.scene.length;
+            document.getElementById('stat-prop').textContent = extractedAssets.prop.length;
+        }
+
+        // ========== Phase 6 ==========
+        function startGenSimulation() {
+            if (genTimer) clearInterval(genTimer);
+            genQueueItems.length = 0;
+            ['character', 'scene', 'prop'].forEach(type => {
+                extractedAssets[type].forEach(asset => {
+                    if (asset.prompt && asset.prompt.length > 5) genQueueItems.push({ ...asset, type: type, status: 'pending', generatedImg: null });
+                });
+            });
+            const grid = document.getElementById('genQueue');
+            const colors = { character: 'primary', scene: 'cyan', prop: 'amber' };
+            grid.innerHTML = genQueueItems.map((item, idx) => `
+                <div class="relative rounded-xl border border-white/5 bg-surface/30 overflow-hidden" id="gen-item-${idx}">
+                    <div class="aspect-square relative" id="gen-img-container-${idx}">
+                        <div class="absolute inset-0 bg-gradient-to-br from-surface to-surface-light flex flex-col items-center justify-center p-2" id="gen-preview-${idx}">
+                            <div class="w-10 h-10 rounded-full bg-${colors[item.type]}/10 border border-${colors[item.type]}/20 flex items-center justify-center mb-2">
+                                <i class="fas fa-${item.type === 'character' ? 'user' : item.type === 'scene' ? 'image' : 'cube'} text-${colors[item.type]} text-sm opacity-50"></i>
+                            </div>
+                            <div class="text-[10px] text-slate-500 text-center">等待生成</div>
+                        </div>
+                        <img id="gen-img-${idx}" class="w-full h-full object-cover hidden" loading="lazy">
+                        <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity" id="gen-loading-${idx}">
+                            <div class="text-center">
+                                <div class="w-8 h-8 rounded-full bg-surface border border-white/10 flex items-center justify-center mx-auto mb-1">
+                                    <i class="fas fa-circle-notch fa-spin text-primary text-xs" id="gen-icon-${idx}"></i>
+                                </div>
+                                <span class="text-[10px] text-white" id="gen-status-${idx}">生成中...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="absolute top-2 left-2 z-10">
+                        <span class="px-1.5 py-0.5 rounded bg-${colors[item.type]}/20 text-${colors[item.type]} text-[9px] border border-${colors[item.type]}/30">${item.type === 'character' ? '角色' : item.type === 'scene' ? '场景' : '道具'}</span>
+                    </div>
+                    <button onclick="openRegenerateModal('${item.type}', '${item.id}')" id="gen-regen-btn-${idx}" class="absolute top-2 right-2 z-10 w-7 h-7 rounded-lg bg-black/50 border border-white/20 flex items-center justify-center text-white/70 hover:text-white hover:bg-black/70 transition-all hidden">
+                        <i class="fas fa-redo text-[10px]"></i>
+                    </button>
+                    <div class="p-2">
+                        <div class="text-[11px] text-white font-medium truncate">${item.name}</div>
+                        <div class="text-[9px] text-slate-500 truncate mt-0.5" id="gen-prompt-preview-${idx}">${item.prompt.substring(0, 30)}...</div>
+                    </div>
+                </div>
+            `).join('');
+            let currentIdx = 0; let completed = 0; const total = genQueueItems.length;
+            document.getElementById('genCurrentName').textContent = `准备开始批量生成...`;
+            document.getElementById('genCurrentPrompt').textContent = '将根据提示词逐个生成参考图';
+            genTimer = setInterval(() => {
+                if (currentIdx < total) {
+                    const item = genQueueItems[currentIdx];
+                    const preview = document.getElementById(`gen-preview-${currentIdx}`);
+                    const loading = document.getElementById(`gen-loading-${currentIdx}`);
+                    const img = document.getElementById(`gen-img-${currentIdx}`);
+                    const regenBtn = document.getElementById(`gen-regen-btn-${currentIdx}`);
+                    preview.classList.add('hidden'); loading.classList.remove('opacity-0'); loading.classList.add('opacity-100');
+                    document.getElementById('genCurrentName').textContent = `${item.name} - ${item.type === 'character' ? '角色' : item.type === 'scene' ? '场景' : '道具'}参考图`;
+                    document.getElementById('genCurrentPrompt').textContent = item.prompt;
+                    const sampleImages = {
+                        character: ['https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=60','https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=60','https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&auto=format&fit=crop&q=60','https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=60','https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300&auto=format&fit=crop&q=60'],
+                        scene: ['https://images.unsplash.com/photo-1446776811953-d23d5233e4d6?w=300&auto=format&fit=crop&q=60','https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=300&auto=format&fit=crop&q=60','https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=300&auto=format&fit=crop&q=60','https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&auto=format&fit=crop&q=60','https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=300&auto=format&fit=crop&q=60'],
+                        prop: ['https://images.unsplash.com/photo-1589254065878-42c9da997008?w=300&auto=format&fit=crop&q=60','https://images.unsplash.com/photo-1534447677768-be436bb09401?w=300&auto=format&fit=crop&q=60','https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=300&auto=format&fit=crop&q=60']
+                    };
+                    const images = sampleImages[item.type] || sampleImages.character;
+                    const generatedImg = images[Math.floor(Math.random() * images.length)];
+                    setTimeout(() => {
+                        img.src = generatedImg; img.classList.remove('hidden');
+                        loading.classList.remove('opacity-100'); loading.classList.add('opacity-0');
+                        regenBtn.classList.remove('hidden');
+                        item.generatedImg = generatedImg;
+                        const asset = extractedAssets[item.type].find(a => a.id === item.id);
+                        if (asset) { asset.hasImage = true; asset.img = generatedImg; }
+                        completed++;
+                        const pct = (completed / total * 100).toFixed(0);
+                        document.getElementById('genProgressBar').style.width = pct + '%';
+                        document.getElementById('genProgressText').textContent = `${completed} / ${total}`;
+                        document.getElementById('genEta').textContent = `预计剩余 ${Math.max(1, Math.ceil((total - completed) * 0.5))} 分钟`;
+                        if (completed >= total) {
+                            clearInterval(genTimer); genTimer = null;
+                            showToast('所有资产图片生成完成！', 'success');
+                            setTimeout(() => goToPhase(7), 1500);
+                        }
+                    }, 700 + Math.random() * 600);
+                    currentIdx++;
+                }
+            }, 1100);
+        }
+
+        function openRegenerateModal(type, assetId) {
+            const asset = extractedAssets[type].find(a => a.id === assetId);
+            if (!asset) return;
+            const modal = document.createElement('div');
+            modal.id = 'regenerate-modal';
+            modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+            modal.innerHTML = `
+                <div class="glass-panel-strong rounded-2xl p-6 max-w-lg w-full shadow-2xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-white"><i class="fas fa-redo text-primary mr-2"></i>重新生成参考图</h3>
+                        <button onclick="closeRegenerateModal()" class="w-8 h-8 rounded-lg bg-surface border border-white/10 flex items-center justify-center text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="space-y-4">
+                        <div><label class="text-xs text-slate-400 mb-2 block">资产名称</label><div class="text-white font-medium">${asset.name}</div></div>
+                        <div><label class="text-xs text-slate-400 mb-2 block">修改生成提示词</label><textarea id="regen-prompt-input" rows="4" class="w-full px-4 py-3 bg-surface border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-primary/50 resize-none">${asset.prompt}</textarea></div>
+                    </div>
+                    <div class="flex gap-3 mt-6">
+                        <button onclick="closeRegenerateModal()" class="flex-1 py-3 rounded-xl bg-surface border border-white/10 text-slate-300 font-medium hover:text-white transition-all">取消</button>
+                        <button onclick="regenerateAsset('${type}', '${assetId}')" class="flex-1 py-3 rounded-xl bg-primary text-white font-bold flex items-center justify-center gap-2 hover:bg-primary/80 transition-all"><i class="fas fa-redo"></i>确认重新生成</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) closeRegenerateModal(); });
+        }
+        function closeRegenerateModal() { const modal = document.getElementById('regenerate-modal'); if (modal) modal.remove(); }
+        function regenerateAsset(type, assetId) {
+            const newPrompt = document.getElementById('regen-prompt-input').value.trim();
+            if (!newPrompt) { showToast('请输入生成提示词', 'warning'); return; }
+            const asset = extractedAssets[type].find(a => a.id === assetId);
+            if (!asset) return;
+            asset.prompt = newPrompt; asset.regenerateCount++;
+            closeRegenerateModal(); showToast(`正在重新生成 ${asset.name}...`, 'info');
+            const sampleImages = { character: ['https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&auto=format&fit=crop&q=60','https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=60'], scene: ['https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?w=300&auto=format&fit=crop&q=60'], prop: ['https://images.unsplash.com/photo-1485955900006-10f4d324d411?w=300&auto=format&fit=crop&q=60'] };
+            const images = sampleImages[type] || sampleImages.character;
+            const newImg = images[Math.floor(Math.random() * images.length)];
+            setTimeout(() => { asset.img = newImg; asset.hasImage = true; showToast(`${asset.name} 重新生成完成！`, 'success'); }, 1500);
+        }
+
+        // ========== Phase 7 ==========
+        function renderFinalEpisodeList() {
+            const list = document.getElementById('finalEpisodeList');
+            list.innerHTML = episodes.map((ep, idx) => `
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-surface/30 border border-white/5 hover:border-primary/30 transition-all cursor-pointer" style="animation: fadeIn 0.3s ease ${idx*0.04}s both">
+                    <div class="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0"><span class="text-xs font-bold text-primary">${String(ep.id).padStart(2,'0')}</span></div>
+                    <div class="flex-1 min-w-0"><div class="flex items-center justify-between"><span class="text-sm font-medium text-white">${ep.title}</span><span class="text-[10px] text-slate-500">${ep.chapters}</span></div><p class="text-xs text-slate-500 line-clamp-1 mt-0.5">${ep.desc}</p></div>
+                    <div class="flex items-center gap-2 flex-shrink-0"><span class="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-slate-400 border border-white/5">${ep.shots} 分镜</span><i class="fas fa-chevron-right text-slate-600 text-xs"></i></div>
+                </div>
+            `).join('');
+        }
+        function enterWorkshop() { if (confirm('即将进入分镜工作台，确认所有资产和分集已就绪？')) showToast('正在进入分镜工作台...', 'success'); }
+
+        // ========== Toast 系统 ==========
+        function showToast(message, type = 'info') {
+            const colors = { success: 'bg-emerald', error: 'bg-rose', info: 'bg-primary', warning: 'bg-amber' };
+            const icons = { success: 'check-circle', error: 'exclamation-circle', info: 'info-circle', warning: 'exclamation-triangle' };
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `${colors[type]} text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 slide-in-right pointer-events-auto`;
+            toast.innerHTML = `<i class="fas fa-${icons[type]}"></i><span class="text-sm font-medium">${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(20px)'; toast.style.transition = 'all 0.3s ease'; setTimeout(() => toast.remove(), 300); }, 2500);
+        }
+
+        // ========== 初始化 ==========
+        updateNav(1);
+        document.getElementById('btn-phase-1').disabled = true;
+        document.getElementById('btn-phase-2').disabled = true;
+    </script>
+</body>
+</html>

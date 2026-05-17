@@ -1,0 +1,2 @@
+1、AI视频生成工作流
+基于hyperframe skills实现 通过comfyui工作流注入

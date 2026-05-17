@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 模型统一配置中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'Noto Sans SC', 'sans-serif'] },
+                    colors: {
+                        primary: '#6366f1', secondary: '#8b5cf6', accent: '#ec4899',
+                        cyan: '#06b6d4', emerald: '#10b981', amber: '#f59e0b',
+                        rose: '#f43f5e', dark: '#0f172a', darker: '#020617',
+                        surface: '#1e293b', surface2: '#0f172a', surface3: '#334155'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', 'Noto Sans SC', sans-serif; background: #020617; color: #e2e8f0; height: 100vh; overflow: hidden; }
+        
+        /* 玻璃拟态 */
+        .glass { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.06); }
+        .glass-strong { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.08); }
+        
+        /* 左侧类型导航 */
+        .nav-rail { width: 72px; background: rgba(10, 15, 30, 0.6); border-right: 1px solid rgba(255,255,255,0.05); }
+        .nav-item { 
+            width: 48px; height: 48px; border-radius: 14px; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            margin: 4px auto; cursor: pointer; transition: all 0.25s ease;
+            position: relative; border: 1px solid transparent;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.04); }
+        .nav-item.active { 
+            background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.1)); 
+            border-color: rgba(99,102,241,0.3);
+            box-shadow: 0 0 20px rgba(99,102,241,0.15);
+        }
+        .nav-item .icon { font-size: 18px; margin-bottom: 2px; }
+        .nav-item .label { font-size: 9px; font-weight: 500; color: #64748b; }
+        .nav-item.active .label { color: #c7d2fe; }
+        .nav-badge { 
+            position: absolute; top: -2px; right: -2px; 
+            min-width: 16px; height: 16px; border-radius: 8px; 
+            background: rgba(99,102,241,0.9); color: white; 
+            font-size: 10px; font-weight: 600; display: flex; align-items: center; justify-content: center;
+            padding: 0 4px; border: 2px solid #0a0f1e;
+        }
+
+        /* 中栏模型列表 */
+        .list-panel { 
+            width: 340px; min-width: 300px; max-width: 400px;
+            background: rgba(13, 18, 35, 0.4); 
+            border-right: 1px solid rgba(255,255,255,0.05);
+            display: flex; flex-direction: column;
+        }
+        .list-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .list-toolbar { padding: 12px 16px; display: flex; gap: 8px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .list-body { flex: 1; overflow-y: auto; padding: 8px; }
+        
+        /* 模型卡片 */
+        .model-card {
+            padding: 14px; border-radius: 12px; cursor: pointer;
+            border: 1px solid transparent; transition: all 0.2s ease;
+            margin-bottom: 6px; position: relative; overflow: hidden;
+        }
+        .model-card:hover { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.06); }
+        .model-card.active { 
+            background: rgba(99,102,241,0.08); 
+            border-color: rgba(99,102,241,0.25);
+        }
+        .model-card.active::before {
+            content: ''; position: absolute; left: 0; top: 12px; bottom: 12px;
+            width: 3px; border-radius: 0 3px 3px 0;
+            background: linear-gradient(to bottom, #6366f1, #8b5cf6);
+        }
+        .status-line {
+            position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+            border-radius: 0 3px 3px 0; transition: all 0.3s;
+        }
+        .status-line.online { background: #10b981; box-shadow: 0 0 8px #10b981; }
+        .status-line.offline { background: #ef4444; opacity: 0.6; }
+        .status-line.testing { background: #f59e0b; animation: pulse-width 1.5s infinite; }
+        @keyframes pulse-width { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* 详情面板 */
+        .detail-panel { flex: 1; overflow-y: auto; background: #020617; }
+        
+        /* 表单 */
+        .form-input {
+            width: 100%; padding: 10px 14px; border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1); background: rgba(30,41,59,0.4);
+            color: #e2e8f0; font-size: 13px; transition: all 0.3s;
+        }
+        .form-input:focus { outline: none; border-color: rgba(99,102,241,0.5); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); background: rgba(30,41,59,0.6); }
+        .form-input::placeholder { color: #475569; }
+        .form-select {
+            width: 100%; padding: 10px 14px; border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1); background: rgba(30,41,59,0.4);
+            color: #e2e8f0; font-size: 13px; appearance: none; cursor: pointer;
+        }
+        .form-select:focus { outline: none; border-color: rgba(99,102,241,0.5); }
+        .form-select option { background: #0f172a; }
+        .form-textarea {
+            width: 100%; padding: 12px; border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1); background: rgba(30,41,59,0.4);
+            color: #e2e8f0; font-size: 13px; resize: vertical; min-height: 100px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .form-textarea:focus { outline: none; border-color: rgba(99,102,241,0.5); }
+        .form-label { display: block; font-size: 12px; font-weight: 500; color: #94a3b8; margin-bottom: 6px; }
+        .form-group { margin-bottom: 20px; }
+        .section-title { 
+            font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; 
+            color: #64748b; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+        }
+
+        /* 按钮 */
+        .btn-primary { 
+            background: linear-gradient(135deg, #6366f1, #8b5cf6); 
+            color: white; font-weight: 500; transition: all 0.3s ease;
+            position: relative; overflow: hidden;
+        }
+        .btn-primary:hover { box-shadow: 0 0 30px rgba(99,102,241,0.3); transform: translateY(-1px); }
+        .btn-secondary { 
+            background: rgba(30,41,59,0.5); border: 1px solid rgba(255,255,255,0.1);
+            color: #cbd5e1; transition: all 0.2s;
+        }
+        .btn-secondary:hover { background: rgba(30,41,59,0.7); border-color: rgba(99,102,241,0.3); }
+        .btn-ghost { color: #64748b; transition: all 0.2s; }
+        .btn-ghost:hover { color: white; background: rgba(255,255,255,0.05); }
+
+        /* 标签 */
+        .badge { font-size: 10px; padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+        .env-prod { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+        .env-test { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+        .env-dev { background: rgba(99,102,241,0.12); color: #818cf8; border: 1px solid rgba(99,102,241,0.2); }
+
+        /* 滚动条 */
+        .custom-scroll::-webkit-scrollbar { width: 5px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+        /* 动画 */
+        .fade-in { animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .slide-right { animation: slideRight 0.35s ease; }
+        @keyframes slideRight { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* 弹窗 */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s; display: flex; align-items: center; justify-content: center; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-box { background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; width: 520px; max-width: 90vw; max-height: 90vh; overflow-y: auto; transform: scale(0.96); transition: transform 0.3s; }
+        .modal-overlay.active .modal-box { transform: scale(1); }
+
+        /* 筛选标签 */
+        .filter-pill { 
+            padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 500;
+            color: #64748b; cursor: pointer; transition: all 0.2s; border: 1px solid transparent;
+        }
+        .filter-pill:hover { background: rgba(255,255,255,0.04); color: #94a3b8; }
+        .filter-pill.active { background: rgba(99,102,241,0.12); color: #818cf8; border-color: rgba(99,102,241,0.25); }
+
+        /* 详情标签 */
+        .detail-tab { 
+            padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
+            color: #64748b; cursor: pointer; transition: all 0.2s; border: 1px solid transparent;
+        }
+        .detail-tab:hover { color: #94a3b8; background: rgba(255,255,255,0.03); }
+        .detail-tab.active { color: white; background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.3); }
+
+        /* 类型颜色 */
+        .type-llm { color: #818cf8; }
+        .type-t2i { color: #22d3ee; }
+        .type-i2v { color: #f472b6; }
+        .type-r2v { color: #fbbf24; }
+        .type-tts { color: #34d399; }
+        .type-comfyui { color: #a78bfa; }
+
+        /* Toast */
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+        .toast { padding: 12px 16px; border-radius: 12px; color: white; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; animation: toastIn 0.3s ease; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        @keyframes toastIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* 空状态 */
+        .empty-state { text-align: center; padding: 60px 20px; }
+        .empty-state i { font-size: 48px; color: #1e293b; margin-bottom: 16px; }
+        
+        /* 快捷操作 */
+        .quick-action { 
+            font-size: 11px; color: #6366f1; cursor: pointer; margin-left: 6px; 
+            font-weight: 500; opacity: 0.8; transition: opacity 0.2s;
+        }
+        .quick-action:hover { opacity: 1; text-decoration: underline; }
+
+        /* 开关 */
+        .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; inset: 0; background: #334155; transition: .3s; border-radius: 22px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+        input:checked + .slider:before { transform: translateX(18px); }
+    </style>
+<base target="_blank">
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- 顶部全局导航 -->
+    <header class="h-14 flex items-center justify-between px-5 border-b border-white/5 bg-[#0a0f1e]/80 backdrop-blur-lg z-20 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
+                <i class="fas fa-cube text-white text-xs"></i>
+            </div>
+            <div>
+                <span class="text-sm font-bold text-white tracking-tight">AI 模型统一配置中心</span>
+                <span class="text-[10px] text-slate-500 ml-2 px-1.5 py-0.5 rounded bg-white/5 border border-white/5">v2.1</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="exportConfig()" class="btn-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-2">
+                <i class="fas fa-download text-slate-400 text-[10px]"></i> 导出
+            </button>
+            <button onclick="document.getElementById('import-file').click()" class="btn-secondary px-3 py-1.5 rounded-lg text-xs flex items-center gap-2">
+                <i class="fas fa-upload text-slate-400 text-[10px]"></i> 导入
+            </button>
+            <input type="file" id="import-file" accept=".json" class="hidden" onchange="importConfig(this)">
+            <div class="w-px h-4 bg-white/10"></div>
+            <div class="flex items-center gap-2 text-xs text-slate-500">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                API 服务正常
+            </div>
+            <div class="w-px h-4 bg-white/10"></div>
+            <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center text-xs font-bold text-primary border border-primary/20">
+                    A
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主体三栏布局 -->
+    <div class="flex-1 flex overflow-hidden">
+
+        <!-- ========== 左栏：类型导航 Rail ========== -->
+        <nav class="nav-rail flex flex-col items-center py-4 shrink-0 z-10">
+            <div class="text-[10px] font-bold text-slate-600 mb-3 uppercase tracking-widest">类型</div>
+            
+            <button onclick="switchCategory('llm')" id="nav-llm" class="nav-item active" title="LLM 大模型">
+                <i class="fas fa-brain icon type-llm"></i>
+                <span class="label">LLM</span>
+                <span id="badge-llm" class="nav-badge">0</span>
+            </button>
+            
+            <button onclick="switchCategory('t2i')" id="nav-t2i" class="nav-item" title="文生图">
+                <i class="fas fa-image icon type-t2i"></i>
+                <span class="label">文生图</span>
+                <span id="badge-t2i" class="nav-badge">0</span>
+            </button>
+            
+            <button onclick="switchCategory('i2v')" id="nav-i2v" class="nav-item" title="图生视频">
+                <i class="fas fa-video icon type-i2v"></i>
+                <span class="label">图生视频</span>
+                <span id="badge-i2v" class="nav-badge">0</span>
+            </button>
+            
+            <button onclick="switchCategory('r2v')" id="nav-r2v" class="nav-item" title="参考生视频">
+                <i class="fas fa-film icon type-r2v"></i>
+                <span class="label">参考视频</span>
+                <span id="badge-r2v" class="nav-badge">0</span>
+            </button>
+            
+            <button onclick="switchCategory('tts')" id="nav-tts" class="nav-item" title="语音合成">
+                <i class="fas fa-microphone-lines icon type-tts"></i>
+                <span class="label">TTS</span>
+                <span id="badge-tts" class="nav-badge">0</span>
+            </button>
+            
+            <button onclick="switchCategory('comfyui')" id="nav-comfyui" class="nav-item" title="ComfyUI">
+                <i class="fas fa-network-wired icon type-comfyui"></i>
+                <span class="label">ComfyUI</span>
+                <span id="badge-comfyui" class="nav-badge">0</span>
+            </button>
+
+            <div class="flex-1"></div>
+            <div class="w-10 h-px bg-white/5 mb-3"></div>
+            <button onclick="openAddModal()" class="nav-item" style="width:44px; height:44px; border-radius:12px;" title="添加模型">
+                <i class="fas fa-plus text-primary text-lg"></i>
+            </button>
+        </nav>
+
+        <!-- ========== 中栏：模型列表 ========== -->
+        <section class="list-panel shrink-0">
+            <!-- 列表头部 -->
+            <div class="list-header">
+                <div class="flex items-center justify-between mb-1">
+                    <h2 id="list-title" class="text-lg font-bold text-white">LLM 大模型</h2>
+                    <span id="list-count" class="text-xs text-slate-500 font-mono bg-white/5 px-2 py-1 rounded-md">0 个模型</span>
+                </div>
+                <p id="list-desc" class="text-xs text-slate-500">文本生成、对话与推理模型配置</p>
+            </div>
+
+            <!-- 工具栏：搜索 + 筛选 -->
+            <div class="list-toolbar">
+                <div class="relative flex-1">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                    <input type="text" id="search-input" class="form-input pl-8 py-2 text-xs" placeholder="搜索模型..." oninput="handleSearch()">
+                </div>
+            </div>
+            <div class="px-3 pb-2 flex gap-1 border-b border-white/3">
+                <button onclick="setFilter('all')" id="filter-all" class="filter-pill active">全部</button>
+                <button onclick="setFilter('online')" id="filter-online" class="filter-pill">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block mr-1"></span>在线
+                </button>
+                <button onclick="setFilter('offline')" id="filter-offline" class="filter-pill">
+                    <span class="w-1.5 h-1.5 rounded-full bg-red-400 inline-block mr-1"></span>离线
+                </button>
+            </div>
+
+            <!-- 模型列表体 -->
+            <div id="model-list" class="list-body custom-scroll">
+                <!-- 动态填充 -->
+            </div>
+        </section>
+
+        <!-- ========== 右栏：详情配置 ========== -->
+        <main id="detail-panel" class="detail-panel custom-scroll p-8">
+            <!-- 动态填充 -->
+        </main>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- 添加模型弹窗 -->
+    <div id="add-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold text-white">添加新模型</h3>
+                    <button onclick="closeAddModal()" class="w-8 h-8 rounded-lg hover:bg-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-5">
+                    <!-- 类型选择 -->
+                    <div>
+                        <label class="form-label">模型类型 <span class="text-red-400">*</span></label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="setNewType('llm')" id="ntype-llm" class="type-option selected">LLM</button>
+                            <button onclick="setNewType('t2i')" id="ntype-t2i" class="type-option">文生图</button>
+                            <button onclick="setNewType('i2v')" id="ntype-i2v" class="type-option">图生视频</button>
+                            <button onclick="setNewType('r2v')" id="ntype-r2v" class="type-option">参考视频</button>
+                            <button onclick="setNewType('tts')" id="ntype-tts" class="type-option">TTS</button>
+                            <button onclick="setNewType('comfyui')" id="ntype-comfyui" class="type-option">ComfyUI</button>
+                        </div>
+                    </div>
+
+                    <!-- 厂商选择 -->
+                    <div>
+                        <label class="form-label">选择厂商 <span class="text-red-400">*</span></label>
+                        <div class="grid grid-cols-4 gap-2" id="new-provider-grid"></div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-group mb-0">
+                            <label class="form-label">模型名称 <span class="text-red-400">*</span></label>
+                            <input type="text" id="new-name" class="form-input" placeholder="例如：GPT-4o">
+                        </div>
+                        <div class="form-group mb-0">
+                            <label class="form-label">环境</label>
+                            <select id="new-env" class="form-select">
+                                <option value="dev">开发环境</option>
+                                <option value="test">测试环境</option>
+                                <option value="prod">生产环境</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label class="form-label">API 端点 <span class="quick-action" onclick="autoFillNewEndpoint()">自动填充</span></label>
+                        <input type="text" id="new-endpoint" class="form-input" placeholder="https://api.example.com/v1/chat/completions">
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label class="form-label">API 密钥</label>
+                        <div class="relative">
+                            <input type="password" id="new-key" class="form-input pr-12" placeholder="sk-...">
+                            <button onclick="toggleNewKey()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+                                <i class="fas fa-eye" id="new-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 mt-6 pt-4 border-t border-white/5">
+                    <button onclick="closeAddModal()" class="flex-1 py-2.5 rounded-xl border border-white/10 text-sm text-slate-400 hover:text-white transition-all">取消</button>
+                    <button onclick="confirmAdd()" class="flex-1 py-2.5 rounded-xl btn-primary text-white text-sm font-semibold">确认添加</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认 -->
+    <div id="delete-modal" class="modal-overlay">
+        <div class="modal-box" style="width: 380px;">
+            <div class="p-6 text-center">
+                <div class="w-14 h-14 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-400 text-xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2">确认删除</h3>
+                <p class="text-sm text-slate-400 mb-6">确定要删除 <span id="del-name" class="text-white font-medium"></span> 吗？此操作不可撤销。</p>
+                <div class="flex gap-3">
+                    <button onclick="closeDeleteModal()" class="flex-1 py-2.5 rounded-xl border border-white/10 text-sm text-slate-400 hover:text-white transition-all">取消</button>
+                    <button onclick="confirmDelete()" class="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-colors">确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== 数据层 ==========
+        let currentCategory = 'llm';
+        let selectedModelId = null;
+        let deleteTargetId = null;
+        let newType = 'llm';
+        let newProvider = 'openai';
+        let filterStatus = 'all';
+        let searchKeyword = '';
+
+        const providerConfig = {
+            openai: { name: 'OpenAI', icon: 'fa-circle', color: '#10a37f', types: ['llm','t2i','tts'] },
+            anthropic: { name: 'Anthropic', icon: 'fa-diamond', color: '#d4a574', types: ['llm'] },
+            google: { name: 'Google', icon: 'fa-google', color: '#4285f4', types: ['llm','t2i'] },
+            deepseek: { name: 'DeepSeek', icon: 'fa-searchengin', color: '#4d6bfa', types: ['llm'] },
+            aliyun: { name: '阿里百炼', icon: 'fa-cloud', color: '#ff6a00', types: ['llm','t2i','i2v','r2v','tts'] },
+            siliconflow: { name: '硅基流动', icon: 'fa-microchip', color: '#6366f1', types: ['llm','t2i','i2v','r2v','tts'] },
+            volcengine: { name: '火山引擎', icon: 'fa-volcano', color: '#1668dc', types: ['llm','t2i','i2v','tts'] },
+            comfyui: { name: 'ComfyUI', icon: 'fa-network-wired', color: '#a78bfa', types: ['comfyui'] },
+            custom: { name: '自定义', icon: 'fa-cog', color: '#64748b', types: ['llm','t2i','i2v','r2v','tts','comfyui'] }
+        };
+
+        const endpointTemplates = {
+            'openai-llm': 'https://api.openai.com/v1/chat/completions',
+            'openai-t2i': 'https://api.openai.com/v1/images/generations',
+            'openai-tts': 'https://api.openai.com/v1/audio/speech',
+            'anthropic-llm': 'https://api.anthropic.com/v1/messages',
+            'deepseek-llm': 'https://api.deepseek.com/v1/chat/completions',
+            'aliyun-llm': 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation',
+            'aliyun-t2i': 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis',
+            'aliyun-i2v': 'https://dashscope.aliyuncs.com/api/v1/services/aigc/video-generation/video-synthesis',
+            'aliyun-tts': 'https://dashscope.aliyuncs.com/api/v1/services/audio/tts/speech',
+            'siliconflow-llm': 'https://api.siliconflow.cn/v1/chat/completions',
+            'volcengine-llm': 'https://ark.cn-beijing.volces.com/api/v3/chat/completions',
+            'volcengine-tts': 'https://openspeech.bytedance.com/api/v1/tts',
+            'comfyui-comfyui': 'http://127.0.0.1:8188'
+        };
+
+        const typeMeta = {
+            llm: { title: 'LLM 大模型', desc: '文本生成、对话与推理模型配置', color: '#818cf8' },
+            t2i: { title: '文生图模型', desc: 'Text-to-Image 图像生成配置', color: '#22d3ee' },
+            i2v: { title: '图生视频模型', desc: 'Image-to-Video 视频生成配置', color: '#f472b6' },
+            r2v: { title: '参考生视频', desc: 'Reference-to-Video 风格迁移配置', color: '#fbbf24' },
+            tts: { title: '语音合成 TTS', desc: 'Text-to-Speech 语音合成配置', color: '#34d399' },
+            comfyui: { title: 'ComfyUI 工作流', desc: '节点式工作流服务器配置', color: '#a78bfa' }
+        };
+
+        const typeDefaults = {
+            llm: { maxTokens: 4096, temperature: 0.7, topP: 0.9, systemPrompt: '' },
+            t2i: { resolution: '1024x1024', quality: 'standard', steps: 30, cfg: 7.5, stylePrompt: '', negativePrompt: '' },
+            i2v: { duration: 5, fps: 24, resolution: '720x1280', motionStrength: 5, motionPrompt: '' },
+            r2v: { duration: 5, fps: 24, resolution: '720x1280', referenceWeight: 0.8, referencePrompt: '' },
+            tts: { voice: 'default', speed: 1.0, pitch: 0, format: 'mp3', sampleRate: 24000, emotion: 'neutral' },
+            comfyui: { serverAddress: '127.0.0.1:8188', workflowJson: '{}', queueSize: 5 }
+        };
+
+        let models = [
+            { id: 'llm-1', name: 'GPT-4o', provider: 'openai', type: 'llm', endpoint: 'https://api.openai.com/v1/chat/completions', key: 'sk-proj-xxx', status: 'online', env: 'prod', description: 'OpenAI 旗舰多模态模型', params: { maxTokens: 128000, temperature: 0.7, topP: 0.9, systemPrompt: 'You are a helpful assistant.' }, timeout: 30, retry: 3, createdAt: '2024-01-15', tags: ['多模态','旗舰'] },
+            { id: 'llm-2', name: 'Claude 3.5 Sonnet', provider: 'anthropic', type: 'llm', endpoint: 'https://api.anthropic.com/v1/messages', key: 'sk-ant-xxx', status: 'online', env: 'prod', description: 'Anthropic 最强推理模型', params: { maxTokens: 200000, temperature: 0.5, topP: 0.9, systemPrompt: '' }, timeout: 45, retry: 3, createdAt: '2024-02-20', tags: ['长文本','推理'] },
+            { id: 'llm-3', name: 'DeepSeek-V3', provider: 'deepseek', type: 'llm', endpoint: 'https://api.deepseek.com/v1/chat/completions', key: 'sk-xxx', status: 'offline', env: 'test', description: '国产大模型，性价比极高', params: { maxTokens: 64000, temperature: 0.7, topP: 0.95, systemPrompt: '' }, timeout: 60, retry: 3, createdAt: '2024-03-10', tags: ['国产','高性价比'] },
+            { id: 'llm-4', name: '通义千问-Max', provider: 'aliyun', type: 'llm', endpoint: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation', key: 'sk-xxx', status: 'online', env: 'prod', description: '阿里百炼最强模型', params: { maxTokens: 32000, temperature: 0.7, topP: 0.9, systemPrompt: '你是一个专业的AI助手。' }, timeout: 30, retry: 3, createdAt: '2024-04-05', tags: ['中文','阿里'] },
+            { id: 'llm-5', name: '火山引擎-Doubao', provider: 'volcengine', type: 'llm', endpoint: 'https://ark.cn-beijing.volces.com/api/v3/chat/completions', key: 'xxx', status: 'online', env: 'prod', description: '字节跳动豆包大模型', params: { maxTokens: 4096, temperature: 0.7, topP: 0.9, systemPrompt: '' }, timeout: 30, retry: 3, createdAt: '2024-05-01', tags: ['字节','中文'] },
+            { id: 't2i-1', name: 'DALL-E 3', provider: 'openai', type: 't2i', endpoint: 'https://api.openai.com/v1/images/generations', key: 'sk-proj-xxx', status: 'online', env: 'prod', description: 'OpenAI 图像生成', params: { resolution: '1024x1024', quality: 'hd', steps: 30, cfg: 7.5, stylePrompt: 'highly detailed', negativePrompt: 'blurry' }, timeout: 60, retry: 2, createdAt: '2024-01-20', tags: ['OpenAI'] },
+            { id: 't2i-2', name: '通义万相', provider: 'aliyun', type: 't2i', endpoint: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis', key: 'sk-xxx', status: 'online', env: 'prod', description: '阿里文生图，支持中文', params: { resolution: '1024x1024', quality: 'standard', steps: 50, cfg: 8.0, stylePrompt: '', negativePrompt: '' }, timeout: 120, retry: 2, createdAt: '2024-03-01', tags: ['中文'] },
+            { id: 'i2v-1', name: '可灵 Kling', provider: 'aliyun', type: 'i2v', endpoint: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/video-generation/video-synthesis', key: 'sk-xxx', status: 'online', env: 'prod', description: '快手可灵图生视频', params: { duration: 5, fps: 24, resolution: '720x1280', motionStrength: 5, motionPrompt: 'gentle camera movement' }, timeout: 300, retry: 2, createdAt: '2024-03-15', tags: ['快手'] },
+            { id: 'r2v-1', name: '可灵-参考视频', provider: 'aliyun', type: 'r2v', endpoint: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/video-generation/video-synthesis', key: 'sk-xxx', status: 'testing', env: 'dev', description: '基于参考视频风格生成', params: { duration: 5, fps: 24, resolution: '720x1280', referenceWeight: 0.8, referencePrompt: 'same style, smooth motion' }, timeout: 300, retry: 2, createdAt: '2024-04-10', tags: ['风格迁移'] },
+            { id: 'tts-1', name: '火山引擎 TTS', provider: 'volcengine', type: 'tts', endpoint: 'https://openspeech.bytedance.com/api/v1/tts', key: 'xxx', status: 'online', env: 'prod', description: '火山语音合成，多音色', params: { voice: 'zh_female_qingxin', speed: 1.0, pitch: 0, format: 'mp3', sampleRate: 24000, emotion: 'neutral' }, timeout: 30, retry: 2, createdAt: '2024-02-01', tags: ['多音色'] },
+            { id: 'tts-2', name: '阿里百炼语音', provider: 'aliyun', type: 'tts', endpoint: 'https://dashscope.aliyuncs.com/api/v1/services/audio/tts/speech', key: 'sk-xxx', status: 'online', env: 'test', description: '通义千问语音合成', params: { voice: 'xiaoyun', speed: 1.0, pitch: 0, format: 'wav', sampleRate: 16000, emotion: 'happy' }, timeout: 30, retry: 2, createdAt: '2024-03-20', tags: ['情感'] },
+            { id: 'tts-3', name: '硅基流动 TTS', provider: 'siliconflow', type: 'tts', endpoint: 'https://api.siliconflow.cn/v1/audio/speech', key: 'sk-xxx', status: 'offline', env: 'dev', description: '硅基流动语音合成', params: { voice: 'default', speed: 1.0, pitch: 0, format: 'mp3', sampleRate: 24000, emotion: 'neutral' }, timeout: 30, retry: 2, createdAt: '2024-05-10', tags: [] },
+            { id: 'comfyui-1', name: '本地 ComfyUI', provider: 'comfyui', type: 'comfyui', endpoint: 'http://127.0.0.1:8188', key: '', status: 'online', env: 'dev', description: '本地 ComfyUI 服务', params: { serverAddress: '127.0.0.1:8188', workflowJson: '{}', queueSize: 5 }, timeout: 600, retry: 1, createdAt: '2024-01-10', tags: ['本地'] }
+        ];
+
+        // ========== 工具 ==========
+        function toast(msg, type='info') {
+            const colors = { success:'bg-emerald-500', error:'bg-red-500', info:'bg-primary', warning:'bg-amber-500' };
+            const icons = { success:'fa-check-circle', error:'fa-times-circle', info:'fa-info-circle', warning:'fa-exclamation-triangle' };
+            const el = document.createElement('div');
+            el.className = `toast ${colors[type]}`;
+            el.innerHTML = `<i class="fas ${icons[type]}"></i><span>${msg}</span>`;
+            document.getElementById('toast-container').appendChild(el);
+            setTimeout(() => { el.style.opacity='0'; el.style.transform='translateX(20px)'; setTimeout(()=>el.remove(),300); }, 3000);
+        }
+
+        function maskKey(k) { return (!k||k.length<<12)?'未配置':k.substring(0,8)+'••••••'+k.substring(k.length-4); }
+        
+        function getEnvTag(env) {
+            const map = { prod:['env-prod','生产'], test:['env-test','测试'], dev:['env-dev','开发'] };
+            const [cls,label] = map[env]||['env-dev',env];
+            return `<span class="badge ${cls}">${label}</span>`;
+        }
+
+        function getFiltered() {
+            let list = models.filter(m=>m.type===currentCategory);
+            if (filterStatus!=='all') list = list.filter(m=>m.status===filterStatus);
+            if (searchKeyword) {
+                const kw = searchKeyword.toLowerCase();
+                list = list.filter(m=>m.name.toLowerCase().includes(kw)||m.provider.toLowerCase().includes(kw)||(m.description&&m.description.toLowerCase().includes(kw)));
+            }
+            return list;
+        }
+
+        // ========== 渲染 ==========
+        function renderNav() {
+            document.querySelectorAll('.nav-item').forEach(el=>{
+                el.classList.toggle('active', el.id===`nav-${currentCategory}`);
+            });
+            ['llm','t2i','i2v','r2v','tts','comfyui'].forEach(t=>{
+                const count = models.filter(m=>m.type===t).length;
+                const badge = document.getElementById(`badge-${t}`);
+                badge.textContent = count;
+                badge.style.display = count>0?'flex':'none';
+            });
+        }
+
+        function renderList() {
+            const container = document.getElementById('model-list');
+            const meta = typeMeta[currentCategory];
+            document.getElementById('list-title').textContent = meta.title;
+            document.getElementById('list-title').style.color = meta.color;
+            document.getElementById('list-desc').textContent = meta.desc;
+            
+            const list = getFiltered();
+            document.getElementById('list-count').textContent = `${list.length} 个模型`;
+
+            if (list.length===0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-cube" style="color:${meta.color}20"></i>
+                        <p class="text-xs text-slate-500 mt-2">${searchKeyword?'未找到匹配结果':'暂无模型配置'}</p>
+                        ${!searchKeyword?`<button onclick="openAddModal()" class="mt-3 text-xs px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors">立即添加</button>`:''}
+                    </div>`;
+                if (!selectedModelId || !models.find(m=>m.id===selectedModelId)) {
+                    renderEmptyDetail();
+                    selectedModelId = null;
+                }
+                return;
+            }
+
+            container.innerHTML = list.map(m=>{
+                const p = providerConfig[m.provider];
+                const active = selectedModelId===m.id;
+                return `
+                <div onclick="selectModel('${m.id}')" class="model-card ${active?'active':''}">
+                    <div class="status-line ${m.status}"></div>
+                    <div class="flex items-start gap-3 pl-2">
+                        <div class="w-9 h-9 rounded-lg flex items-center justify-center text-sm shrink-0 mt-0.5" 
+                             style="background:${p?.color||'#64748b'}15; color:${p?.color||'#64748b'};">
+                            <i class="fas ${p?.icon||'fa-cog'}"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-0.5">
+                                <span class="text-sm font-medium text-white truncate">${m.name}</span>
+                                ${getEnvTag(m.env)}
+                            </div>
+                            <div class="text-[11px] text-slate-500 mb-1">${p?.name||m.provider} · ${m.createdAt}</div>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                ${(m.tags||[]).map(t=>`<span class="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-slate-500 border border-white/5">${t}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="shrink-0 mt-1">
+                            ${m.status==='online'?'<span class="w-2 h-2 rounded-full bg-emerald-500 block shadow-[0_0_6px_#10b981]"></span>':
+                              m.status==='offline'?'<span class="w-2 h-2 rounded-full bg-red-400 block opacity-60"></span>':
+                              '<span class="w-2 h-2 rounded-full bg-amber-500 block animate-pulse"></span>'}
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            if (!selectedModelId || !list.find(m=>m.id===selectedModelId)) {
+                selectModel(list[0].id);
+            }
+        }
+
+        function renderEmptyDetail() {
+            document.getElementById('detail-panel').innerHTML = `
+                <div class="h-full flex flex-col items-center justify-center text-slate-600">
+                    <div class="w-20 h-20 rounded-3xl bg-white/[0.02] border border-white/5 flex items-center justify-center mb-4">
+                        <i class="fas fa-sliders-h text-3xl text-slate-700"></i>
+                    </div>
+                    <p class="text-sm text-slate-500">请从左侧列表选择一个模型进行配置</p>
+                </div>`;
+        }
+
+        function renderDetail() {
+            const m = models.find(x=>x.id===selectedModelId);
+            if (!m) { renderEmptyDetail(); return; }
+            const p = providerConfig[m.provider];
+            const panel = document.getElementById('detail-panel');
+
+            panel.innerHTML = `
+            <div class="slide-right max-w-3xl mx-auto">
+                <!-- 头部 -->
+                <div class="flex items-start justify-between mb-8">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-xl shrink-0" 
+                             style="background:${p?.color||'#64748b'}12; color:${p?.color||'#64748b'}; border:1px solid ${p?.color||'#64748b'}25;">
+                            <i class="fas ${p?.icon||'fa-cog'}"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-3 mb-1">
+                                <h2 class="text-xl font-bold text-white">${m.name}</h2>
+                                ${getEnvTag(m.env)}
+                                ${m.status==='online'?'<span class="badge bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px]"><i class="fas fa-check-circle mr-1"></i>在线</span>':''}
+                            </div>
+                            <p class="text-sm text-slate-500">${m.description||'暂无描述'}</p>
+                            <div class="flex items-center gap-4 mt-2 text-xs text-slate-500">
+                                <span>${p?.name||m.provider}</span>
+                                <span>${m.createdAt}</span>
+                                <span>超时 ${m.timeout}s</span>
+                                <span>重试 ${m.retry}次</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button onclick="copyModel('${m.id}')" class="btn-secondary w-9 h-9 rounded-lg flex items-center justify-center text-slate-400 hover:text-white" title="复制配置">
+                            <i class="fas fa-copy text-xs"></i>
+                        </button>
+                        <label class="switch" title="启用/禁用">
+                            <input type="checkbox" ${m.status!=='offline'?'checked':''} onchange="toggleStatus('${m.id}')">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 操作栏 -->
+                <div class="flex items-center gap-3 mb-6">
+                    <button onclick="testConn('${m.id}')" id="test-btn-${m.id}" class="btn-secondary px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+                        <i class="fas fa-bolt text-amber-400"></i> 测试连接
+                    </button>
+                    <button onclick="saveModel('${m.id}')" class="btn-primary px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
+                        <i class="fas fa-save"></i> 保存配置
+                    </button>
+                    <button onclick="openDelete('${m.id}')" class="btn-secondary px-4 py-2 rounded-lg text-sm text-red-400 hover:text-red-300 flex items-center gap-2 ml-auto">
+                        <i class="fas fa-trash-alt"></i> 删除
+                    </button>
+                </div>
+                <div id="test-res-${m.id}" class="test-result mb-6" style="display:none;"></div>
+
+                <!-- 详情标签 -->
+                <div class="flex gap-1 mb-6 border-b border-white/5 pb-1">
+                    <button onclick="switchTab('${m.id}','basic')" id="tab-basic-${m.id}" class="detail-tab active">基础配置</button>
+                    <button onclick="switchTab('${m.id}','params')" id="tab-params-${m.id}" class="detail-tab">模型参数</button>
+                    <button onclick="switchTab('${m.id}','advanced')" id="tab-advanced-${m.id}" class="detail-tab">高级设置</button>
+                </div>
+
+                <!-- 基础配置 -->
+                <div id="panel-basic-${m.id}" class="tab-panel">
+                    <div class="glass rounded-xl p-5 mb-4">
+                        <div class="section-title"><i class="fas fa-info-circle text-slate-500"></i> 基本信息</div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-group mb-0">
+                                <label class="form-label">模型名称</label>
+                                <input type="text" class="form-input" value="${m.name}" id="in-name-${m.id}">
+                            </div>
+                            <div class="form-group mb-0">
+                                <label class="form-label">厂商</label>
+                                <select class="form-select" id="in-provider-${m.id}">
+                                    ${Object.entries(providerConfig).map(([k,v])=>`<option value="${k}" ${m.provider===k?'selected':''}>${v.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-group mb-0 col-span-2">
+                                <label class="form-label">描述</label>
+                                <input type="text" class="form-input" value="${m.description||''}" id="in-desc-${m.id}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-xl p-5 mb-4">
+                        <div class="section-title"><i class="fas fa-plug text-slate-500"></i> 端点配置</div>
+                        <div class="form-group">
+                            <label class="form-label">API 端点 <span class="quick-action" onclick="fillDefaultEndpoint('${m.id}')">恢复默认</span></label>
+                            <div class="flex gap-2">
+                                <input type="text" class="form-input flex-1" value="${m.endpoint}" id="in-endpoint-${m.id}">
+                                <select class="form-select w-32" id="in-env-${m.id}">
+                                    <option value="dev" ${m.env==='dev'?'selected':''}>开发环境</option>
+                                    <option value="test" ${m.env==='test'?'selected':''}>测试环境</option>
+                                    <option value="prod" ${m.env==='prod'?'selected':''}>生产环境</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 mt-4">
+                            <div class="form-group mb-0">
+                                <label class="form-label">超时时间 (秒)</label>
+                                <input type="number" class="form-input" value="${m.timeout}" id="in-timeout-${m.id}" min="5" max="600">
+                            </div>
+                            <div class="form-group mb-0">
+                                <label class="form-label">重试次数</label>
+                                <input type="number" class="form-input" value="${m.retry}" id="in-retry-${m.id}" min="0" max="5">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-xl p-5">
+                        <div class="section-title"><i class="fas fa-key text-slate-500"></i> 密钥配置</div>
+                        <div class="form-group mb-0">
+                            <label class="form-label">API 密钥</label>
+                            <div class="relative">
+                                <input type="password" class="form-input pr-20" value="${m.key}" id="in-key-${m.id}">
+                                <button onclick="toggleKey('${m.id}')" class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 hover:text-white flex items-center gap-1">
+                                    <i class="fas fa-eye" id="eye-${m.id}"></i> 显示
+                                </button>
+                            </div>
+                            <p class="text-[11px] text-slate-600 mt-2">密钥将加密存储，仅用于 API 调用</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模型参数 -->
+                <div id="panel-params-${m.id}" class="tab-panel hidden">
+                    ${renderParams(m)}
+                </div>
+
+                <!-- 高级设置 -->
+                <div id="panel-advanced-${m.id}" class="tab-panel hidden">
+                    <div class="glass rounded-xl p-5 mb-4">
+                        <div class="section-title"><i class="fas fa-code text-slate-500"></i> 自定义请求头 (JSON)</div>
+                        <textarea class="form-textarea" id="in-headers-${m.id}" placeholder='{"X-Custom": "value"}'>${m.customHeaders?JSON.stringify(m.customHeaders,null,2):''}</textarea>
+                    </div>
+                    <div class="glass rounded-xl p-5 mb-4">
+                        <div class="section-title"><i class="fas fa-globe text-slate-500"></i> 代理设置</div>
+                        <input type="text" class="form-input" value="${m.proxy||''}" id="in-proxy-${m.id}" placeholder="http://proxy:8080">
+                    </div>
+                    <div class="glass rounded-xl p-5">
+                        <div class="section-title"><i class="fas fa-tags text-slate-500"></i> 标签</div>
+                        <input type="text" class="form-input mb-2" value="${(m.tags||[]).join(', ')}" id="in-tags-${m.id}" placeholder="标签1, 标签2...">
+                        <div class="flex gap-1.5 flex-wrap" id="tag-show-${m.id}">
+                            ${(m.tags||[]).map(t=>`<span class="text-[11px] px-2 py-1 rounded-md bg-primary/10 text-primary border border-primary/20">${t}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+                <div class="h-10"></div>
+            </div>`;
+
+            // 标签实时预览
+            const tagInput = document.getElementById(`in-tags-${m.id}`);
+            if (tagInput) {
+                tagInput.addEventListener('input', (e)=>{
+                    const tags = e.target.value.split(',').map(s=>s.trim()).filter(s=>s);
+                    document.getElementById(`tag-show-${m.id}`).innerHTML = tags.map(t=>`<span class="text-[11px] px-2 py-1 rounded-md bg-primary/10 text-primary border border-primary/20">${t}</span>`).join('');
+                });
+            }
+        }
+
+        function renderParams(m) {
+            const p = m.params||{};
+            switch(m.type) {
+                case 'llm': return `
+                    <div class="glass rounded-xl p-5">
+                        <div class="section-title"><i class="fas fa-sliders-h text-slate-500"></i> 生成参数</div>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="form-group mb-0"><label class="form-label">最大 Token</label><input type="number" class="form-input" value="${p.maxTokens||4096}" id="in-maxtokens-${m.id}"></div>
+                            <div class="form-group mb-0"><label class="form-label">Temperature</label><input type="number" class="form-input" value="${p.temperature??0.7}" step="0.1" min="0" max="2" id="in-temp-${m.id}"></div>
+                            <div class="form-group mb-0"><label class="form-label">Top P</label><input type="number" class="form-input" value="${p.topP??0.9}" step="0.05" min="0" max="1" id="in-topp-${m.id}"></div>
+                        </div>
+                        <div class="mt-4"><label class="form-label">System Prompt</label><textarea class="form-textarea" id="in-system-${m.id}" placeholder="定义模型系统行为...">${p.systemPrompt||''}</textarea></div>
+                    </div>`;
+                case 't2i': return `
+                    <div class="glass rounded-xl p-5">
+                        <div class="section-title"><i class="fas fa-image text-slate-500"></i> 图像生成参数</div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-group mb-0"><label class="form-label">分辨率</label>
+                                <select class="form-select" id="in-resolution-${m.id}">
+                                    <option value="512x512" ${p.resolution==='512x512'?'selected':''}>512×512</option>
+                                    <option value="768x768" ${p.resolution==='768x768'?'selected':''}>768×768</option>
+                                    <option value="1024x1024" ${p.resolution==='1024x1024'?'selected':''}>1024×1024</option>
+                                    <option value="1024x1792" ${p.resolution==='1024x1792'?'selected':''}>1024×1792 (竖)</option>
+                                    <option value="1792x1024" ${p.resolution==='1792x1024'?'selected':''}>1792×1024 (横)</option>
+                                </select>
+                            </div>
+                            <div class="form-group mb-0"><label class="form-label">质量</label>
+                                <select class="form-select" id="in-quality-${m.id}">
+                                    <option value="standard" ${p.quality==='standard'?'selected':''}>标准</option>
+                                    <option value="hd" ${p.quality==='hd'?'selected':''}>高清 HD</option>
+                                    <option value="ultra" ${p.quality==='ultra'?'selected':''}>超清</option>
+                                </select>
+                            </div>
+                            <div class="form-group mb-0"><label class="form-label">采样步数</label><input type="number" class="form-input" value="${p.steps||30}" id="in-steps-${m.id}" min="1" max="100"></div>
+                            <div class="form-group mb-0"><label class="form-label">CFG Scale</label><input type="number" class="form-input" value="${p.cfg||7.5}" step="0.5" min="1" max="20" id="in-cfg-${m.id}"></div>
+                        </div>
+                        <div class="mt-4"><label class="form-label">风格提示词</label><textarea class="form-textarea" id="in-style-${m.id}" placeholder="默认风格...">${p.stylePrompt||''}</textarea></div>
+                        <div class="mt-4"><label class="form-label">负面提示词</label><textarea class="form-textarea" id="in-negative-${m.id}" placeholder="不希望出现的内容...">${p.negativePrompt||''}</textarea></div>
+                    </div>`;
+                case 'i2v': return `
+                    <div class="glass rounded-xl p-5">
+                        <div class="section-title"><i class="fas fa-video text-slate-500"></i> 视频生成参数</div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-group mb-0"><label class="form-label">时长 (秒)</label>
+                                <select class="form-select" id="in-duration-${m.id}"><option value="3" ${p.duration==3?'selected':''}>3s</option><option value="5" ${p.duration==5?'selected':''}>5s</option><option value="10" ${p.duration==10?'selected':''}>10s</option></select>
+                            </div>
+                            <div class="form-group mb-0"><label class="form-label">帧率</label>
+                                <select class="form-select" id="in-fps-${m.id}"><option value="24" ${p.fps==24?'selected':''}>24 FPS</option><option value="30" ${p.fps==30?'selected':''}>30 FPS</option></select>
+                            </div>
+                            <div class="form-group mb-0"><label class="form-label">分辨率</label>
+                                <select class="form-select" id="in-vres-${m.id}"><option value="720x1280" ${p.resolution==='720x1280'?'selected':''}>720×1280</option><option value="1080x1920" ${p.resolution==='1080x1920'?'selected':''}>1080×1920</option></select>
+                            </div>
+                            <div class="form-group mb-0"><label class="form-label">运动强度 (1-10)</label><input type="number" class="form-input" value="${p.motionStrength||5}" min="1" max="10" id="in-motion-${m.id}"></div>
+                        </div>
+                        <div class="mt-4"><label class="form-label">运动提示词</label><textarea class="form-textarea" id="in-motionprompt-${m.id}" placeholder="描述运动效果...">${p.motionPrompt||''}</textarea></div>
+                    </div>`;
+                case 'r2v': return `
+                    <div class="glass rounded-xl p-5">
+                        <div class="section-title"><i class="fas fa-film text-slate-500"></i> 参考视频参数</div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-group mb-0"><label class="form-label">时长 (秒)</label>
+                                <select class="form-select" id="in-duration-${m.id}"><option value="3" ${p.duration==3?'selected':''}>3s</option><option value="5" ${p.duration==5?'selected':''}>5s</option><option value="10" ${p.duration==10?'selected':''}>10s</option></select>
+                            </div>
+                            <div class="form-group mb-0"><label class="form-label">帧率</label>
+                                <select class="form-select" id="in-fps-${m.id}"><option value="24" ${p.fps==24?'selected':''}>24 FPS</option><option value="30" ${p.fps==30?'selected':''}>30 FPS</option></select>
+                            </div>
+                            <div class="form-group mb-0"><label class="form-label">分辨率</label>
+                                <select class="form-select" id="in-vres-${m.id}"><option value="720x1280" ${p.resolution==='720x1280'?'selected':''}>720×1280</option><option value="1080x1920" ${p.resolution==='1080x1920'?'selected':''}>1080×1920</option></select>
+                            </div>
+                            <div class="form-group mb-0"><label class="form-label">参考权重 (0-1)</label><input type="number" class="form-input" value="${p.referenceWeight||0.8}" step="0.1" min="0" max="1" id="in-refweight-${m.id}"></div>
+                        </div>
+                        <div class="mt-4"><label class="form-label">参考风格提示词</label><textarea class="form-textarea" id="in-refprompt-${m.id}" placeholder="描述参考视频的风格特征...">${p.referencePrompt||''}</textarea></div>
+                    </div>`;
+                case 'tts': return `
+                    <div class="glass rounded-xl p-5">
+                        <div class="section-title"><i class="fas fa-microphone text-slate-500"></i> 语音合成参数</div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-group mb-0"><label class="form-label">音色 ID</label><input type="text" class="form-input" value="${p.voice||'default'}" id="in-voice-${m.id}" placeholder="zh_female_qingxin"></div>
+                            <div class="form-group mb-0"><label class="form-label">情感风格</label>
+                                <select class="form-select" id="in-emotion-${m.id}">
+                                    <option value="neutral" ${p.emotion==='neutral'?'selected':''}>中性</option>
+                                    <option value="happy" ${p.emotion==='happy'?'selected':''}>开心</option>
+                                    <option value="sad" ${p.emotion==='sad'?'selected':''}>悲伤</option>
+                                    <option value="excited" ${p.emotion==='excited'?'selected':''}>兴奋</option>
+                                    <option value="gentle" ${p.emotion==='gentle'?'selected':''}>温柔</option>
+                                </select>
+                            </div>
+                            <div class="form-group mb-0"><label class="form-label">语速 (0.5-2.0)</label><input type="number" class="form-input" value="${p.speed??1.0}" step="0.1" min="0.5" max="2.0" id="in-speed-${m.id}"></div>
+                            <div class="form-group mb-0"><label class="form-label">音调 (-10~10)</label><input type="number" class="form-input" value="${p.pitch||0}" min="-10" max="10" id="in-pitch-${m.id}"></div>
+                            <div class="form-group mb-0"><label class="form-label">音频格式</label>
+                                <select class="form-select" id="in-format-${m.id}"><option value="mp3" ${p.format==='mp3'?'selected':''}>MP3</option><option value="wav" ${p.format==='wav'?'selected':''}>WAV</option><option value="pcm" ${p.format==='pcm'?'selected':''}>PCM</option></select>
+                            </div>
+                            <div class="form-group mb-0"><label class="form-label">采样率</label>
+                                <select class="form-select" id="in-samplerate-${m.id}"><option value="16000" ${p.sampleRate==16000?'selected':''}>16kHz</option><option value="24000" ${p.sampleRate==24000?'selected':''}>24kHz</option><option value="48000" ${p.sampleRate==48000?'selected':''}>48kHz</option></select>
+                            </div>
+                        </div>
+                    </div>`;
+                case 'comfyui': return `
+                    <div class="glass rounded-xl p-5">
+                        <div class="section-title"><i class="fas fa-server text-slate-500"></i> ComfyUI 配置</div>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="form-group mb-0"><label class="form-label">服务器地址</label><input type="text" class="form-input" value="${p.serverAddress||'127.0.0.1:8188'}" id="in-server-${m.id}"></div>
+                            <div class="form-group mb-0"><label class="form-label">队列限制</label><input type="number" class="form-input" value="${p.queueSize||5}" min="1" max="20" id="in-queue-${m.id}"></div>
+                        </div>
+                        <div class="form-group mb-0">
+                            <label class="form-label">工作流 JSON <span class="quick-action" onclick="loadSample('${m.id}')">加载示例</span></label>
+                            <textarea class="form-textarea" id="in-workflow-${m.id}" style="min-height:240px;" placeholder='{"prompt": {...}}'>${p.workflowJson||''}</textarea>
+                        </div>
+                    </div>`;
+                default: return '<div class="text-slate-500">暂无参数</div>';
+            }
+        }
+
+        // ========== 交互 ==========
+        function switchCategory(cat) {
+            currentCategory = cat;
+            searchKeyword = '';
+            filterStatus = 'all';
+            document.getElementById('search-input').value = '';
+            document.querySelectorAll('.filter-pill').forEach(el=>el.classList.remove('active'));
+            document.getElementById('filter-all').classList.add('active');
+            selectedModelId = null;
+            renderNav();
+            renderList();
+        }
+
+        function selectModel(id) {
+            selectedModelId = id;
+            renderList();
+            renderDetail();
+        }
+
+        function handleSearch() {
+            searchKeyword = document.getElementById('search-input').value.trim();
+            renderList();
+        }
+
+        function setFilter(status) {
+            filterStatus = status;
+            document.querySelectorAll('.filter-pill').forEach(el=>el.classList.remove('active'));
+            document.getElementById(`filter-${status}`).classList.add('active');
+            renderList();
+        }
+
+        function switchTab(mid, tab) {
+            ['basic','params','advanced'].forEach(t=>{
+                document.getElementById(`tab-${t}-${mid}`)?.classList.toggle('active', t===tab);
+                document.getElementById(`panel-${t}-${mid}`)?.classList.toggle('hidden', t!==tab);
+            });
+        }
+
+        function toggleStatus(id) {
+            const m = models.find(x=>x.id===id);
+            if(m){ m.status = m.status==='offline'?'online':'offline'; renderList(); renderDetail(); toast(m.status==='online'?'模型已启用':'模型已禁用','info'); }
+        }
+
+        function toggleKey(id) {
+            const inp = document.getElementById(`in-key-${id}`);
+            const icon = document.getElementById(`eye-${id}`);
+            if (inp.type==='password') { inp.type='text'; icon.className='fas fa-eye-slash'; }
+            else { inp.type='password'; icon.className='fas fa-eye'; }
+        }
+
+        function fillDefaultEndpoint(id) {
+            const m = models.find(x=>x.id===id);
+            const tpl = endpointTemplates[`${m.provider}-${m.type}`];
+            if (tpl) { document.getElementById(`in-endpoint-${id}`).value = tpl; toast('已填充默认端点','info'); }
+            else toast('暂无默认端点','warning');
+        }
+
+        function testConn(id) {
+            const btn = document.getElementById(`test-btn-${id}`);
+            const res = document.getElementById(`test-res-${id}`);
+            const m = models.find(x=>x.id===id);
+            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin text-amber-400"></i> 检测中...';
+            res.className = 'test-result info mb-6'; res.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i>正在测试连接...'; res.style.display='block';
+            setTimeout(()=>{
+                btn.disabled = false; btn.innerHTML = '<i class="fas fa-bolt text-amber-400"></i> 测试连接';
+                if (m.status==='offline') { res.className='test-result error mb-6'; res.innerHTML='<i class="fas fa-times-circle mr-2"></i>连接失败：端点不可访问'; }
+                else { const ms=Math.floor(Math.random()*150)+50; res.className='test-result success mb-6'; res.innerHTML=`<i class="fas fa-check-circle mr-2"></i>连接成功！延迟 ${ms}ms`; }
+            }, 1800);
+        }
+
+        function saveModel(id) {
+            const m = models.find(x=>x.id===id);
+            m.name = document.getElementById(`in-name-${id}`).value;
+            m.provider = document.getElementById(`in-provider-${id}`).value;
+            m.description = document.getElementById(`in-desc-${id}`).value;
+            m.endpoint = document.getElementById(`in-endpoint-${id}`).value;
+            m.env = document.getElementById(`in-env-${id}`).value;
+            m.timeout = parseInt(document.getElementById(`in-timeout-${id}`).value)||30;
+            m.retry = parseInt(document.getElementById(`in-retry-${id}`).value)||3;
+            m.key = document.getElementById(`in-key-${id}`).value;
+            m.proxy = document.getElementById(`in-proxy-${id}`)?.value||'';
+            const tagsVal = document.getElementById(`in-tags-${id}`)?.value||'';
+            m.tags = tagsVal.split(',').map(s=>s.trim()).filter(s=>s);
+            const hdr = document.getElementById(`in-headers-${id}`)?.value;
+            try { m.customHeaders = hdr?JSON.parse(hdr):null; } catch(e){}
+
+            m.params = m.params||{};
+            const p = m.params;
+            switch(m.type) {
+                case 'llm': p.maxTokens=parseInt(document.getElementById(`in-maxtokens-${id}`).value)||4096; p.temperature=parseFloat(document.getElementById(`in-temp-${id}`).value)??0.7; p.topP=parseFloat(document.getElementById(`in-topp-${id}`).value)??0.9; p.systemPrompt=document.getElementById(`in-system-${id}`)?.value||''; break;
+                case 't2i': p.resolution=document.getElementById(`in-resolution-${id}`)?.value||'1024x1024'; p.quality=document.getElementById(`in-quality-${id}`)?.value||'standard'; p.steps=parseInt(document.getElementById(`in-steps-${id}`).value)||30; p.cfg=parseFloat(document.getElementById(`in-cfg-${id}`).value)||7.5; p.stylePrompt=document.getElementById(`in-style-${id}`)?.value||''; p.negativePrompt=document.getElementById(`in-negative-${id}`)?.value||''; break;
+                case 'i2v': p.duration=parseInt(document.getElementById(`in-duration-${id}`)?.value)||5; p.fps=parseInt(document.getElementById(`in-fps-${id}`)?.value)||24; p.resolution=document.getElementById(`in-vres-${id}`)?.value||'720x1280'; p.motionStrength=parseInt(document.getElementById(`in-motion-${id}`)?.value)||5; p.motionPrompt=document.getElementById(`in-motionprompt-${id}`)?.value||''; break;
+                case 'r2v': p.duration=parseInt(document.getElementById(`in-duration-${id}`)?.value)||5; p.fps=parseInt(document.getElementById(`in-fps-${id}`)?.value)||24; p.resolution=document.getElementById(`in-vres-${id}`)?.value||'720x1280'; p.referenceWeight=parseFloat(document.getElementById(`in-refweight-${id}`)?.value)||0.8; p.referencePrompt=document.getElementById(`in-refprompt-${id}`)?.value||''; break;
+                case 'tts': p.voice=document.getElementById(`in-voice-${id}`)?.value||'default'; p.speed=parseFloat(document.getElementById(`in-speed-${id}`)?.value)??1.0; p.pitch=parseInt(document.getElementById(`in-pitch-${id}`)?.value)||0; p.format=document.getElementById(`in-format-${id}`)?.value||'mp3'; p.sampleRate=parseInt(document.getElementById(`in-samplerate-${id}`)?.value)||24000; p.emotion=document.getElementById(`in-emotion-${id}`)?.value||'neutral'; break;
+                case 'comfyui': p.serverAddress=document.getElementById(`in-server-${id}`)?.value||'127.0.0.1:8188'; p.queueSize=parseInt(document.getElementById(`in-queue-${id}`)?.value)||5; p.workflowJson=document.getElementById(`in-workflow-${id}`)?.value||'{}'; break;
+            }
+            renderList(); renderDetail(); toast('配置已保存','success');
+        }
+
+        function copyModel(id) {
+            const m = models.find(x=>x.id===id);
+            const copy = {...m, id:`${m.type}-${Date.now()}`, name:`${m.name} (副本)`, status:'offline', env:'dev'};
+            models.push(copy); selectedModelId = copy.id;
+            renderList(); renderDetail(); toast('已复制配置','success');
+        }
+
+        function loadSample(id) {
+            const sample = JSON.stringify({prompt:{1:{inputs:{ckpt_name:"model.safetensors"},class_type:"CheckpointLoaderSimple"},2:{inputs:{text:"masterpiece, best quality"},class_type:"CLIPTextEncode"},3:{inputs:{width:1024,height:1024,batch_size:1},class_type:"EmptyLatentImage"},4:{inputs:{seed:123456,steps:30,cfg:7.5,sampler_name:"euler",scheduler:"normal",model:["1",0],positive:["2",0],negative:["5",0],latent_image:["3",0]},class_type:"KSampler"},5:{inputs:{text:"low quality",clip:["1",1]},class_type:"CLIPTextEncode"}}},null,2);
+            document.getElementById(`in-workflow-${id}`).value = sample; toast('已加载示例','info');
+        }
+
+        // ========== 添加弹窗 ==========
+        function openAddModal() {
+            document.getElementById('add-modal').classList.add('active');
+            setNewType(currentCategory);
+        }
+        function closeAddModal() { document.getElementById('add-modal').classList.remove('active'); }
+        
+        function setNewType(t) {
+            newType = t;
+            document.querySelectorAll('[id^="ntype-"]').forEach(el=>{
+                el.className = 'type-option' + (el.id===`ntype-${t}`?' selected':'');
+            });
+            renderNewProviders();
+        }
+
+        function renderNewProviders() {
+            const grid = document.getElementById('new-provider-grid');
+            const supported = Object.entries(providerConfig).filter(([k,v])=>v.types.includes(newType));
+            grid.innerHTML = supported.map(([k,v])=>`
+                <button onclick="setNewProvider('${k}')" id="nprov-${k}" class="provider-option ${k===newProvider?'selected':''}">
+                    <i class="fas ${v.icon}" style="color:${v.color}"></i>
+                    <div class="text-[10px] mt-1 text-slate-400">${v.name}</div>
+                </button>
+            `).join('');
+            if (!supported.find(([k])=>k===newProvider)) {
+                newProvider = supported[0]?.[0] || 'custom';
+                setTimeout(()=>document.getElementById(`nprov-${newProvider}`)?.classList.add('selected'),0);
+            }
+        }
+
+        function setNewProvider(p) {
+            newProvider = p;
+            document.querySelectorAll('#new-provider-grid .provider-option').forEach(el=>el.classList.remove('selected'));
+            document.getElementById(`nprov-${p}`)?.classList.add('selected');
+        }
+
+        function autoFillNewEndpoint() {
+            const tpl = endpointTemplates[`${newProvider}-${newType}`];
+            if (tpl) { document.getElementById('new-endpoint').value = tpl; toast('已自动填充','info'); }
+            else toast('暂无默认端点','warning');
+        }
+
+        function toggleNewKey() {
+            const inp = document.getElementById('new-key');
+            const icon = document.getElementById('new-eye');
+            if (inp.type==='password') { inp.type='text'; icon.className='fas fa-eye-slash'; }
+            else { inp.type='password'; icon.className='fas fa-eye'; }
+        }
+
+        function confirmAdd() {
+            const name = document.getElementById('new-name').value.trim();
+            const endpoint = document.getElementById('new-endpoint').value.trim();
+            const key = document.getElementById('new-key').value.trim();
+            const env = document.getElementById('new-env').value;
+            if (!name) { toast('请输入模型名称','warning'); return; }
+            if (!endpoint) { toast('请输入 API 端点','warning'); return; }
+
+            const defs = typeDefaults[newType]||{};
+            const m = {
+                id: `${newType}-${Date.now()}`, name, provider: newProvider, type: newType,
+                endpoint, key, status: 'offline', env, description: '',
+                params: {...defs}, timeout: 30, retry: 3,
+                createdAt: new Date().toISOString().split('T')[0], tags: []
+            };
+            if (newType==='comfyui') { m.params.serverAddress = endpoint.replace(/^https?:\/\//,''); }
+            models.push(m);
+            currentCategory = newType; selectedModelId = m.id;
+            closeAddModal(); document.getElementById('search-input').value=''; searchKeyword='';
+            switchCategory(newType); toast('添加成功','success');
+        }
+
+        // ========== 删除 ==========
+        function openDelete(id) {
+            deleteTargetId = id;
+            document.getElementById('del-name').textContent = models.find(m=>m.id===id)?.name||'';
+            document.getElementById('delete-modal').classList.add('active');
+        }
+        function closeDeleteModal() { document.getElementById('delete-modal').classList.remove('active'); deleteTargetId=null; }
+        function confirmDelete() {
+            if (!deleteTargetId) return;
+            models = models.filter(m=>m.id!==deleteTargetId);
+            if (selectedModelId===deleteTargetId) selectedModelId=null;
+            closeDeleteModal(); renderList();
+            if (!selectedModelId) renderEmptyDetail();
+            toast('已删除','info');
+        }
+
+        // ========== 导入导出 ==========
+        function exportConfig() {
+            const blob = new Blob([JSON.stringify(models,null,2)],{type:'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href=url; a.download=`models-${new Date().toISOString().split('T')[0]}.json`; a.click(); URL.revokeObjectURL(url);
+            toast('配置已导出','success');
+        }
+        function importConfig(input) {
+            const file=input.files[0]; if(!file)return;
+            const reader=new FileReader();
+            reader.onload=(e)=>{
+                try {
+                    const data=JSON.parse(e.target.result);
+                    if (Array.isArray(data)) {
+                        data.forEach(d=>{ const idx=models.findIndex(m=>m.id===d.id); if(idx>=0)models[idx]=d; else models.push(d); });
+                        renderNav(); renderList(); toast(`导入 ${data.length} 个配置`,'success');
+                    } else toast('格式错误','error');
+                } catch(err){ toast('解析失败','error'); }
+                input.value='';
+            };
+            reader.readAsText(file);
+        }
+
+        // ========== 初始化 ==========
+        document.addEventListener('DOMContentLoaded', ()=>{
+            renderNav(); renderList();
+            document.querySelectorAll('.modal-overlay').forEach(m=>{
+                m.addEventListener('click',e=>{ if(e.target===m) closeAddModal(); if(e.target===m&&m.id==='delete-modal') closeDeleteModal(); });
+            });
+        });
+    </script>
+</body>
+</html>
