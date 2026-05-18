@@ -18,3 +18,61 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// ─── 模型配置管理模块 (Sprint 1) ────────────────────────────────────────────────
+
+// 厂商元信息表
+model ProviderMeta {
+  provider        String   @id // 厂商标识，如 "aliyun", "volcengine_ark", "comfyui"
+  name            String   // 展示名称，如 "阿里百炼"
+  icon            String?  // 图标类名，如 "fa-cloud"
+  protocol        String   @default("custom") // dashscope, volcengine_ark, comfyui, openai, custom
+  authType        String   // bearer, api_key
+  authLocation    String   // header, query, body
+  authKeyName     String   // Authorization, X-API-Key 等
+  serviceLine     String?  // llm, t2i, t2v, i2v, video, audio, comfyui
+  description     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  models          ModelConfig[]
+}
+
+// 模型配置表
+model ModelConfig {
+  id              Int      @id @default(autoincrement())
+  modelId         String   @unique // 唯一标识，如 "happyhorse-t2v-prod"
+  name            String   // 展示名称
+  provider        String
+  type            String   // llm, t2i, t2v, i2v_ff, i2v_fflf, video_edit, video_extend, r2v, a2v, tts, comfyui
+  protocol        String   @default("custom") // dashscope, volcengine_ark, comfyui, openai, custom
+  endpoint        String   // API 端点
+  apiKey          String   // 加密存储（AES-256-GCM）
+  env             String   @default("prod") // prod, test, dev
+  status          String   @default("offline") // online, offline, testing
+  timeout         Int      @default(30) // 秒
+  retryTimes      Int      @default(3)
+  proxy           String?
+  tags            Json     @default("[]") // ["video", "realtime"]
+  description     String?
+  paramsSchema    Json     // Jinja2 参数映射模板 + 异步轮询配置
+  customHeaders   Json?    // 自定义请求头
+  version         Int      @default(1)
+  grayRatio       Int      @default(0) // 灰度流量比例 0-100
+  grayVersion     Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  providerMeta    ProviderMeta     @relation(fields: [provider], references: [provider])
+  history         ModelConfigHistory[]
+}
+
+// 模型配置历史表
+model ModelConfigHistory {
+  id              Int      @id @default(autoincrement())
+  modelId         String
+  snapshot        Json     // 完整配置的快照
+  version         Int
+  releasedBy      String?  // 操作人
+  releasedAt      DateTime @default(now())
+  config          ModelConfig @relation(fields: [modelId], references: [modelId])
+}
